@@ -288,11 +288,10 @@
   <script src="../assets/js/core/bootstrap.min.js"></script>
   <script src="../assets/js/plugins/perfect-scrollbar.min.js"></script>
   <script src="../assets/js/material-dashboard.min.js?v=3.2.0"></script>
-  <script src="../assets/js/api-client.js" type="module"></script>
+  <script src="../assets/js/api-client.js"></script>
 
-  <script type="module">
-    import { ApiClient } from '../assets/js/api-client.js';
-    const api = new ApiClient();
+  <script>
+    // api is already defined globally in api-client.js
 
     // Configure marked with options
     marked.setOptions({

@@ -486,6 +486,3 @@ const api = new ApiClient();
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = ApiClient;
 }
-
-// ES6 module export
-export { ApiClient };
