@@ -1,0 +1,371 @@
+/**
+ * Uqudo Admin Portal - Blue Theme Override
+ * Changes all primary colors to blue
+ */
+
+/* Primary Color Override - Change to Blue */
+:root {
+  --bs-primary: #1e88e5;
+  --bs-primary-rgb: 30, 136, 229;
+}
+
+/* Gradient Backgrounds - Blue Theme */
+.bg-gradient-primary {
+  background-image: linear-gradient(195deg, #1e88e5 0%, #1565c0 100%) !important;
+}
+
+.bg-primary {
+  background-color: #1e88e5 !important;
+}
+
+/* Buttons */
+.btn-primary,
+.btn.bg-gradient-primary {
+  background-image: linear-gradient(195deg, #1e88e5 0%, #1565c0 100%) !important;
+  border-color: #1e88e5 !important;
+}
+
+.btn-primary:hover,
+.btn.bg-gradient-primary:hover {
+  background-image: linear-gradient(195deg, #1565c0 0%, #0d47a1 100%) !important;
+  border-color: #1565c0 !important;
+}
+
+/* Links and Text */
+.text-primary {
+  color: #1e88e5 !important;
+}
+
+a.text-primary:hover {
+  color: #1565c0 !important;
+}
+
+/* Badges */
+.badge-primary {
+  background-color: #1e88e5 !important;
+}
+
+/* Alerts */
+.alert-primary {
+  background-color: #e3f2fd !important;
+  border-color: #90caf9 !important;
+  color: #0d47a1 !important;
+}
+
+/* Borders */
+.border-primary {
+  border-color: #1e88e5 !important;
+}
+
+/* Shadows */
+.shadow-primary {
+  box-shadow: 0 4px 20px 0 rgba(30, 136, 229, 0.14), 0 7px 10px -5px rgba(30, 136, 229, 0.4) !important;
+}
+
+/* Form Controls */
+.form-control:focus {
+  border-color: #1e88e5 !important;
+  box-shadow: 0 0 0 0.2rem rgba(30, 136, 229, 0.25) !important;
+}
+
+.form-check-input:checked {
+  background-color: #1e88e5 !important;
+  border-color: #1e88e5 !important;
+}
+
+/* Sidebar Active Items */
+.sidenav .nav-link.active {
+  background-image: linear-gradient(195deg, #1e88e5 0%, #1565c0 100%) !important;
+}
+
+/* Progress Bars */
+.progress-bar {
+  background-color: #1e88e5 !important;
+}
+
+/* Cards */
+.card.bg-gradient-primary {
+  background-image: linear-gradient(195deg, #1e88e5 0%, #1565c0 100%) !important;
+}
+
+/* Spinners */
+.spinner-border.text-primary {
+  color: #1e88e5 !important;
+}
+
+/* Pagination */
+.pagination .page-item.active .page-link {
+  background-color: #1e88e5 !important;
+  border-color: #1e88e5 !important;
+}
+
+/* Tables */
+.table-primary {
+  background-color: #e3f2fd !important;
+}
+
+/* Dropdown */
+.dropdown-item.active,
+.dropdown-item:active {
+  background-color: #1e88e5 !important;
+}
+
+/* Tabs */
+.nav-tabs .nav-link.active {
+  color: #1e88e5 !important;
+  border-bottom-color: #1e88e5 !important;
+}
+
+/* Pills */
+.nav-pills .nav-link.active {
+  background-color: #1e88e5 !important;
+}
+
+/* Icons with primary color */
+.icon-shape.bg-gradient-primary {
+  background-image: linear-gradient(195deg, #1e88e5 0%, #1565c0 100%) !important;
+}
+
+/* Charts - Primary color */
+.ct-series-a .ct-line,
+.ct-series-a .ct-point {
+  stroke: #1e88e5 !important;
+}
+
+/* Switch */
+.form-switch .form-check-input:checked {
+  background-color: #1e88e5 !important;
+  border-color: #1e88e5 !important;
+}
+
+/* Timeline */
+.timeline-block:before {
+  background: linear-gradient(195deg, #1e88e5, #1565c0) !important;
+}
+
+/* Avatar with badge */
+.avatar-badge.bg-gradient-primary {
+  background-image: linear-gradient(195deg, #1e88e5 0%, #1565c0 100%) !important;
+}
+
+/* Custom buttons and elements */
+.btn-link.text-primary:hover {
+  color: #1565c0 !important;
+}
+
+/* Material Dashboard specific overrides */
+.navbar-brand .text-primary {
+  color: #1e88e5 !important;
+}
+
+/* Status badges - keep other colors but ensure primary is blue */
+.badge.bg-gradient-success {
+  /* Keep success green */
+}
+
+.badge.bg-gradient-danger {
+  /* Keep danger red */
+}
+
+.badge.bg-gradient-warning {
+  /* Keep warning orange */
+}
+
+/* Focus states */
+*:focus {
+  outline-color: #1e88e5 !important;
+}
+
+/* Selection */
+::selection {
+  background-color: rgba(30, 136, 229, 0.3) !important;
+}
+
+/* Scrollbar (webkit browsers) */
+::-webkit-scrollbar-thumb {
+  background-color: #1e88e5 !important;
+}
+
+/* Loading spinner override */
+.spinner-border.text-light {
+  /* Keep light spinner */
+}
+
+/* Toast notifications */
+.toast.bg-primary {
+  background-color: #1e88e5 !important;
+}
+
+/* Navbar */
+.navbar .navbar-brand .text-primary,
+.navbar .nav-link.text-primary {
+  color: #1e88e5 !important;
+}
+
+/* Card stats */
+.card .card-header.bg-gradient-primary {
+  background-image: linear-gradient(195deg, #1e88e5 0%, #1565c0 100%) !important;
+}
+
+/* Dashboard tiles with primary color */
+.card-plain .bg-gradient-primary {
+  background-image: linear-gradient(195deg, #1e88e5 0%, #1565c0 100%) !important;
+}
+
+/* Info button variant - use same blue as primary */
+.btn-info,
+.btn.bg-gradient-info {
+  background-image: linear-gradient(195deg, #1e88e5 0%, #1565c0 100%) !important;
+  border-color: #1e88e5 !important;
+}
+
+.btn-info:hover,
+.btn.bg-gradient-info:hover {
+  background-image: linear-gradient(195deg, #1565c0 0%, #0d47a1 100%) !important;
+  border-color: #1565c0 !important;
+}
+
+/* Material Icons with primary color */
+.material-icons.text-primary {
+  color: #1e88e5 !important;
+}
+
+/* Font Awesome icons with primary color */
+.fa.text-primary,
+.fas.text-primary,
+.far.text-primary {
+  color: #1e88e5 !important;
+}
+
+/* Hover effects */
+.btn-outline-primary {
+  color: #1e88e5 !important;
+  border-color: #1e88e5 !important;
+}
+
+.btn-outline-primary:hover {
+  background-color: #1e88e5 !important;
+  border-color: #1e88e5 !important;
+  color: #fff !important;
+}
+
+/* Active states */
+.active.text-primary {
+  color: #1565c0 !important;
+}
+
+/* Ripple effect color */
+.ripple-surface {
+  background-color: rgba(30, 136, 229, 0.1) !important;
+}
+
+/* Additional Blue Theme Overrides */
+
+/* Make all gradient backgrounds blue */
+.bg-gradient-success,
+.icon-shape.bg-gradient-success,
+.card.bg-gradient-success {
+  background-image: linear-gradient(195deg, #1e88e5 0%, #1565c0 100%) !important;
+}
+
+.bg-gradient-warning,
+.icon-shape.bg-gradient-warning,
+.card.bg-gradient-warning {
+  background-image: linear-gradient(195deg, #1e88e5 0%, #1565c0 100%) !important;
+}
+
+.bg-gradient-danger,
+.icon-shape.bg-gradient-danger,
+.card.bg-gradient-danger {
+  background-image: linear-gradient(195deg, #1e88e5 0%, #1565c0 100%) !important;
+}
+
+/* Make all shadows blue */
+.shadow-success {
+  box-shadow: 0 4px 20px 0 rgba(30, 136, 229, 0.14), 0 7px 10px -5px rgba(30, 136, 229, 0.4) !important;
+}
+
+.shadow-warning {
+  box-shadow: 0 4px 20px 0 rgba(30, 136, 229, 0.14), 0 7px 10px -5px rgba(30, 136, 229, 0.4) !important;
+}
+
+.shadow-danger {
+  box-shadow: 0 4px 20px 0 rgba(30, 136, 229, 0.14), 0 7px 10px -5px rgba(30, 136, 229, 0.4) !important;
+}
+
+.shadow-info {
+  box-shadow: 0 4px 20px 0 rgba(30, 136, 229, 0.14), 0 7px 10px -5px rgba(30, 136, 229, 0.4) !important;
+}
+
+/* Button variants - all blue */
+.btn-success,
+.btn.bg-gradient-success {
+  background-image: linear-gradient(195deg, #1e88e5 0%, #1565c0 100%) !important;
+  border-color: #1e88e5 !important;
+}
+
+.btn-warning,
+.btn.bg-gradient-warning {
+  background-image: linear-gradient(195deg, #1e88e5 0%, #1565c0 100%) !important;
+  border-color: #1e88e5 !important;
+}
+
+.btn-danger,
+.btn.bg-gradient-danger {
+  background-image: linear-gradient(195deg, #1e88e5 0%, #1565c0 100%) !important;
+  border-color: #1e88e5 !important;
+}
+
+/* Hover states for all button variants */
+.btn-success:hover,
+.btn.bg-gradient-success:hover,
+.btn-warning:hover,
+.btn.bg-gradient-warning:hover,
+.btn-danger:hover,
+.btn.bg-gradient-danger:hover {
+  background-image: linear-gradient(195deg, #1565c0 0%, #0d47a1 100%) !important;
+  border-color: #1565c0 !important;
+}
+
+/* Icon shapes - all blue */
+.icon-shape.bg-success,
+.icon-shape.bg-warning,
+.icon-shape.bg-danger {
+  background-color: #1e88e5 !important;
+}
+
+/* Outline button variants */
+.btn-outline-success,
+.btn-outline-warning,
+.btn-outline-danger,
+.btn-outline-info {
+  color: #1e88e5 !important;
+  border-color: #1e88e5 !important;
+}
+
+.btn-outline-success:hover,
+.btn-outline-warning:hover,
+.btn-outline-danger:hover,
+.btn-outline-info:hover {
+  background-color: #1e88e5 !important;
+  border-color: #1e88e5 !important;
+  color: #fff !important;
+}
+
+/* Links with color variants */
+.btn-link.text-success,
+.btn-link.text-warning,
+.btn-link.text-danger,
+.btn-link.text-info {
+  color: #1e88e5 !important;
+}
+
+.btn-link.text-success:hover,
+.btn-link.text-warning:hover,
+.btn-link.text-danger:hover,
+.btn-link.text-info:hover {
+  color: #1565c0 !important;
+}
+
+/* Keep badge colors for status indication (don't override these) */
+/* This allows badges to keep their semantic colors for status */

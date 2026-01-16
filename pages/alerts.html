@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="apple-touch-icon" sizes="76x76" href="../assets/img/apple-icon.png">
+  <link rel="icon" type="image/png" href="../assets/img/favicon.png">
+  <title>KYC Alerts - Uqudo Admin Portal</title>
+
+  <!-- Fonts and icons -->
+  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,900" />
+  <link href="../assets/css/nucleo-icons.css" rel="stylesheet" />
+  <link href="../assets/css/nucleo-svg.css" rel="stylesheet" />
+  <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+  <!-- CSS Files -->
+  <link id="pagestyle" href="../assets/css/material-dashboard.css?v=3.2.0" rel="stylesheet" />
+  <link href="../assets/css/uqudo-blue-theme.css" rel="stylesheet" />
+</head>
+
+<body class="g-sidenav-show bg-gray-200">
+  <!-- Sidebar -->
+  <aside class="sidenav navbar navbar-vertical navbar-expand-xs border-radius-lg fixed-start ms-2 bg-white my-2" id="sidenav-main">
+    <div class="sidenav-header">
+      <i class="fas fa-times p-3 cursor-pointer text-dark opacity-5 position-absolute end-0 top-0 d-none d-xl-none" aria-hidden="true" id="iconSidenav"></i>
+      <a class="navbar-brand px-4 py-3 m-0" href="./uqudo-dashboard.html">
+        <img src="../assets/img/uqudo-logo.png" alt="Uqudo Logo" style="height: 28px;">
+      </a>
+    </div>
+    <hr class="horizontal dark mt-0 mb-2">
+    <div class="collapse navbar-collapse w-auto" id="sidenav-collapse-main">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="./uqudo-dashboard.html">
+            <i class="material-symbols-rounded opacity-10">dashboard</i>
+            <span class="nav-link-text ms-1">Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="./accounts.html">
+            <i class="material-symbols-rounded opacity-10">person</i>
+            <span class="nav-link-text ms-1">Accounts</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active bg-gradient-info text-white" href="./alerts.html">
+            <i class="material-symbols-rounded opacity-10">notification_important</i>
+            <span class="nav-link-text ms-1">KYC Alerts</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="./cases.html">
+            <i class="material-symbols-rounded opacity-10">gavel</i>
+            <span class="nav-link-text ms-1">AML Cases</span>
+          </a>
+        </li>
+        <li class="nav-item mt-3">
+          <h6 class="ps-4 ms-2 text-uppercase text-xs text-dark font-weight-bolder opacity-8">Configuration</h6>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="./config-kyc.html">
+            <i class="material-symbols-rounded opacity-10">settings</i>
+            <span class="nav-link-text ms-1">KYC Setup</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="./config-blocklist.html">
+            <i class="material-symbols-rounded opacity-10">block</i>
+            <span class="nav-link-text ms-1">Blocklist</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+    <div class="sidenav-footer position-absolute w-100 bottom-0">
+      <div class="mx-3">
+        <a class="btn btn-outline-dark mt-4 w-100" href="../backend/API_DOCUMENTATION.md" target="_blank">
+          <i class="material-symbols-rounded text-sm me-1">description</i>
+          Documentation
+        </a>
+        <a class="btn bg-gradient-info w-100 mt-2" href="#" id="logout-btn">
+          <i class="material-symbols-rounded text-sm me-1">logout</i>
+          Logout
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content position-relative max-height-vh-100 h-100 border-radius-lg">
+    <!-- Navbar -->
+    <nav class="navbar navbar-main navbar-expand-lg px-0 mx-3 shadow-none border-radius-xl" id="navbarBlur">
+      <div class="container-fluid py-1 px-3">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb bg-transparent mb-0 pb-0 pt-1 px-0 me-sm-6 me-5">
+            <li class="breadcrumb-item text-sm"><a class="opacity-5 text-dark" href="./uqudo-dashboard.html">Dashboard</a></li>
+            <li class="breadcrumb-item text-sm text-dark active" aria-current="page">KYC Alerts</li>
+          </ol>
+          <h6 class="font-weight-bolder mb-0">Alert Queue Management</h6>
+        </nav>
+        <div class="collapse navbar-collapse mt-sm-0 mt-2 me-md-0 me-sm-4" id="navbar">
+          <div class="ms-md-auto pe-md-3 d-flex align-items-center">
+            <!-- Space for future search -->
+          </div>
+          <ul class="navbar-nav justify-content-end">
+            <li class="nav-item d-flex align-items-center">
+              <a href="#" class="nav-link text-body font-weight-bold px-0">
+                <i class="material-symbols-rounded">account_circle</i>
+                <span class="d-sm-inline d-none ms-1" id="user-name">User</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+    <!-- End Navbar -->
+
+    <!-- Alerts Content -->
+    <div class="container-fluid py-2">
+      <!-- Queue Summary Cards -->
+      <div class="row mb-4">
+        <div class="col-xl-4 col-sm-6 mb-xl-0 mb-4">
+          <div class="card">
+            <div class="card-header p-2 ps-3">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <p class="text-sm mb-0 text-capitalize">Pending Alerts</p>
+                  <h4 class="mb-0" id="pending-count">
+                    <span class="spinner-border spinner-border-sm" role="status"></span>
+                  </h4>
+                </div>
+                <div class="icon icon-md icon-shape bg-gradient-info shadow-info shadow text-center border-radius-lg">
+                  <i class="material-symbols-rounded opacity-10 text-white">pending</i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-xl-4 col-sm-6 mb-xl-0 mb-4">
+          <div class="card">
+            <div class="card-header p-2 ps-3">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <p class="text-sm mb-0 text-capitalize">In Review</p>
+                  <h4 class="mb-0" id="inreview-count">
+                    <span class="spinner-border spinner-border-sm" role="status"></span>
+                  </h4>
+                </div>
+                <div class="icon icon-md icon-shape bg-gradient-info shadow-info shadow text-center border-radius-lg">
+                  <i class="material-symbols-rounded opacity-10 text-white">rate_review</i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-xl-4 col-sm-6 mb-xl-0 mb-4">
+          <div class="card">
+            <div class="card-header p-2 ps-3">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <p class="text-sm mb-0 text-capitalize">My Queue</p>
+                  <h4 class="mb-0" id="myqueue-count">
+                    <span class="spinner-border spinner-border-sm" role="status"></span>
+                  </h4>
+                </div>
+                <div class="icon icon-md icon-shape bg-gradient-info shadow-info shadow text-center border-radius-lg">
+                  <i class="material-symbols-rounded opacity-10 text-white">person</i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters Row -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header pb-0">
+              <h6>Filters</h6>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-3 mb-3">
+                  <label class="form-label text-sm">Status</label>
+                  <select class="form-select" id="filter-status">
+                    <option value="">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="in_review">In Review</option>
+                    <option value="resolved">Resolved</option>
+                  </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label text-sm">Alert Type</label>
+                  <select class="form-select" id="filter-type">
+                    <option value="">All Types</option>
+                    <option value="manual_review">Manual Review</option>
+                    <option value="duplicate_account">Duplicate Account</option>
+                    <option value="id_expiry">ID Expiry</option>
+                  </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label text-sm">Severity</label>
+                  <select class="form-select" id="filter-severity">
+                    <option value="">All Severities</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label text-sm">&nbsp;</label>
+                  <button class="btn bg-gradient-info w-100" id="apply-filters">
+                    <i class="material-symbols-rounded me-1">filter_alt</i>
+                    Apply Filters
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alerts Table -->
+      <div class="row">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header pb-0">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6>KYC Alerts Queue</h6>
+                <button class="btn btn-sm bg-gradient-info" id="refresh-alerts">
+                  <i class="material-symbols-rounded me-1">refresh</i>
+                  Refresh
+                </button>
+              </div>
+            </div>
+            <div class="card-body px-0 pb-2">
+              <div class="table-responsive p-0">
+                <table class="table align-items-center mb-0">
+                  <thead>
+                    <tr>
+                      <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Alert ID</th>
+                      <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Account</th>
+                      <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Type</th>
+                      <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Severity</th>
+                      <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Status</th>
+                      <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Created</th>
+                      <th class="text-secondary opacity-7">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="alerts-table-body">
+                    <tr>
+                      <td colspan="7" class="text-center py-4">
+                        <div class="spinner-border text-info" role="status">
+                          <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="text-sm mt-2">Loading alerts...</p>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card-footer">
+              <div id="pagination-container"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer py-4 mt-4">
+      <div class="container-fluid">
+        <div class="row align-items-center justify-content-lg-between">
+          <div class="col-lg-6 mb-lg-0 mb-4">
+            <div class="copyright text-center text-sm text-muted text-lg-start">
+              © <script>document.write(new Date().getFullYear())</script> Uqudo Admin Portal
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <!-- Alert Detail Modal -->
+  <div class="modal fade" id="alertDetailModal" tabindex="-1" aria-labelledby="alertDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="alertDetailModalLabel">Alert Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="alert-detail-content">
+          <div class="text-center py-4">
+            <div class="spinner-border text-info" role="status"></div>
+          </div>
+        </div>
+        <div class="modal-footer" id="alert-actions-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manual Action Modal -->
+  <div class="modal fade" id="actionModal" tabindex="-1" aria-labelledby="actionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="actionModalLabel">Perform Action</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="action-alert-id">
+          <div class="mb-3">
+            <label for="action-type" class="form-label">Action</label>
+            <select class="form-select" id="action-type" required>
+              <option value="">Select Action...</option>
+              <option value="APPROVE">Approve - Clear and activate account</option>
+              <option value="DECLINE">Decline - Block account</option>
+              <option value="CLEAN">Clean - Mark as false positive</option>
+              <option value="SUSPICIOUS">Suspicious - Flag for investigation</option>
+              <option value="FALSE_POSITIVE">False Positive - Clear false match</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="action-reason" class="form-label">Reason</label>
+            <input type="text" class="form-control" id="action-reason" placeholder="Brief reason for action">
+          </div>
+          <div class="mb-3">
+            <label for="action-notes" class="form-label">Notes (Optional)</label>
+            <textarea class="form-control" id="action-notes" rows="3" placeholder="Additional notes..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn bg-gradient-info" id="submit-action">Submit Action</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Core JS Files -->
+  <script src="../assets/js/core/popper.min.js"></script>
+  <script src="../assets/js/core/bootstrap.min.js"></script>
+  <script src="../assets/js/plugins/perfect-scrollbar.min.js"></script>
+  <script src="../assets/js/plugins/smooth-scrollbar.min.js"></script>
+  <script src="../assets/js/material-dashboard.min.js?v=3.2.0"></script>
+
+  <!-- API Client & Utils -->
+  <script src="../assets/js/api-client.js"></script>
+  <script src="../assets/js/utils.js"></script>
+
+  <!-- Alerts Page Script -->
+  <script>
+    let currentPage = 1;
+    let currentFilters = {};
+    let alerts = [];
+
+    // Load queue summary
+    async function loadQueueSummary() {
+      try {
+        const response = await api.getAlertQueueSummary();
+        if (response.success) {
+          const data = response.data;
+          document.getElementById('pending-count').textContent = formatNumber(data.pending || 0);
+          document.getElementById('inreview-count').textContent = formatNumber(data.in_review || 0);
+          document.getElementById('myqueue-count').textContent = formatNumber(data.my_queue || 0);
+        }
+      } catch (error) {
+        console.error('Error loading queue summary:', error);
+        document.getElementById('pending-count').textContent = '0';
+        document.getElementById('inreview-count').textContent = '0';
+        document.getElementById('myqueue-count').textContent = '0';
+      }
+    }
+
+    // Load alerts list
+    async function loadAlerts(page = 1) {
+      currentPage = page;
+      const tableBody = document.getElementById('alerts-table-body');
+
+      try {
+        const params = {
+          page: page,
+          limit: 20,
+          ...currentFilters
+        };
+
+        const response = await api.getAlerts(params);
+
+        if (response.success) {
+          alerts = response.data;
+
+          if (alerts.length === 0) {
+            tableBody.innerHTML = `
+              <tr>
+                <td colspan="7" class="text-center py-4">
+                  <i class="material-symbols-rounded text-secondary" style="font-size: 48px;">inbox</i>
+                  <p class="text-sm mt-2">No alerts found</p>
+                </td>
+              </tr>
+            `;
+          } else {
+            tableBody.innerHTML = alerts.map(alert => `
+              <tr>
+                <td>
+                  <p class="text-xs font-weight-bold mb-0">${alert.id.substring(0, 8)}...</p>
+                </td>
+                <td>
+                  <div class="d-flex flex-column justify-content-center">
+                    <h6 class="mb-0 text-sm">${alert.accounts?.first_name || ''} ${alert.accounts?.last_name || ''}</h6>
+                    <p class="text-xs text-secondary mb-0">${alert.accounts?.email || 'N/A'}</p>
+                  </div>
+                </td>
+                <td>
+                  <p class="text-xs font-weight-bold mb-0">${snakeToTitle(alert.alert_type)}</p>
+                </td>
+                <td>
+                  <span class="badge badge-sm ${getAlertSeverityBadge(alert.severity)}">${capitalize(alert.severity)}</span>
+                </td>
+                <td>
+                  <span class="badge badge-sm ${getAlertStatusBadge(alert.status)}">${snakeToTitle(alert.status)}</span>
+                </td>
+                <td>
+                  <p class="text-xs font-weight-bold mb-0">${formatDate(alert.created_at)}</p>
+                </td>
+                <td class="align-middle">
+                  <button class="btn btn-link text-info text-gradient px-2 mb-0" onclick="viewAlertDetail('${alert.id}')">
+                    <i class="material-symbols-rounded text-sm me-1">visibility</i>
+                    View
+                  </button>
+                  <button class="btn btn-link text-warning text-gradient px-2 mb-0" onclick="openActionModal('${alert.id}')">
+                    <i class="material-symbols-rounded text-sm me-1">check_circle</i>
+                    Action
+                  </button>
+                </td>
+              </tr>
+            `).join('');
+          }
+
+          // Update pagination
+          if (response.pagination) {
+            const paginationHtml = buildPagination(response.pagination, loadAlerts);
+            document.getElementById('pagination-container').innerHTML = paginationHtml;
+            attachPaginationListeners('pagination-container', loadAlerts);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading alerts:', error);
+        showError('Failed to load alerts');
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center py-4 text-danger">
+              <i class="material-symbols-rounded" style="font-size: 48px;">error</i>
+              <p class="text-sm mt-2">Error loading alerts</p>
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    // View alert detail
+    async function viewAlertDetail(alertId) {
+      const modal = new bootstrap.Modal(document.getElementById('alertDetailModal'));
+      const content = document.getElementById('alert-detail-content');
+      const footer = document.getElementById('alert-actions-footer');
+
+      content.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-info"></div></div>';
+      modal.show();
+
+      try {
+        const response = await api.getAlertById(alertId);
+        if (response.success) {
+          const alert = response.data;
+
+          content.innerHTML = `
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="text-xs text-uppercase font-weight-bolder">Alert ID</label>
+                <p class="text-sm">${alert.id}</p>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="text-xs text-uppercase font-weight-bolder">Status</label>
+                <p class="text-sm"><span class="badge ${getAlertStatusBadge(alert.status)}">${snakeToTitle(alert.status)}</span></p>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="text-xs text-uppercase font-weight-bolder">Alert Type</label>
+                <p class="text-sm">${snakeToTitle(alert.alert_type)}</p>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="text-xs text-uppercase font-weight-bolder">Severity</label>
+                <p class="text-sm"><span class="badge ${getAlertSeverityBadge(alert.severity)}">${capitalize(alert.severity)}</span></p>
+              </div>
+              <div class="col-12 mb-3">
+                <label class="text-xs text-uppercase font-weight-bolder">Account</label>
+                <p class="text-sm">${alert.accounts?.first_name || ''} ${alert.accounts?.last_name || ''}<br>
+                <span class="text-xs text-secondary">${alert.accounts?.email || 'N/A'}</span></p>
+              </div>
+              <div class="col-12 mb-3">
+                <label class="text-xs text-uppercase font-weight-bolder">Description</label>
+                <p class="text-sm">${alert.description || 'No description'}</p>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="text-xs text-uppercase font-weight-bolder">Created</label>
+                <p class="text-sm">${formatDateTime(alert.created_at)}</p>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="text-xs text-uppercase font-weight-bolder">Assigned To</label>
+                <p class="text-sm">${alert.assigned_user?.full_name || 'Unassigned'}</p>
+              </div>
+            </div>
+          `;
+
+          // Add action button in footer if not resolved
+          if (alert.status !== 'resolved') {
+            footer.innerHTML = `
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              <button type="button" class="btn bg-gradient-info" onclick="openActionModal('${alert.id}'); bootstrap.Modal.getInstance(document.getElementById('alertDetailModal')).hide();">
+                <i class="material-symbols-rounded me-1">check_circle</i>
+                Take Action
+              </button>
+            `;
+          } else {
+            footer.innerHTML = '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>';
+          }
+        }
+      } catch (error) {
+        console.error('Error loading alert detail:', error);
+        content.innerHTML = '<p class="text-center text-danger">Error loading alert details</p>';
+      }
+    }
+
+    // Open action modal
+    function openActionModal(alertId) {
+      document.getElementById('action-alert-id').value = alertId;
+      document.getElementById('action-type').value = '';
+      document.getElementById('action-reason').value = '';
+      document.getElementById('action-notes').value = '';
+
+      const modal = new bootstrap.Modal(document.getElementById('actionModal'));
+      modal.show();
+    }
+
+    // Submit action
+    document.getElementById('submit-action').addEventListener('click', async () => {
+      const alertId = document.getElementById('action-alert-id').value;
+      const action = document.getElementById('action-type').value;
+      const reason = document.getElementById('action-reason').value;
+      const notes = document.getElementById('action-notes').value;
+
+      if (!action) {
+        showError('Please select an action');
+        return;
+      }
+
+      if (!reason) {
+        showError('Please provide a reason');
+        return;
+      }
+
+      const confirmed = await confirmAction(
+        `Are you sure you want to ${action} this alert?\n\nReason: ${reason}`,
+        'Confirm Action'
+      );
+
+      if (!confirmed) return;
+
+      try {
+        showLoading();
+        const response = await api.performAlertAction(alertId, action, reason, notes);
+        hideLoading();
+
+        if (response.success) {
+          showSuccess(`Action ${action} completed successfully`);
+          bootstrap.Modal.getInstance(document.getElementById('actionModal')).hide();
+
+          // Reload alerts and summary
+          loadAlerts(currentPage);
+          loadQueueSummary();
+        } else {
+          showError(response.error || 'Action failed');
+        }
+      } catch (error) {
+        hideLoading();
+        console.error('Error performing action:', error);
+        showError('Error performing action: ' + error.message);
+      }
+    });
+
+    // Apply filters
+    document.getElementById('apply-filters').addEventListener('click', () => {
+      currentFilters = {
+        status: document.getElementById('filter-status').value,
+        alertType: document.getElementById('filter-type').value,
+        severity: document.getElementById('filter-severity').value
+      };
+
+      // Remove empty filters
+      Object.keys(currentFilters).forEach(key => {
+        if (!currentFilters[key]) delete currentFilters[key];
+      });
+
+      loadAlerts(1);
+    });
+
+    // Refresh button
+    document.getElementById('refresh-alerts').addEventListener('click', () => {
+      loadAlerts(currentPage);
+      loadQueueSummary();
+    });
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', () => {
+      loadQueueSummary();
+      loadAlerts(1);
+
+      // Auto-refresh every 30 seconds
+      setInterval(() => {
+        loadQueueSummary();
+      }, 30000);
+    });
+  </script>
+</body>
+
+</html>

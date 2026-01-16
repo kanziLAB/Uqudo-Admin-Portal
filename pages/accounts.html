@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="apple-touch-icon" sizes="76x76" href="../assets/img/apple-icon.png">
+  <link rel="icon" type="image/png" href="../assets/img/favicon.png">
+  <title>Accounts Management - Uqudo Admin Portal</title>
+
+  <!-- Fonts and icons -->
+  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,900" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+
+  <!-- Material Dashboard CSS -->
+  <link id="pagestyle" href="../assets/css/material-dashboard.css?v=3.2.0" rel="stylesheet" />
+  <link href="../assets/css/uqudo-blue-theme.css" rel="stylesheet" />
+
+  <style>
+    .account-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: white;
+      font-size: 16px;
+    }
+    .verification-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.875rem;
+    }
+    .verification-badge i {
+      font-size: 18px;
+    }
+    .filter-section {
+      background: #f8f9fa;
+      padding: 1rem;
+      border-radius: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .stats-mini {
+      font-size: 0.75rem;
+      color: #67748e;
+      margin-top: 0.25rem;
+    }
+    .action-dropdown {
+      min-width: 160px;
+    }
+    .modal-section {
+      margin-bottom: 1.5rem;
+    }
+    .modal-section-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #344767;
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #f0f2f5;
+    }
+    .info-label {
+      font-weight: 500;
+      color: #67748e;
+    }
+    .info-value {
+      font-weight: 600;
+      color: #344767;
+    }
+    .biometric-item {
+      background: #f8f9fa;
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .device-card {
+      background: #ffffff;
+      border: 1px solid #e9ecef;
+      border-radius: 0.5rem;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .timeline-item {
+      position: relative;
+      padding-left: 2rem;
+      padding-bottom: 1rem;
+    }
+    .timeline-item:before {
+      content: '';
+      position: absolute;
+      left: 0.5rem;
+      top: 0.5rem;
+      bottom: -1rem;
+      width: 2px;
+      background: #e9ecef;
+    }
+    .timeline-item:last-child:before {
+      display: none;
+    }
+    .timeline-dot {
+      position: absolute;
+      left: 0;
+      top: 0.25rem;
+      width: 1.25rem;
+      height: 1.25rem;
+      border-radius: 50%;
+      background: white;
+      border: 3px solid #1e88e5;
+    }
+  </style>
+</head>
+
+<body class="g-sidenav-show bg-gray-200">
+
+  <!-- Sidebar -->
+  <aside class="sidenav navbar navbar-vertical navbar-expand-xs border-radius-lg fixed-start ms-2 bg-white my-2" id="sidenav-main">
+    <div class="sidenav-header">
+      <i class="fas fa-times p-3 cursor-pointer text-dark opacity-5 position-absolute end-0 top-0 d-none d-xl-none" aria-hidden="true" id="iconSidenav"></i>
+      <a class="navbar-brand px-4 py-3 m-0" href="uqudo-dashboard.html">
+        <img src="../assets/img/uqudo-logo.png" alt="Uqudo Logo" style="height: 28px;">
+      </a>
+    </div>
+    <hr class="horizontal dark mt-0 mb-2">
+    <div class="collapse navbar-collapse w-auto" id="sidenav-collapse-main">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="uqudo-dashboard.html">
+            <i class="material-symbols-rounded opacity-5">dashboard</i>
+            <span class="nav-link-text ms-1">Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active bg-gradient-info text-white" href="accounts.html">
+            <i class="material-symbols-rounded opacity-5">group</i>
+            <span class="nav-link-text ms-1">Accounts</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="alerts.html">
+            <i class="material-symbols-rounded opacity-5">notifications_active</i>
+            <span class="nav-link-text ms-1">KYC Alerts</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="cases.html">
+            <i class="material-symbols-rounded opacity-5">gavel</i>
+            <span class="nav-link-text ms-1">AML Cases</span>
+          </a>
+        </li>
+        <li class="nav-item mt-3">
+          <h6 class="ps-4 ms-2 text-uppercase text-xs text-dark font-weight-bolder opacity-5">Configuration</h6>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="kyc-setup.html">
+            <i class="material-symbols-rounded opacity-5">settings</i>
+            <span class="nav-link-text ms-1">KYC Setup</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="blocklist.html">
+            <i class="material-symbols-rounded opacity-5">block</i>
+            <span class="nav-link-text ms-1">Blocklist</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="main-content position-relative max-height-vh-100 h-100 border-radius-lg">
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-main navbar-expand-lg px-0 mx-3 shadow-none border-radius-xl" id="navbarBlur">
+      <div class="container-fluid py-1 px-3">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb bg-transparent mb-0 pb-0 pt-1 px-0 me-sm-6 me-5">
+            <li class="breadcrumb-item text-sm"><a class="opacity-5 text-dark" href="javascript:;">Pages</a></li>
+            <li class="breadcrumb-item text-sm text-dark active" aria-current="page">Accounts</li>
+          </ol>
+          <h6 class="font-weight-bold mb-0">Accounts Management</h6>
+        </nav>
+        <div class="collapse navbar-collapse mt-sm-0 mt-2 me-md-0 me-sm-4" id="navbar">
+          <div class="ms-md-auto pe-md-3 d-flex align-items-center">
+          </div>
+          <ul class="navbar-nav justify-content-end">
+            <li class="nav-item d-flex align-items-center">
+              <a href="javascript:;" class="nav-link text-white bg-gradient-info font-weight-bold px-3 border-radius-md" onclick="logout()">
+                <i class="material-symbols-rounded me-sm-1">logout</i>
+                <span class="d-sm-inline d-none">Sign Out</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="container-fluid py-2">
+
+      <!-- Account Statistics -->
+      <div class="row mb-4">
+        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+          <div class="card">
+            <div class="card-header p-2 ps-3">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <p class="text-sm mb-0">Total Accounts</p>
+                  <h4 class="mb-0" id="total-accounts">
+                    <span class="spinner-border spinner-border-sm"></span>
+                  </h4>
+                  <p class="stats-mini mb-0">All registered users</p>
+                </div>
+                <div class="icon icon-md icon-shape bg-gradient-info shadow-info text-center border-radius-lg">
+                  <i class="material-symbols-rounded opacity-10 text-white">group</i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+          <div class="card">
+            <div class="card-header p-2 ps-3">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <p class="text-sm mb-0">Active Accounts</p>
+                  <h4 class="mb-0 text-success" id="active-accounts">
+                    <span class="spinner-border spinner-border-sm"></span>
+                  </h4>
+                  <p class="stats-mini mb-0">Verified users</p>
+                </div>
+                <div class="icon icon-md icon-shape bg-gradient-info shadow-info text-center border-radius-lg">
+                  <i class="material-symbols-rounded opacity-10 text-white">verified</i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+          <div class="card">
+            <div class="card-header p-2 ps-3">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <p class="text-sm mb-0">Pending Verification</p>
+                  <h4 class="mb-0 text-warning" id="pending-accounts">
+                    <span class="spinner-border spinner-border-sm"></span>
+                  </h4>
+                  <p class="stats-mini mb-0">Awaiting review</p>
+                </div>
+                <div class="icon icon-md icon-shape bg-gradient-info shadow-info text-center border-radius-lg">
+                  <i class="material-symbols-rounded opacity-10 text-white">pending</i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-3 col-sm-6">
+          <div class="card">
+            <div class="card-header p-2 ps-3">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <p class="text-sm mb-0">Rejected Accounts</p>
+                  <h4 class="mb-0 text-danger" id="rejected-accounts">
+                    <span class="spinner-border spinner-border-sm"></span>
+                  </h4>
+                  <p class="stats-mini mb-0">Failed verification</p>
+                </div>
+                <div class="icon icon-md icon-shape bg-gradient-info shadow-info text-center border-radius-lg">
+                  <i class="material-symbols-rounded opacity-10 text-white">cancel</i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters and Search -->
+      <div class="row">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body">
+              <div class="filter-section">
+                <div class="row g-3">
+                  <div class="col-md-3">
+                    <label class="form-label text-xs mb-1">Search</label>
+                    <input type="text" class="form-control form-control-sm" id="search-input" placeholder="Name, email, or phone">
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label text-xs mb-1">Status</label>
+                    <select class="form-select form-select-sm" id="filter-status">
+                      <option value="">All Statuses</option>
+                      <option value="active">Active</option>
+                      <option value="pending">Pending</option>
+                      <option value="suspended">Suspended</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label text-xs mb-1">Verification Type</label>
+                    <select class="form-select form-select-sm" id="filter-verification-type">
+                      <option value="">All Types</option>
+                      <option value="uae_national">UAE National</option>
+                      <option value="international">International</option>
+                    </select>
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label text-xs mb-1">Risk Score</label>
+                    <select class="form-select form-select-sm" id="filter-risk">
+                      <option value="">All Levels</option>
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label text-xs mb-1">&nbsp;</label>
+                    <div class="d-flex gap-2">
+                      <button class="btn btn-sm bg-gradient-info text-white w-100" onclick="applyFilters()">
+                        <i class="material-symbols-rounded text-sm">filter_alt</i> Apply Filters
+                      </button>
+                      <button class="btn btn-sm btn-outline-secondary" onclick="clearFilters()">
+                        <i class="material-symbols-rounded text-sm">clear</i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accounts Table -->
+      <div class="row mt-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header pb-0">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Customer Accounts</h6>
+                <div>
+                  <button class="btn btn-info btn-sm mb-0" data-bs-toggle="modal" data-bs-target="#createAccountModal">
+                    <i class="material-symbols-rounded me-1">add</i> Add Account
+                  </button>
+                  <span class="text-sm text-secondary ms-3" id="accounts-count">Loading...</span>
+                </div>
+              </div>
+            </div>
+            <div class="card-body px-0 pb-2">
+              <div class="table-responsive p-0">
+                <table class="table align-items-center mb-0">
+                  <thead>
+                    <tr>
+                      <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Account</th>
+                      <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Contact</th>
+                      <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Verification</th>
+                      <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Status</th>
+                      <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Risk Score</th>
+                      <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Created</th>
+                      <th class="text-secondary opacity-7"></th>
+                    </tr>
+                  </thead>
+                  <tbody id="accounts-table-body">
+                    <tr>
+                      <td colspan="7" class="text-center py-4">
+                        <div class="spinner-border text-info" role="status">
+                          <span class="visually-hidden">Loading...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="px-3 py-3" id="pagination-container"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Account Detail Modal -->
+  <div class="modal fade" id="accountDetailModal" tabindex="-1" aria-labelledby="accountDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="accountDetailModalLabel">Account Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <!-- Left Column: Personal & Contact Info -->
+            <div class="col-md-6">
+              <div class="modal-section">
+                <div class="modal-section-title">Personal Information</div>
+                <div class="info-row">
+                  <span class="info-label">Full Name</span>
+                  <span class="info-value" id="detail-name">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Date of Birth</span>
+                  <span class="info-value" id="detail-dob">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Nationality</span>
+                  <span class="info-value" id="detail-nationality">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Document Type</span>
+                  <span class="info-value" id="detail-document-type">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Document Number</span>
+                  <span class="info-value" id="detail-document-number">-</span>
+                </div>
+              </div>
+
+              <div class="modal-section">
+                <div class="modal-section-title">Contact Information</div>
+                <div class="info-row">
+                  <span class="info-label">Email</span>
+                  <span class="info-value" id="detail-email">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Phone</span>
+                  <span class="info-value" id="detail-phone">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Address</span>
+                  <span class="info-value" id="detail-address">-</span>
+                </div>
+              </div>
+
+              <div class="modal-section">
+                <div class="modal-section-title">Account Status</div>
+                <div class="info-row">
+                  <span class="info-label">Status</span>
+                  <span class="info-value" id="detail-status">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Risk Score</span>
+                  <span class="info-value" id="detail-risk-score">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Verification Type</span>
+                  <span class="info-value" id="detail-verification-type">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Created At</span>
+                  <span class="info-value" id="detail-created-at">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Last Updated</span>
+                  <span class="info-value" id="detail-updated-at">-</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column: Biometric & Device Info -->
+            <div class="col-md-6">
+              <div class="modal-section">
+                <div class="modal-section-title">Biometric Data</div>
+                <div id="biometric-data-container">
+                  <p class="text-sm text-muted">Loading biometric data...</p>
+                </div>
+              </div>
+
+              <div class="modal-section">
+                <div class="modal-section-title">Device Attestation</div>
+                <div id="device-data-container">
+                  <p class="text-sm text-muted">Loading device data...</p>
+                </div>
+              </div>
+
+              <div class="modal-section">
+                <div class="modal-section-title">Recent Activity</div>
+                <div id="activity-timeline-container">
+                  <p class="text-sm text-muted">Loading activity...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn bg-gradient-info" onclick="openActionModal()">Manual Action</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manual Action Modal -->
+  <div class="modal fade" id="actionModal" tabindex="-1" aria-labelledby="actionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="actionModalLabel">Manual Action</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="action-account-id">
+
+          <div class="mb-3">
+            <label class="form-label">Action Type</label>
+            <select class="form-select" id="action-type" required>
+              <option value="">Select action...</option>
+              <option value="APPROVE">Approve Account</option>
+              <option value="SUSPEND">Suspend Account</option>
+              <option value="REJECT">Reject Account</option>
+              <option value="REACTIVATE">Reactivate Account</option>
+              <option value="REQUEST_INFO">Request Additional Info</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Reason</label>
+            <input type="text" class="form-control" id="action-reason" placeholder="Brief reason for action" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Notes</label>
+            <textarea class="form-control" id="action-notes" rows="3" placeholder="Detailed explanation..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn bg-gradient-info" id="submit-action">Submit Action</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Account Modal -->
+  <div class="modal fade" id="createAccountModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Create New Account</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="create-account-form">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">User ID *</label>
+                <input type="text" class="form-control" name="user_id" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Email *</label>
+                <input type="email" class="form-control" name="email" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">First Name *</label>
+                <input type="text" class="form-control" name="first_name" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Last Name *</label>
+                <input type="text" class="form-control" name="last_name" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Phone Number *</label>
+                <input type="tel" class="form-control" name="phone_number" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Date of Birth *</label>
+                <input type="date" class="form-control" name="date_of_birth" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">ID Type *</label>
+                <select class="form-control" name="id_type" required>
+                  <option value="">Select...</option>
+                  <option value="passport">Passport</option>
+                  <option value="eid">Emirates ID</option>
+                  <option value="driving_license">Driving License</option>
+                  <option value="visa">Visa</option>
+                  <option value="pan_card">PAN Card</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">ID Number *</label>
+                <input type="text" class="form-control" name="id_number" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Nationality</label>
+                <input type="text" class="form-control" name="nationality">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Gender</label>
+                <select class="form-control" name="gender">
+                  <option value="">Select...</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-info" onclick="submitCreateAccount()">Create Account</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../assets/js/core/popper.min.js"></script>
+  <script src="../assets/js/core/bootstrap.min.js"></script>
+  <script src="../assets/js/api-client.js"></script>
+  <script src="../assets/js/utils.js"></script>
+
+  <script>
+    // api is already defined globally in api-client.js
+    let accounts = [];
+    let currentPage = 1;
+    let totalPages = 1;
+    let currentFilters = {};
+    let selectedAccountId = null;
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+      loadAccountStats();
+      loadAccounts();
+
+      // Submit action handler
+      document.getElementById('submit-action').addEventListener('click', submitAction);
+
+      // Search on Enter
+      document.getElementById('search-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') applyFilters();
+      });
+    });
+
+    // Load account statistics
+    async function loadAccountStats() {
+      try {
+        // Fetch all accounts without pagination to get accurate counts
+        const response = await api.getAccounts({ limit: 1000 });
+        if (response.success) {
+          const allAccounts = response.data.accounts || response.data;
+          const total = response.data.total || allAccounts.length;
+
+          // Calculate status counts
+          const active = allAccounts.filter(a => a.account_status === 'active').length;
+          const pending = allAccounts.filter(a => a.account_status === 'pending').length;
+          const rejected = allAccounts.filter(a => a.account_status === 'rejected').length;
+
+          document.getElementById('total-accounts').textContent = formatNumber(total);
+          document.getElementById('active-accounts').textContent = formatNumber(active);
+          document.getElementById('pending-accounts').textContent = formatNumber(pending);
+          document.getElementById('rejected-accounts').textContent = formatNumber(rejected);
+        }
+      } catch (error) {
+        console.error('Failed to load account stats:', error);
+        // Set to 0 on error
+        document.getElementById('total-accounts').textContent = '0';
+        document.getElementById('active-accounts').textContent = '0';
+        document.getElementById('pending-accounts').textContent = '0';
+        document.getElementById('rejected-accounts').textContent = '0';
+      }
+    }
+
+    // Load accounts with filters
+    async function loadAccounts(page = 1) {
+      currentPage = page;
+      const tableBody = document.getElementById('accounts-table-body');
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="7" class="text-center py-4">
+            <div class="spinner-border text-info" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </td>
+        </tr>
+      `;
+
+      try {
+        const params = {
+          page: page,
+          limit: 20,
+          ...currentFilters
+        };
+
+        const response = await api.getAccounts(params);
+
+        if (response.success) {
+          accounts = response.data.accounts || response.data;
+          totalPages = response.data.totalPages || 1;
+          const total = response.data.total || accounts.length;
+
+          document.getElementById('accounts-count').textContent =
+            `Showing ${accounts.length} of ${formatNumber(total)} accounts`;
+
+          if (accounts.length === 0) {
+            tableBody.innerHTML = `
+              <tr>
+                <td colspan="7" class="text-center py-4">
+                  <i class="material-symbols-rounded text-secondary" style="font-size: 48px;">inbox</i>
+                  <p class="text-secondary mb-0">No accounts found</p>
+                </td>
+              </tr>
+            `;
+            return;
+          }
+
+          tableBody.innerHTML = accounts.map(account => {
+            const initials = getInitials(account.first_name, account.last_name);
+            const avatarColor = getAvatarColor(account.id);
+
+            return `
+              <tr>
+                <td>
+                  <div class="d-flex px-2 py-1">
+                    <div class="account-avatar" style="background: ${avatarColor};">
+                      ${initials}
+                    </div>
+                    <div class="d-flex flex-column justify-content-center ms-2">
+                      <h6 class="mb-0 text-sm">${account.first_name} ${account.last_name}</h6>
+                      <p class="text-xs text-secondary mb-0">ID: ${account.id.substring(0, 8)}...</p>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <p class="text-xs mb-0">${account.email || '-'}</p>
+                  <p class="text-xs text-secondary mb-0">${account.phone_number || '-'}</p>
+                </td>
+                <td>
+                  <div class="verification-badge">
+                    <i class="material-symbols-rounded text-${account.verification_type === 'uae_national' ? 'success' : 'info'}">
+                      ${account.verification_type === 'uae_national' ? 'verified_user' : 'public'}
+                    </i>
+                    <span class="text-xs">${snakeToTitle(account.verification_type || 'unknown')}</span>
+                  </div>
+                </td>
+                <td class="align-middle text-center text-sm">
+                  <span class="badge badge-sm ${getAccountStatusBadge(account.status)}">
+                    ${capitalize(account.status || 'unknown')}
+                  </span>
+                </td>
+                <td class="align-middle text-center">
+                  <span class="badge badge-sm ${getRiskScoreBadge(account.risk_score)}">
+                    ${capitalize(account.risk_score || 'unknown')}
+                  </span>
+                </td>
+                <td class="align-middle text-center">
+                  <span class="text-secondary text-xs">${formatDate(account.created_at, { dateStyle: 'short' })}</span>
+                </td>
+                <td class="align-middle">
+                  <div class="dropdown">
+                    <button class="btn btn-sm btn-icon-only" type="button" data-bs-toggle="dropdown">
+                      <i class="material-symbols-rounded">more_vert</i>
+                    </button>
+                    <ul class="dropdown-menu action-dropdown">
+                      <li><a class="dropdown-item" href="javascript:;" onclick="viewAccountDetail('${account.id}')">
+                        <i class="material-symbols-rounded text-sm me-2">visibility</i> View Details
+                      </a></li>
+                      <li><a class="dropdown-item" href="javascript:;" onclick="viewAccountDocuments('${account.id}')">
+                        <i class="material-symbols-rounded text-sm me-2">description</i> Documents
+                      </a></li>
+                      <li><a class="dropdown-item" href="javascript:;" onclick="viewAccountActivity('${account.id}')">
+                        <i class="material-symbols-rounded text-sm me-2">history</i> Activity Log
+                      </a></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li><a class="dropdown-item" href="javascript:;" onclick="openActionModalForAccount('${account.id}')">
+                        <i class="material-symbols-rounded text-sm me-2">edit</i> Manual Action
+                      </a></li>
+                    </ul>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('');
+
+          // Build pagination
+          buildPagination('pagination-container', currentPage, totalPages, loadAccounts);
+        }
+      } catch (error) {
+        console.error('Failed to load accounts:', error);
+        showError('Failed to load accounts');
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center py-4 text-danger">
+              <i class="material-symbols-rounded">error</i>
+              <p>Failed to load accounts</p>
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    // Apply filters
+    function applyFilters() {
+      currentFilters = {};
+
+      const search = document.getElementById('search-input').value.trim();
+      const status = document.getElementById('filter-status').value;
+      const verificationType = document.getElementById('filter-verification-type').value;
+      const riskScore = document.getElementById('filter-risk').value;
+
+      if (search) currentFilters.search = search;
+      if (status) currentFilters.status = status;
+      if (verificationType) currentFilters.verification_type = verificationType;
+      if (riskScore) currentFilters.risk_score = riskScore;
+
+      loadAccounts(1);
+    }
+
+    // Clear filters
+    function clearFilters() {
+      document.getElementById('search-input').value = '';
+      document.getElementById('filter-status').value = '';
+      document.getElementById('filter-verification-type').value = '';
+      document.getElementById('filter-risk').value = '';
+      currentFilters = {};
+      loadAccounts(1);
+    }
+
+    // View account detail
+    async function viewAccountDetail(accountId) {
+      selectedAccountId = accountId;
+      const modal = new bootstrap.Modal(document.getElementById('accountDetailModal'));
+
+      try {
+        const response = await api.getAccountById(accountId);
+
+        if (response.success) {
+          const account = response.data;
+
+          // Personal Information
+          document.getElementById('detail-name').textContent = `${account.first_name} ${account.last_name}`;
+          document.getElementById('detail-dob').textContent = formatDate(account.date_of_birth, { dateStyle: 'medium' }) || '-';
+          document.getElementById('detail-nationality').textContent = account.nationality || '-';
+          document.getElementById('detail-document-type').textContent = snakeToTitle(account.document_type || '-');
+          document.getElementById('detail-document-number').textContent = account.document_number || '-';
+
+          // Contact Information
+          document.getElementById('detail-email').textContent = account.email || '-';
+          document.getElementById('detail-phone').textContent = account.phone_number || '-';
+          document.getElementById('detail-address').textContent = account.address || '-';
+
+          // Account Status
+          document.getElementById('detail-status').innerHTML =
+            `<span class="badge ${getAccountStatusBadge(account.status)}">${capitalize(account.status)}</span>`;
+          document.getElementById('detail-risk-score').innerHTML =
+            `<span class="badge ${getRiskScoreBadge(account.risk_score)}">${capitalize(account.risk_score || 'unknown')}</span>`;
+          document.getElementById('detail-verification-type').textContent = snakeToTitle(account.verification_type || '-');
+          document.getElementById('detail-created-at').textContent = formatDate(account.created_at, { dateStyle: 'medium', timeStyle: 'short' });
+          document.getElementById('detail-updated-at').textContent = formatDate(account.updated_at, { dateStyle: 'medium', timeStyle: 'short' });
+
+          // Load additional data
+          loadBiometricData(accountId);
+          loadDeviceData(accountId);
+          loadActivityLog(accountId);
+
+          modal.show();
+        }
+      } catch (error) {
+        console.error('Failed to load account details:', error);
+        showError('Failed to load account details');
+      }
+    }
+
+    // Load biometric data
+    async function loadBiometricData(accountId) {
+      const container = document.getElementById('biometric-data-container');
+      try {
+        const response = await api.getAccountBiometricData(accountId);
+
+        if (response.success && response.data.length > 0) {
+          container.innerHTML = response.data.map(bio => `
+            <div class="biometric-item">
+              <div class="d-flex justify-content-between mb-1">
+                <span class="text-sm font-weight-bold">${snakeToTitle(bio.biometric_type)}</span>
+                <span class="badge badge-sm ${bio.is_verified ? 'badge-success' : 'badge-secondary'}">
+                  ${bio.is_verified ? 'Verified' : 'Pending'}
+                </span>
+              </div>
+              <p class="text-xs text-muted mb-1">Confidence: ${(bio.confidence_score * 100).toFixed(1)}%</p>
+              <p class="text-xs text-muted mb-0">Captured: ${formatDate(bio.captured_at, { dateStyle: 'short', timeStyle: 'short' })}</p>
+            </div>
+          `).join('');
+        } else {
+          container.innerHTML = '<p class="text-sm text-muted">No biometric data available</p>';
+        }
+      } catch (error) {
+        container.innerHTML = '<p class="text-sm text-danger">Failed to load biometric data</p>';
+      }
+    }
+
+    // Load device data
+    async function loadDeviceData(accountId) {
+      const container = document.getElementById('device-data-container');
+      try {
+        const response = await api.getAccountDeviceAttestation(accountId);
+
+        if (response.success && response.data.length > 0) {
+          container.innerHTML = response.data.map(device => `
+            <div class="device-card">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                  <h6 class="text-sm mb-0">${device.device_model || 'Unknown Device'}</h6>
+                  <p class="text-xs text-muted mb-0">${device.os_name} ${device.os_version}</p>
+                </div>
+                <span class="badge badge-sm ${device.is_trusted ? 'badge-success' : 'badge-warning'}">
+                  ${device.is_trusted ? 'Trusted' : 'Untrusted'}
+                </span>
+              </div>
+              <p class="text-xs mb-1"><strong>Device ID:</strong> ${device.device_id.substring(0, 16)}...</p>
+              <p class="text-xs mb-0"><strong>Last Seen:</strong> ${formatDate(device.last_seen_at, { dateStyle: 'short', timeStyle: 'short' })}</p>
+            </div>
+          `).join('');
+        } else {
+          container.innerHTML = '<p class="text-sm text-muted">No device data available</p>';
+        }
+      } catch (error) {
+        container.innerHTML = '<p class="text-sm text-danger">Failed to load device data</p>';
+      }
+    }
+
+    // Load activity log
+    async function loadActivityLog(accountId) {
+      const container = document.getElementById('activity-timeline-container');
+      try {
+        const response = await api.getAccountActivityLog(accountId, { limit: 10 });
+
+        if (response.success && response.data.length > 0) {
+          container.innerHTML = response.data.map(activity => `
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div>
+                <p class="text-sm mb-1"><strong>${snakeToTitle(activity.action)}</strong></p>
+                <p class="text-xs text-muted mb-1">${activity.description || '-'}</p>
+                <p class="text-xs text-muted mb-0">${formatDate(activity.created_at, { dateStyle: 'short', timeStyle: 'short' })}</p>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          container.innerHTML = '<p class="text-sm text-muted">No recent activity</p>';
+        }
+      } catch (error) {
+        container.innerHTML = '<p class="text-sm text-danger">Failed to load activity</p>';
+      }
+    }
+
+    // Open action modal
+    function openActionModal() {
+      const actionModal = new bootstrap.Modal(document.getElementById('actionModal'));
+      document.getElementById('action-account-id').value = selectedAccountId;
+      document.getElementById('action-type').value = '';
+      document.getElementById('action-reason').value = '';
+      document.getElementById('action-notes').value = '';
+
+      // Close detail modal
+      const detailModal = bootstrap.Modal.getInstance(document.getElementById('accountDetailModal'));
+      if (detailModal) detailModal.hide();
+
+      actionModal.show();
+    }
+
+    // Open action modal for specific account
+    function openActionModalForAccount(accountId) {
+      selectedAccountId = accountId;
+      const actionModal = new bootstrap.Modal(document.getElementById('actionModal'));
+      document.getElementById('action-account-id').value = accountId;
+      document.getElementById('action-type').value = '';
+      document.getElementById('action-reason').value = '';
+      document.getElementById('action-notes').value = '';
+      actionModal.show();
+    }
+
+    // Submit action
+    async function submitAction() {
+      const accountId = document.getElementById('action-account-id').value;
+      const action = document.getElementById('action-type').value;
+      const reason = document.getElementById('action-reason').value;
+      const notes = document.getElementById('action-notes').value;
+
+      if (!action) {
+        showError('Please select an action type');
+        return;
+      }
+
+      if (!reason) {
+        showError('Please provide a reason');
+        return;
+      }
+
+      const submitBtn = document.getElementById('submit-action');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processing...';
+
+      try {
+        const response = await api.performAccountAction(accountId, action, reason, notes);
+
+        if (response.success) {
+          showSuccess(`Action ${action} completed successfully`);
+
+          const modal = bootstrap.Modal.getInstance(document.getElementById('actionModal'));
+          modal.hide();
+
+          loadAccounts(currentPage);
+          loadAccountStats();
+        } else {
+          showError(response.error || 'Failed to perform action');
+        }
+      } catch (error) {
+        console.error('Failed to submit action:', error);
+        showError('Failed to submit action');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Submit Action';
+      }
+    }
+
+    // Placeholder functions for additional features
+    function viewAccountDocuments(accountId) {
+      showInfo('Document viewer feature coming soon');
+    }
+
+    function viewAccountActivity(accountId) {
+      showInfo('Full activity log feature coming soon');
+    }
+
+    // Helper functions
+    function getInitials(firstName, lastName) {
+      const first = firstName ? firstName.charAt(0).toUpperCase() : '';
+      const last = lastName ? lastName.charAt(0).toUpperCase() : '';
+      return first + last || '??';
+    }
+
+    function getAvatarColor(id) {
+      const colors = [
+        '#1e88e5', '#43a047', '#fb8c00', '#e53935', '#8e24aa',
+        '#3949ab', '#00acc1', '#7cb342', '#f4511e', '#6d4c41'
+      ];
+      const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      return colors[hash % colors.length];
+    }
+
+    function getAccountStatusBadge(status) {
+      const badges = {
+        active: 'badge-success',
+        pending: 'badge-warning',
+        suspended: 'badge-secondary',
+        rejected: 'badge-danger'
+      };
+      return badges[status] || 'badge-secondary';
+    }
+
+    function getRiskScoreBadge(score) {
+      const badges = {
+        low: 'badge-success',
+        medium: 'badge-warning',
+        high: 'badge-danger'
+      };
+      return badges[score] || 'badge-secondary';
+    }
+
+    async function submitCreateAccount() {
+      const form = document.getElementById('create-account-form');
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+
+      try {
+        const response = await api.createAccount(data);
+        if (response.success) {
+          showSuccess('Account created successfully');
+          bootstrap.Modal.getInstance(document.getElementById('createAccountModal')).hide();
+          form.reset();
+          loadAccounts();
+        }
+      } catch (error) {
+        showError(error.message || 'Failed to create account');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('uqudo_token');
+      localStorage.removeItem('uqudo_user');
+      window.location.href = 'uqudo-sign-in.html';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="apple-touch-icon" sizes="76x76" href="../assets/img/apple-icon.png">
+  <link rel="icon" type="image/png" href="../assets/img/favicon.png">
+  <title>AML Cases - Uqudo Admin Portal</title>
+
+  <!-- Fonts and icons -->
+  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,900" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+
+  <!-- Material Dashboard CSS -->
+  <link id="pagestyle" href="../assets/css/material-dashboard.css?v=3.2.0" rel="stylesheet" />
+  <link href="../assets/css/uqudo-blue-theme.css" rel="stylesheet" />
+
+  <style>
+    .case-priority-high {
+      border-left: 4px solid #f44336;
+    }
+    .case-priority-medium {
+      border-left: 4px solid #ff9800;
+    }
+    .case-priority-low {
+      border-left: 4px solid #4caf50;
+    }
+    .match-score {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    .match-details {
+      background: #f8f9fa;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .filter-section {
+      background: #f8f9fa;
+      padding: 1rem;
+      border-radius: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .stats-mini {
+      font-size: 0.75rem;
+      color: #67748e;
+      margin-top: 0.25rem;
+    }
+    .modal-section {
+      margin-bottom: 1.5rem;
+    }
+    .modal-section-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #344767;
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #f0f2f5;
+    }
+    .info-label {
+      font-weight: 500;
+      color: #67748e;
+    }
+    .info-value {
+      font-weight: 600;
+      color: #344767;
+      text-align: right;
+    }
+    .resolution-timeline {
+      position: relative;
+      padding-left: 2rem;
+    }
+    .resolution-step {
+      position: relative;
+      padding-bottom: 1.5rem;
+    }
+    .resolution-step:before {
+      content: '';
+      position: absolute;
+      left: -1.5rem;
+      top: 0.5rem;
+      bottom: -1.5rem;
+      width: 2px;
+      background: #e9ecef;
+    }
+    .resolution-step:last-child:before {
+      display: none;
+    }
+    .resolution-dot {
+      position: absolute;
+      left: -1.75rem;
+      top: 0.25rem;
+      width: 1rem;
+      height: 1rem;
+      border-radius: 50%;
+      background: white;
+      border: 3px solid #1e88e5;
+    }
+    .resolution-dot.completed {
+      background: #4caf50;
+      border-color: #4caf50;
+    }
+    .export-options {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: 100%;
+      background: white;
+      border: 1px solid #dee2e6;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      padding: 0.5rem 0;
+      min-width: 150px;
+      z-index: 1000;
+    }
+    .export-options.show {
+      display: block;
+    }
+    .export-option {
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .export-option:hover {
+      background: #f8f9fa;
+    }
+  </style>
+</head>
+
+<body class="g-sidenav-show bg-gray-200">
+
+  <!-- Sidebar -->
+  <aside class="sidenav navbar navbar-vertical navbar-expand-xs border-radius-lg fixed-start ms-2 bg-white my-2" id="sidenav-main">
+    <div class="sidenav-header">
+      <i class="fas fa-times p-3 cursor-pointer text-dark opacity-5 position-absolute end-0 top-0 d-none d-xl-none" aria-hidden="true" id="iconSidenav"></i>
+      <a class="navbar-brand px-4 py-3 m-0" href="uqudo-dashboard.html">
+        <img src="../assets/img/uqudo-logo.png" alt="Uqudo Logo" style="height: 28px;">
+      </a>
+    </div>
+    <hr class="horizontal dark mt-0 mb-2">
+    <div class="collapse navbar-collapse w-auto" id="sidenav-collapse-main">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="uqudo-dashboard.html">
+            <i class="material-symbols-rounded opacity-5">dashboard</i>
+            <span class="nav-link-text ms-1">Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="accounts.html">
+            <i class="material-symbols-rounded opacity-5">group</i>
+            <span class="nav-link-text ms-1">Accounts</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="alerts.html">
+            <i class="material-symbols-rounded opacity-5">notifications_active</i>
+            <span class="nav-link-text ms-1">KYC Alerts</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active bg-gradient-info text-white" href="cases.html">
+            <i class="material-symbols-rounded opacity-5">gavel</i>
+            <span class="nav-link-text ms-1">AML Cases</span>
+          </a>
+        </li>
+        <li class="nav-item mt-3">
+          <h6 class="ps-4 ms-2 text-uppercase text-xs text-dark font-weight-bolder opacity-5">Configuration</h6>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="kyc-setup.html">
+            <i class="material-symbols-rounded opacity-5">settings</i>
+            <span class="nav-link-text ms-1">KYC Setup</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="blocklist.html">
+            <i class="material-symbols-rounded opacity-5">block</i>
+            <span class="nav-link-text ms-1">Blocklist</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="main-content position-relative max-height-vh-100 h-100 border-radius-lg">
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-main navbar-expand-lg px-0 mx-3 shadow-none border-radius-xl" id="navbarBlur">
+      <div class="container-fluid py-1 px-3">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb bg-transparent mb-0 pb-0 pt-1 px-0 me-sm-6 me-5">
+            <li class="breadcrumb-item text-sm"><a class="opacity-5 text-dark" href="javascript:;">Pages</a></li>
+            <li class="breadcrumb-item text-sm text-dark active" aria-current="page">AML Cases</li>
+          </ol>
+          <h6 class="font-weight-bold mb-0">AML Case Management</h6>
+        </nav>
+        <div class="collapse navbar-collapse mt-sm-0 mt-2 me-md-0 me-sm-4" id="navbar">
+          <div class="ms-md-auto pe-md-3 d-flex align-items-center">
+          </div>
+          <ul class="navbar-nav justify-content-end">
+            <li class="nav-item d-flex align-items-center">
+              <a href="javascript:;" class="nav-link text-white bg-gradient-info font-weight-bold px-3 border-radius-md" onclick="logout()">
+                <i class="material-symbols-rounded me-sm-1">logout</i>
+                <span class="d-sm-inline d-none">Sign Out</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="container-fluid py-2">
+
+      <!-- Case Statistics -->
+      <div class="row mb-4">
+        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+          <div class="card">
+            <div class="card-header p-2 ps-3">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <p class="text-sm mb-0">Total Cases</p>
+                  <h4 class="mb-0" id="total-cases">
+                    <span class="spinner-border spinner-border-sm"></span>
+                  </h4>
+                  <p class="stats-mini mb-0">All AML cases</p>
+                </div>
+                <div class="icon icon-md icon-shape bg-gradient-info shadow-info text-center border-radius-lg">
+                  <i class="material-symbols-rounded opacity-10 text-white">gavel</i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+          <div class="card">
+            <div class="card-header p-2 ps-3">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <p class="text-sm mb-0">Under Investigation</p>
+                  <h4 class="mb-0 text-warning" id="under-investigation-cases">
+                    <span class="spinner-border spinner-border-sm"></span>
+                  </h4>
+                  <p class="stats-mini mb-0">Active cases</p>
+                </div>
+                <div class="icon icon-md icon-shape bg-gradient-info shadow-info text-center border-radius-lg">
+                  <i class="material-symbols-rounded opacity-10 text-white">search</i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+          <div class="card">
+            <div class="card-header p-2 ps-3">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <p class="text-sm mb-0">Escalated</p>
+                  <h4 class="mb-0 text-danger" id="escalated-cases">
+                    <span class="spinner-border spinner-border-sm"></span>
+                  </h4>
+                  <p class="stats-mini mb-0">High priority</p>
+                </div>
+                <div class="icon icon-md icon-shape bg-gradient-info shadow-info text-center border-radius-lg">
+                  <i class="material-symbols-rounded opacity-10 text-white">priority_high</i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-3 col-sm-6">
+          <div class="card">
+            <div class="card-header p-2 ps-3">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <p class="text-sm mb-0">Resolved</p>
+                  <h4 class="mb-0 text-success" id="resolved-cases">
+                    <span class="spinner-border spinner-border-sm"></span>
+                  </h4>
+                  <p class="stats-mini mb-0">Completed cases</p>
+                </div>
+                <div class="icon icon-md icon-shape bg-gradient-info shadow-info text-center border-radius-lg">
+                  <i class="material-symbols-rounded opacity-10 text-white">check_circle</i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters and Actions -->
+      <div class="row">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body">
+              <div class="filter-section">
+                <div class="row g-3 align-items-end">
+                  <div class="col-md-3">
+                    <label class="form-label text-xs mb-1">Search</label>
+                    <input type="text" class="form-control form-control-sm" id="search-input" placeholder="Case ID or account name">
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label text-xs mb-1">Status</label>
+                    <select class="form-select form-select-sm" id="filter-status">
+                      <option value="">All Statuses</option>
+                      <option value="open">Open</option>
+                      <option value="under_investigation">Under Investigation</option>
+                      <option value="escalated">Escalated</option>
+                      <option value="resolved">Resolved</option>
+                      <option value="closed">Closed</option>
+                    </select>
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label text-xs mb-1">Priority</label>
+                    <select class="form-select form-select-sm" id="filter-priority">
+                      <option value="">All Priorities</option>
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label text-xs mb-1">Assigned To</label>
+                    <select class="form-select form-select-sm" id="filter-assigned">
+                      <option value="">All Users</option>
+                      <option value="me">My Cases</option>
+                      <option value="unassigned">Unassigned</option>
+                    </select>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="d-flex gap-2">
+                      <button class="btn btn-sm bg-gradient-info text-white flex-grow-1" onclick="applyFilters()">
+                        <i class="material-symbols-rounded text-sm">filter_alt</i> Apply Filters
+                      </button>
+                      <button class="btn btn-sm btn-outline-secondary" onclick="clearFilters()">
+                        <i class="material-symbols-rounded text-sm">clear</i>
+                      </button>
+                      <div class="position-relative">
+                        <button class="btn btn-sm btn-outline-info" onclick="toggleExport()">
+                          <i class="material-symbols-rounded text-sm">download</i>
+                        </button>
+                        <div class="export-options" id="export-options">
+                          <div class="export-option" onclick="exportCases('csv')">
+                            <i class="material-symbols-rounded text-sm me-2">description</i> CSV
+                          </div>
+                          <div class="export-option" onclick="exportCases('pdf')">
+                            <i class="material-symbols-rounded text-sm me-2">picture_as_pdf</i> PDF
+                          </div>
+                          <div class="export-option" onclick="exportCases('excel')">
+                            <i class="material-symbols-rounded text-sm me-2">table_chart</i> Excel
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cases List -->
+      <div class="row mt-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header pb-0">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">AML Cases</h6>
+                <div>
+                  <button class="btn btn-info btn-sm mb-0" data-bs-toggle="modal" data-bs-target="#createCaseModal">
+                    <i class="material-symbols-rounded me-1">add</i> Create Case
+                  </button>
+                  <span class="text-sm text-secondary ms-3" id="cases-count">Loading...</span>
+                </div>
+              </div>
+            </div>
+            <div class="card-body px-0 pb-2">
+              <div class="table-responsive p-0">
+                <table class="table align-items-center mb-0">
+                  <thead>
+                    <tr>
+                      <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Case ID</th>
+                      <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Account</th>
+                      <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Type</th>
+                      <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Match Score</th>
+                      <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Priority</th>
+                      <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Status</th>
+                      <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Assigned To</th>
+                      <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Created</th>
+                      <th class="text-secondary opacity-7"></th>
+                    </tr>
+                  </thead>
+                  <tbody id="cases-table-body">
+                    <tr>
+                      <td colspan="9" class="text-center py-4">
+                        <div class="spinner-border text-info" role="status">
+                          <span class="visually-hidden">Loading...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="px-3 py-3" id="pagination-container"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Case Detail Modal -->
+  <div class="modal fade" id="caseDetailModal" tabindex="-1" aria-labelledby="caseDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="caseDetailModalLabel">Case Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <!-- Left Column: Case & Account Info -->
+            <div class="col-md-6">
+              <div class="modal-section">
+                <div class="modal-section-title">Case Information</div>
+                <div class="info-row">
+                  <span class="info-label">Case ID</span>
+                  <span class="info-value" id="detail-case-id">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Case Type</span>
+                  <span class="info-value" id="detail-case-type">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Priority</span>
+                  <span class="info-value" id="detail-priority">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Status</span>
+                  <span class="info-value" id="detail-status">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Assigned To</span>
+                  <span class="info-value" id="detail-assigned-to">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Created At</span>
+                  <span class="info-value" id="detail-created-at">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Last Updated</span>
+                  <span class="info-value" id="detail-updated-at">-</span>
+                </div>
+              </div>
+
+              <div class="modal-section">
+                <div class="modal-section-title">Account Information</div>
+                <div class="info-row">
+                  <span class="info-label">Account Name</span>
+                  <span class="info-value" id="detail-account-name">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Account ID</span>
+                  <span class="info-value" id="detail-account-id">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Email</span>
+                  <span class="info-value" id="detail-account-email">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Risk Score</span>
+                  <span class="info-value" id="detail-account-risk">-</span>
+                </div>
+              </div>
+
+              <div class="modal-section">
+                <div class="modal-section-title">Case Description</div>
+                <p class="text-sm" id="detail-description">-</p>
+              </div>
+            </div>
+
+            <!-- Right Column: Match Details & Resolution -->
+            <div class="col-md-6">
+              <div class="modal-section">
+                <div class="modal-section-title">Match Details</div>
+                <div id="match-details-container">
+                  <p class="text-sm text-muted">Loading match details...</p>
+                </div>
+              </div>
+
+              <div class="modal-section">
+                <div class="modal-section-title">Resolution Workflow</div>
+                <div class="resolution-timeline">
+                  <div class="resolution-step">
+                    <div class="resolution-dot" id="step-open"></div>
+                    <div>
+                      <p class="text-sm font-weight-bold mb-0">Case Opened</p>
+                      <p class="text-xs text-muted" id="step-open-time">-</p>
+                    </div>
+                  </div>
+                  <div class="resolution-step">
+                    <div class="resolution-dot" id="step-investigation"></div>
+                    <div>
+                      <p class="text-sm font-weight-bold mb-0">Under Investigation</p>
+                      <p class="text-xs text-muted" id="step-investigation-time">-</p>
+                    </div>
+                  </div>
+                  <div class="resolution-step">
+                    <div class="resolution-dot" id="step-review"></div>
+                    <div>
+                      <p class="text-sm font-weight-bold mb-0">Manager Review</p>
+                      <p class="text-xs text-muted" id="step-review-time">-</p>
+                    </div>
+                  </div>
+                  <div class="resolution-step">
+                    <div class="resolution-dot" id="step-resolved"></div>
+                    <div>
+                      <p class="text-sm font-weight-bold mb-0">Resolved</p>
+                      <p class="text-xs text-muted" id="step-resolved-time">-</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="modal-section">
+                <div class="modal-section-title">Resolution Notes</div>
+                <p class="text-sm" id="detail-resolution-notes">-</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn bg-gradient-info" onclick="openActionModal()">Manual Action</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manual Action Modal -->
+  <div class="modal fade" id="actionModal" tabindex="-1" aria-labelledby="actionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="actionModalLabel">Manual Action on Case</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="action-case-id">
+
+          <div class="mb-3">
+            <label class="form-label">Action Type</label>
+            <select class="form-select" id="action-type" required>
+              <option value="">Select action...</option>
+              <option value="INVESTIGATE">Start Investigation</option>
+              <option value="ESCALATE">Escalate to Manager</option>
+              <option value="REQUEST_INFO">Request More Information</option>
+              <option value="CLEAR">Clear (False Positive)</option>
+              <option value="CONFIRM">Confirm Match</option>
+              <option value="REPORT">File SAR Report</option>
+              <option value="CLOSE">Close Case</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Reason</label>
+            <input type="text" class="form-control" id="action-reason" placeholder="Brief reason for action" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Detailed Notes</label>
+            <textarea class="form-control" id="action-notes" rows="4" placeholder="Provide detailed explanation and findings..."></textarea>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Assign To (Optional)</label>
+            <select class="form-select" id="action-assign-to">
+              <option value="">Keep current assignment</option>
+              <option value="me">Assign to me</option>
+              <option value="manager">Assign to manager</option>
+              <option value="team_lead">Assign to team lead</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn bg-gradient-info" id="submit-action">Submit Action</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Case Modal -->
+  <div class="modal fade" id="createCaseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Create New Case</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="create-case-form">
+            <div class="mb-3">
+              <label class="form-label">Case ID *</label>
+              <input type="text" class="form-control" name="case_id" required placeholder="AUTO-CASE-001">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Account *</label>
+              <select class="form-control" name="account_id" id="case-account-select" required onchange="loadAlertsForCase(this.value)">
+                <option value="">Select account...</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Select Alerts (Optional)</label>
+              <div id="case-alerts-list" class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                <p class="text-muted text-sm">Select an account first to load alerts</p>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Match Count</label>
+              <input type="number" class="form-control" name="match_count" value="0">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">External Case URL</label>
+              <input type="url" class="form-control" name="external_case_url" placeholder="https://...">
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-info" onclick="submitCreateCase()">Create Case</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../assets/js/core/popper.min.js"></script>
+  <script src="../assets/js/core/bootstrap.min.js"></script>
+  <script src="../assets/js/api-client.js"></script>
+  <script src="../assets/js/utils.js"></script>
+
+  <script>
+    // api is already defined globally in api-client.js
+    let cases = [];
+    let currentPage = 1;
+    let totalPages = 1;
+    let currentFilters = {};
+    let selectedCaseId = null;
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+      loadCaseStats();
+      loadCases();
+
+      // Submit action handler
+      document.getElementById('submit-action').addEventListener('click', submitAction);
+
+      // Search on Enter
+      document.getElementById('search-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') applyFilters();
+      });
+
+      // Close export dropdown when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.position-relative')) {
+          document.getElementById('export-options').classList.remove('show');
+        }
+      });
+    });
+
+    // Load case statistics
+    async function loadCaseStats() {
+      try {
+        // Fetch all cases to calculate stats
+        const response = await api.getCases({ limit: 1000 });
+        if (response.success) {
+          const allCases = response.data || [];
+          const total = response.pagination?.total || allCases.length;
+
+          // Calculate status counts
+          const underInvestigation = allCases.filter(c => c.resolution_status === 'under_investigation').length;
+          const escalated = allCases.filter(c => c.resolution_status === 'escalated').length;
+          const resolved = allCases.filter(c => c.resolution_status === 'resolved' || c.resolution_status === 'closed').length;
+
+          document.getElementById('total-cases').textContent = formatNumber(total);
+          document.getElementById('under-investigation-cases').textContent = formatNumber(underInvestigation);
+          document.getElementById('escalated-cases').textContent = formatNumber(escalated);
+          document.getElementById('resolved-cases').textContent = formatNumber(resolved);
+        }
+      } catch (error) {
+        console.error('Failed to load case stats:', error);
+        // Set to 0 on error
+        document.getElementById('total-cases').textContent = '0';
+        document.getElementById('under-investigation-cases').textContent = '0';
+        document.getElementById('escalated-cases').textContent = '0';
+        document.getElementById('resolved-cases').textContent = '0';
+      }
+    }
+
+    // Load cases with filters
+    async function loadCases(page = 1) {
+      currentPage = page;
+      const tableBody = document.getElementById('cases-table-body');
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="9" class="text-center py-4">
+            <div class="spinner-border text-info" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </td>
+        </tr>
+      `;
+
+      try {
+        const params = {
+          page: page,
+          limit: 20,
+          ...currentFilters
+        };
+
+        const response = await api.getCases(params);
+
+        if (response.success) {
+          cases = response.data.cases || response.data;
+          totalPages = response.data.totalPages || 1;
+          const total = response.data.total || cases.length;
+
+          document.getElementById('cases-count').textContent =
+            `Showing ${cases.length} of ${formatNumber(total)} cases`;
+
+          if (cases.length === 0) {
+            tableBody.innerHTML = `
+              <tr>
+                <td colspan="9" class="text-center py-4">
+                  <i class="material-symbols-rounded text-secondary" style="font-size: 48px;">inbox</i>
+                  <p class="text-secondary mb-0">No cases found</p>
+                </td>
+              </tr>
+            `;
+            return;
+          }
+
+          tableBody.innerHTML = cases.map(caseItem => {
+            const priorityClass = `case-priority-${caseItem.priority}`;
+
+            return `
+              <tr class="${priorityClass}">
+                <td class="text-xs px-2">
+                  <span class="text-secondary">${caseItem.id.substring(0, 8)}...</span>
+                </td>
+                <td>
+                  <div class="d-flex flex-column">
+                    <h6 class="mb-0 text-sm">${caseItem.accounts?.first_name || 'Unknown'} ${caseItem.accounts?.last_name || ''}</h6>
+                    <p class="text-xs text-secondary mb-0">${caseItem.account_id.substring(0, 8)}...</p>
+                  </div>
+                </td>
+                <td>
+                  <span class="text-xs">${snakeToTitle(caseItem.case_type || 'unknown')}</span>
+                </td>
+                <td class="align-middle text-center">
+                  <span class="match-score ${getMatchScoreColor(caseItem.match_score)}">${(caseItem.match_score * 100).toFixed(0)}%</span>
+                </td>
+                <td class="align-middle text-center">
+                  <span class="badge badge-sm ${getCasePriorityBadge(caseItem.priority)}">
+                    ${capitalize(caseItem.priority || 'unknown')}
+                  </span>
+                </td>
+                <td class="align-middle text-center">
+                  <span class="badge badge-sm ${getCaseStatusBadge(caseItem.status)}">
+                    ${snakeToTitle(caseItem.status || 'unknown')}
+                  </span>
+                </td>
+                <td class="align-middle text-center">
+                  <span class="text-xs">${caseItem.assigned_to_user?.full_name || 'Unassigned'}</span>
+                </td>
+                <td class="align-middle text-center">
+                  <span class="text-secondary text-xs">${formatDate(caseItem.created_at, { dateStyle: 'short' })}</span>
+                </td>
+                <td class="align-middle">
+                  <button class="btn btn-link text-secondary mb-0" onclick="viewCaseDetail('${caseItem.id}')">
+                    <i class="material-symbols-rounded text-sm">visibility</i>
+                  </button>
+                  <button class="btn btn-link text-secondary mb-0" onclick="openActionModalForCase('${caseItem.id}')">
+                    <i class="material-symbols-rounded text-sm">edit</i>
+                  </button>
+                </td>
+              </tr>
+            `;
+          }).join('');
+
+          // Build pagination
+          buildPagination('pagination-container', currentPage, totalPages, loadCases);
+        }
+      } catch (error) {
+        console.error('Failed to load cases:', error);
+        showError('Failed to load cases');
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="9" class="text-center py-4 text-danger">
+              <i class="material-symbols-rounded">error</i>
+              <p>Failed to load cases</p>
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    // Apply filters
+    function applyFilters() {
+      currentFilters = {};
+
+      const search = document.getElementById('search-input').value.trim();
+      const status = document.getElementById('filter-status').value;
+      const priority = document.getElementById('filter-priority').value;
+      const assigned = document.getElementById('filter-assigned').value;
+
+      if (search) currentFilters.search = search;
+      if (status) currentFilters.status = status;
+      if (priority) currentFilters.priority = priority;
+      if (assigned) currentFilters.assigned = assigned;
+
+      loadCases(1);
+    }
+
+    // Clear filters
+    function clearFilters() {
+      document.getElementById('search-input').value = '';
+      document.getElementById('filter-status').value = '';
+      document.getElementById('filter-priority').value = '';
+      document.getElementById('filter-assigned').value = '';
+      currentFilters = {};
+      loadCases(1);
+    }
+
+    // Toggle export dropdown
+    function toggleExport() {
+      event.stopPropagation();
+      const dropdown = document.getElementById('export-options');
+      dropdown.classList.toggle('show');
+    }
+
+    // Export cases
+    async function exportCases(format) {
+      document.getElementById('export-options').classList.remove('show');
+
+      try {
+        showInfo(`Preparing ${format.toUpperCase()} export...`);
+        const response = await api.exportCases(format, currentFilters);
+
+        if (response.success) {
+          // Create download link
+          const blob = new Blob([response.data], { type: getExportMimeType(format) });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `aml-cases-export-${new Date().toISOString().split('T')[0]}.${format}`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+
+          showSuccess(`Cases exported successfully as ${format.toUpperCase()}`);
+        }
+      } catch (error) {
+        console.error('Failed to export cases:', error);
+        showError('Failed to export cases');
+      }
+    }
+
+    // View case detail
+    async function viewCaseDetail(caseId) {
+      selectedCaseId = caseId;
+      const modal = new bootstrap.Modal(document.getElementById('caseDetailModal'));
+
+      try {
+        const response = await api.getCaseById(caseId);
+
+        if (response.success) {
+          const caseData = response.data;
+
+          // Case Information
+          document.getElementById('detail-case-id').textContent = caseData.id.substring(0, 16) + '...';
+          document.getElementById('detail-case-type').textContent = snakeToTitle(caseData.case_type);
+          document.getElementById('detail-priority').innerHTML =
+            `<span class="badge ${getCasePriorityBadge(caseData.priority)}">${capitalize(caseData.priority)}</span>`;
+          document.getElementById('detail-status').innerHTML =
+            `<span class="badge ${getCaseStatusBadge(caseData.status)}">${snakeToTitle(caseData.status)}</span>`;
+          document.getElementById('detail-assigned-to').textContent = caseData.assigned_to_user?.full_name || 'Unassigned';
+          document.getElementById('detail-created-at').textContent = formatDate(caseData.created_at, { dateStyle: 'medium', timeStyle: 'short' });
+          document.getElementById('detail-updated-at').textContent = formatDate(caseData.updated_at, { dateStyle: 'medium', timeStyle: 'short' });
+
+          // Account Information
+          document.getElementById('detail-account-name').textContent =
+            `${caseData.accounts?.first_name || 'Unknown'} ${caseData.accounts?.last_name || ''}`;
+          document.getElementById('detail-account-id').textContent = caseData.account_id.substring(0, 16) + '...';
+          document.getElementById('detail-account-email').textContent = caseData.accounts?.email || '-';
+          document.getElementById('detail-account-risk').innerHTML =
+            `<span class="badge ${getRiskScoreBadge(caseData.accounts?.risk_score)}">${capitalize(caseData.accounts?.risk_score || 'unknown')}</span>`;
+
+          // Case Description
+          document.getElementById('detail-description').textContent = caseData.description || 'No description provided';
+
+          // Match Details
+          loadMatchDetails(caseData);
+
+          // Resolution Timeline
+          updateResolutionTimeline(caseData);
+
+          // Resolution Notes
+          document.getElementById('detail-resolution-notes').textContent = caseData.resolution_notes || 'No resolution notes yet';
+
+          modal.show();
+        }
+      } catch (error) {
+        console.error('Failed to load case details:', error);
+        showError('Failed to load case details');
+      }
+    }
+
+    // Load match details
+    function loadMatchDetails(caseData) {
+      const container = document.getElementById('match-details-container');
+
+      if (caseData.match_details && typeof caseData.match_details === 'object') {
+        const matchDetails = caseData.match_details;
+
+        container.innerHTML = `
+          <div class="match-details">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="text-sm font-weight-bold">Match Score</span>
+              <span class="match-score ${getMatchScoreColor(caseData.match_score)}">
+                ${(caseData.match_score * 100).toFixed(0)}%
+              </span>
+            </div>
+            ${matchDetails.entity_name ? `<p class="text-xs mb-1"><strong>Entity Name:</strong> ${matchDetails.entity_name}</p>` : ''}
+            ${matchDetails.entity_type ? `<p class="text-xs mb-1"><strong>Entity Type:</strong> ${snakeToTitle(matchDetails.entity_type)}</p>` : ''}
+            ${matchDetails.source ? `<p class="text-xs mb-1"><strong>Source:</strong> ${matchDetails.source}</p>` : ''}
+            ${matchDetails.match_reason ? `<p class="text-xs mb-1"><strong>Match Reason:</strong> ${matchDetails.match_reason}</p>` : ''}
+            ${matchDetails.additional_info ? `<p class="text-xs mb-0"><strong>Additional Info:</strong> ${matchDetails.additional_info}</p>` : ''}
+          </div>
+        `;
+      } else {
+        container.innerHTML = '<p class="text-sm text-muted">No match details available</p>';
+      }
+    }
+
+    // Update resolution timeline
+    function updateResolutionTimeline(caseData) {
+      // Reset all dots
+      ['open', 'investigation', 'review', 'resolved'].forEach(step => {
+        document.getElementById(`step-${step}`).classList.remove('completed');
+        document.getElementById(`step-${step}-time`).textContent = 'Pending';
+      });
+
+      // Mark completed steps
+      if (caseData.created_at) {
+        document.getElementById('step-open').classList.add('completed');
+        document.getElementById('step-open-time').textContent = formatDate(caseData.created_at, { dateStyle: 'short', timeStyle: 'short' });
+      }
+
+      if (caseData.status === 'under_investigation' || caseData.status === 'escalated' || caseData.status === 'resolved' || caseData.status === 'closed') {
+        document.getElementById('step-investigation').classList.add('completed');
+        document.getElementById('step-investigation-time').textContent = 'In Progress';
+      }
+
+      if (caseData.status === 'escalated' || caseData.status === 'resolved' || caseData.status === 'closed') {
+        document.getElementById('step-review').classList.add('completed');
+        document.getElementById('step-review-time').textContent = 'Under Review';
+      }
+
+      if (caseData.status === 'resolved' || caseData.status === 'closed') {
+        document.getElementById('step-resolved').classList.add('completed');
+        document.getElementById('step-resolved-time').textContent = formatDate(caseData.resolved_at || caseData.updated_at, { dateStyle: 'short', timeStyle: 'short' });
+      }
+    }
+
+    // Open action modal
+    function openActionModal() {
+      const actionModal = new bootstrap.Modal(document.getElementById('actionModal'));
+      document.getElementById('action-case-id').value = selectedCaseId;
+      document.getElementById('action-type').value = '';
+      document.getElementById('action-reason').value = '';
+      document.getElementById('action-notes').value = '';
+      document.getElementById('action-assign-to').value = '';
+
+      // Close detail modal
+      const detailModal = bootstrap.Modal.getInstance(document.getElementById('caseDetailModal'));
+      if (detailModal) detailModal.hide();
+
+      actionModal.show();
+    }
+
+    // Open action modal for specific case
+    function openActionModalForCase(caseId) {
+      selectedCaseId = caseId;
+      const actionModal = new bootstrap.Modal(document.getElementById('actionModal'));
+      document.getElementById('action-case-id').value = caseId;
+      document.getElementById('action-type').value = '';
+      document.getElementById('action-reason').value = '';
+      document.getElementById('action-notes').value = '';
+      document.getElementById('action-assign-to').value = '';
+      actionModal.show();
+    }
+
+    // Submit action
+    async function submitAction() {
+      const caseId = document.getElementById('action-case-id').value;
+      const action = document.getElementById('action-type').value;
+      const reason = document.getElementById('action-reason').value;
+      const notes = document.getElementById('action-notes').value;
+      const assignTo = document.getElementById('action-assign-to').value;
+
+      if (!action) {
+        showError('Please select an action type');
+        return;
+      }
+
+      if (!reason) {
+        showError('Please provide a reason');
+        return;
+      }
+
+      const submitBtn = document.getElementById('submit-action');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processing...';
+
+      try {
+        const payload = { action, reason, notes };
+        if (assignTo) payload.assign_to = assignTo;
+
+        const response = await api.performCaseAction(caseId, payload);
+
+        if (response.success) {
+          showSuccess(`Action ${action} completed successfully`);
+
+          const modal = bootstrap.Modal.getInstance(document.getElementById('actionModal'));
+          modal.hide();
+
+          loadCases(currentPage);
+          loadCaseStats();
+        } else {
+          showError(response.error || 'Failed to perform action');
+        }
+      } catch (error) {
+        console.error('Failed to submit action:', error);
+        showError('Failed to submit action');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Submit Action';
+      }
+    }
+
+    // Helper functions
+    function getMatchScoreColor(score) {
+      if (!score) return 'text-secondary';
+      if (score >= 0.8) return 'text-danger';
+      if (score >= 0.5) return 'text-warning';
+      return 'text-success';
+    }
+
+    function getCasePriorityBadge(priority) {
+      const badges = {
+        low: 'badge-success',
+        medium: 'badge-warning',
+        high: 'badge-danger'
+      };
+      return badges[priority] || 'badge-secondary';
+    }
+
+    function getCaseStatusBadge(status) {
+      const badges = {
+        open: 'badge-info',
+        under_investigation: 'badge-warning',
+        escalated: 'badge-danger',
+        resolved: 'badge-success',
+        closed: 'badge-secondary'
+      };
+      return badges[status] || 'badge-secondary';
+    }
+
+    function getExportMimeType(format) {
+      const types = {
+        csv: 'text/csv',
+        pdf: 'application/pdf',
+        excel: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      };
+      return types[format] || 'application/octet-stream';
+    }
+
+    function getRiskScoreBadge(score) {
+      const badges = {
+        low: 'badge-success',
+        medium: 'badge-warning',
+        high: 'badge-danger'
+      };
+      return badges[score] || 'badge-secondary';
+    }
+
+    function getPriorityColor(priority) {
+      const colors = {
+        low: 'success',
+        medium: 'warning',
+        high: 'danger',
+        critical: 'danger'
+      };
+      return colors[priority] || 'secondary';
+    }
+
+    async function loadAccountsForCase() {
+      try {
+        const response = await api.getAccounts({ limit: 100 });
+        const select = document.getElementById('case-account-select');
+        select.innerHTML = '<option value="">Select account...</option>';
+        response.data.forEach(account => {
+          const option = document.createElement('option');
+          option.value = account.id;
+          option.textContent = `${account.first_name} ${account.last_name} (${account.email})`;
+          select.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error loading accounts:', error);
+      }
+    }
+
+    async function loadAlertsForCase(accountId) {
+      const container = document.getElementById('case-alerts-list');
+      if (!accountId) {
+        container.innerHTML = '<p class="text-muted text-sm">Select an account first</p>';
+        return;
+      }
+
+      try {
+        const response = await api.getAlerts({ account_id: accountId, status: 'open' });
+        if (response.data.length === 0) {
+          container.innerHTML = '<p class="text-muted text-sm">No open alerts for this account</p>';
+          return;
+        }
+
+        container.innerHTML = response.data.map(alert => `
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" value="${alert.id}" id="alert-${alert.id}">
+            <label class="form-check-label" for="alert-${alert.id}">
+              <span class="badge badge-sm bg-${getPriorityColor(alert.priority)}">${alert.priority}</span>
+              ${alert.alert_type} - ${alert.resolution_notes || 'No description'}
+              <small class="text-muted">(${new Date(alert.created_at).toLocaleDateString()})</small>
+            </label>
+          </div>
+        `).join('');
+      } catch (error) {
+        container.innerHTML = '<p class="text-danger text-sm">Error loading alerts</p>';
+      }
+    }
+
+    async function submitCreateCase() {
+      const form = document.getElementById('create-case-form');
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+
+      // Convert match_count to integer
+      if (data.match_count) {
+        data.match_count = parseInt(data.match_count, 10);
+      }
+
+      // Remove empty external_case_url to avoid validation error
+      if (!data.external_case_url || data.external_case_url.trim() === '') {
+        delete data.external_case_url;
+      }
+
+      // Collect selected alerts
+      const alertCheckboxes = document.querySelectorAll('#case-alerts-list input[type="checkbox"]:checked');
+      data.alert_ids = Array.from(alertCheckboxes).map(cb => cb.value);
+
+      try {
+        const response = await api.createCase(data);
+        if (response.success) {
+          showSuccess('Case created successfully');
+          bootstrap.Modal.getInstance(document.getElementById('createCaseModal')).hide();
+          form.reset();
+          loadCases();
+        }
+      } catch (error) {
+        showError(error.message || 'Failed to create case');
+      }
+    }
+
+    // Call on modal open
+    document.getElementById('createCaseModal').addEventListener('shown.bs.modal', loadAccountsForCase);
+
+    function logout() {
+      localStorage.removeItem('uqudo_token');
+      localStorage.removeItem('uqudo_user');
+      window.location.href = 'uqudo-sign-in.html';
+    }
+  </script>
+</body>
+</html>

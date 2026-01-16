@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="apple-touch-icon" sizes="76x76" href="../assets/img/apple-icon.png">
+  <link rel="icon" type="image/png" href="../assets/img/favicon.png">
+  <title>KYC Setup - Uqudo Admin Portal</title>
+
+  <!-- Fonts and icons -->
+  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,900" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+
+  <!-- Material Dashboard CSS -->
+  <link id="pagestyle" href="../assets/css/material-dashboard.css?v=3.2.0" rel="stylesheet" />
+  <link href="../assets/css/uqudo-blue-theme.css" rel="stylesheet" />
+
+  <style>
+    .config-card {
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .config-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+    .setting-row {
+      padding: 1rem;
+      border-bottom: 1px solid #f0f2f5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .setting-row:last-child {
+      border-bottom: none;
+    }
+    .setting-info {
+      flex: 1;
+    }
+    .setting-label {
+      font-weight: 600;
+      color: #344767;
+      margin-bottom: 0.25rem;
+    }
+    .setting-description {
+      font-size: 0.875rem;
+      color: #67748e;
+      margin-bottom: 0;
+    }
+    .setting-control {
+      margin-left: 1rem;
+    }
+    .country-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .country-item {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #f0f2f5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .country-item:last-child {
+      border-bottom: none;
+    }
+    .country-flag {
+      font-size: 1.5rem;
+      margin-right: 0.75rem;
+    }
+    .risk-level-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 0.5rem;
+    }
+    .risk-low { background: #4caf50; }
+    .risk-medium { background: #ff9800; }
+    .risk-high { background: #f44336; }
+    .threshold-slider {
+      width: 200px;
+    }
+    .threshold-value {
+      min-width: 50px;
+      text-align: center;
+      font-weight: 600;
+      color: #1e88e5;
+    }
+  </style>
+</head>
+
+<body class="g-sidenav-show bg-gray-200">
+
+  <!-- Sidebar -->
+  <aside class="sidenav navbar navbar-vertical navbar-expand-xs border-radius-lg fixed-start ms-2 bg-white my-2" id="sidenav-main">
+    <div class="sidenav-header">
+      <i class="fas fa-times p-3 cursor-pointer text-dark opacity-5 position-absolute end-0 top-0 d-none d-xl-none" aria-hidden="true" id="iconSidenav"></i>
+      <a class="navbar-brand px-4 py-3 m-0" href="uqudo-dashboard.html">
+        <img src="../assets/img/uqudo-logo.png" alt="Uqudo Logo" style="height: 28px;">
+      </a>
+    </div>
+    <hr class="horizontal dark mt-0 mb-2">
+    <div class="collapse navbar-collapse w-auto" id="sidenav-collapse-main">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="uqudo-dashboard.html">
+            <i class="material-symbols-rounded opacity-5">dashboard</i>
+            <span class="nav-link-text ms-1">Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="accounts.html">
+            <i class="material-symbols-rounded opacity-5">group</i>
+            <span class="nav-link-text ms-1">Accounts</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="alerts.html">
+            <i class="material-symbols-rounded opacity-5">notifications_active</i>
+            <span class="nav-link-text ms-1">KYC Alerts</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="cases.html">
+            <i class="material-symbols-rounded opacity-5">gavel</i>
+            <span class="nav-link-text ms-1">AML Cases</span>
+          </a>
+        </li>
+        <li class="nav-item mt-3">
+          <h6 class="ps-4 ms-2 text-uppercase text-xs text-dark font-weight-bolder opacity-5">Configuration</h6>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active bg-gradient-info text-white" href="kyc-setup.html">
+            <i class="material-symbols-rounded opacity-5">settings</i>
+            <span class="nav-link-text ms-1">KYC Setup</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="blocklist.html">
+            <i class="material-symbols-rounded opacity-5">block</i>
+            <span class="nav-link-text ms-1">Blocklist</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="main-content position-relative max-height-vh-100 h-100 border-radius-lg">
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-main navbar-expand-lg px-0 mx-3 shadow-none border-radius-xl" id="navbarBlur">
+      <div class="container-fluid py-1 px-3">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb bg-transparent mb-0 pb-0 pt-1 px-0 me-sm-6 me-5">
+            <li class="breadcrumb-item text-sm"><a class="opacity-5 text-dark" href="javascript:;">Configuration</a></li>
+            <li class="breadcrumb-item text-sm text-dark active" aria-current="page">KYC Setup</li>
+          </ol>
+          <h6 class="font-weight-bold mb-0">KYC Configuration</h6>
+        </nav>
+        <div class="collapse navbar-collapse mt-sm-0 mt-2 me-md-0 me-sm-4" id="navbar">
+          <div class="ms-md-auto pe-md-3 d-flex align-items-center">
+          </div>
+          <ul class="navbar-nav justify-content-end">
+            <li class="nav-item d-flex align-items-center">
+              <a href="javascript:;" class="nav-link text-white bg-gradient-info font-weight-bold px-3 border-radius-md" onclick="logout()">
+                <i class="material-symbols-rounded me-sm-1">logout</i>
+                <span class="d-sm-inline d-none">Sign Out</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="container-fluid py-2">
+
+      <!-- Configuration Overview Cards -->
+      <div class="row mb-4">
+        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+          <div class="card config-card">
+            <div class="card-body p-3">
+              <div class="d-flex">
+                <div class="icon icon-shape bg-gradient-info shadow text-center border-radius-md">
+                  <i class="material-symbols-rounded opacity-10 text-white">verified_user</i>
+                </div>
+                <div class="ms-3">
+                  <p class="text-sm mb-0 text-capitalize">Verification Types</p>
+                  <h5 class="mb-0" id="verification-types-count">2</h5>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+          <div class="card config-card">
+            <div class="card-body p-3">
+              <div class="d-flex">
+                <div class="icon icon-shape bg-gradient-success shadow text-center border-radius-md">
+                  <i class="material-symbols-rounded opacity-10 text-white">public</i>
+                </div>
+                <div class="ms-3">
+                  <p class="text-sm mb-0 text-capitalize">Supported Countries</p>
+                  <h5 class="mb-0" id="supported-countries-count">
+                    <span class="spinner-border spinner-border-sm"></span>
+                  </h5>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+          <div class="card config-card">
+            <div class="card-body p-3">
+              <div class="d-flex">
+                <div class="icon icon-shape bg-gradient-warning shadow text-center border-radius-md">
+                  <i class="material-symbols-rounded opacity-10 text-white">rule</i>
+                </div>
+                <div class="ms-3">
+                  <p class="text-sm mb-0 text-capitalize">Active Rules</p>
+                  <h5 class="mb-0" id="active-rules-count">
+                    <span class="spinner-border spinner-border-sm"></span>
+                  </h5>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-3 col-sm-6">
+          <div class="card config-card">
+            <div class="card-body p-3">
+              <div class="d-flex">
+                <div class="icon icon-shape bg-gradient-danger shadow text-center border-radius-md">
+                  <i class="material-symbols-rounded opacity-10 text-white">block</i>
+                </div>
+                <div class="ms-3">
+                  <p class="text-sm mb-0 text-capitalize">Blocklist Entries</p>
+                  <h5 class="mb-0" id="blocklist-entries-count">
+                    <span class="spinner-border spinner-border-sm"></span>
+                  </h5>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- General Settings -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header pb-0">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">General KYC Settings</h6>
+                <button class="btn btn-sm bg-gradient-info" onclick="saveGeneralSettings()">
+                  <i class="material-symbols-rounded text-sm">save</i> Save Changes
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Enable KYC Verification</div>
+                  <div class="setting-description">Require identity verification for all new accounts</div>
+                </div>
+                <div class="setting-control">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="enable-kyc" checked>
+                  </div>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Auto-Approve Low Risk</div>
+                  <div class="setting-description">Automatically approve accounts with low risk scores</div>
+                </div>
+                <div class="setting-control">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="auto-approve-low-risk">
+                  </div>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Require Biometric Verification</div>
+                  <div class="setting-description">Mandate biometric data (face, fingerprint) for verification</div>
+                </div>
+                <div class="setting-control">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="require-biometric" checked>
+                  </div>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Require Liveness Check</div>
+                  <div class="setting-description">Verify user presence with liveness detection</div>
+                </div>
+                <div class="setting-control">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="require-liveness" checked>
+                  </div>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Enable Device Attestation</div>
+                  <div class="setting-description">Verify device integrity and trustworthiness</div>
+                </div>
+                <div class="setting-control">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="enable-device-attestation" checked>
+                  </div>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">PEP Screening</div>
+                  <div class="setting-description">Screen accounts against Politically Exposed Persons lists</div>
+                </div>
+                <div class="setting-control">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="enable-pep-screening" checked>
+                  </div>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Sanctions Screening</div>
+                  <div class="setting-description">Check accounts against international sanctions lists</div>
+                </div>
+                <div class="setting-control">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="enable-sanctions-screening" checked>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Risk Thresholds -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header pb-0">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Risk Score Thresholds</h6>
+                <button class="btn btn-sm bg-gradient-info" onclick="saveRiskThresholds()">
+                  <i class="material-symbols-rounded text-sm">save</i> Save Thresholds
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">
+                    <span class="risk-level-indicator risk-low"></span> Low Risk Threshold
+                  </div>
+                  <div class="setting-description">Accounts below this score are considered low risk</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="0" max="100" value="30" id="threshold-low" oninput="updateThresholdValue('low', this.value)">
+                  <span class="threshold-value" id="threshold-low-value">30</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">
+                    <span class="risk-level-indicator risk-medium"></span> Medium Risk Threshold
+                  </div>
+                  <div class="setting-description">Accounts between low and this score are medium risk</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="0" max="100" value="70" id="threshold-medium" oninput="updateThresholdValue('medium', this.value)">
+                  <span class="threshold-value" id="threshold-medium-value">70</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">
+                    <span class="risk-level-indicator risk-high"></span> High Risk Threshold
+                  </div>
+                  <div class="setting-description">Accounts above medium threshold are high risk</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <span class="text-sm text-muted">Auto-calculated from medium threshold</span>
+                  <span class="threshold-value" id="threshold-high-value">71+</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Biometric Confidence Threshold</div>
+                  <div class="setting-description">Minimum confidence score for biometric verification</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="50" max="100" value="85" id="threshold-biometric" oninput="updateThresholdValue('biometric', this.value)">
+                  <span class="threshold-value" id="threshold-biometric-value">85%</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">AML Match Threshold</div>
+                  <div class="setting-description">Minimum score to trigger AML case creation</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="0" max="100" value="50" id="threshold-aml" oninput="updateThresholdValue('aml', this.value)">
+                  <span class="threshold-value" id="threshold-aml-value">50%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Supported Countries -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header pb-0">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Supported Countries</h6>
+                <button class="btn btn-sm bg-gradient-info" onclick="openAddCountryModal()">
+                  <i class="material-symbols-rounded text-sm">add</i> Add Country
+                </button>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div class="country-list" id="countries-list">
+                <div class="text-center py-4">
+                  <div class="spinner-border text-info" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Add Country Modal -->
+  <div class="modal fade" id="addCountryModal" tabindex="-1" aria-labelledby="addCountryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addCountryModalLabel">Add Supported Country</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Country Name</label>
+            <input type="text" class="form-control" id="country-name" placeholder="e.g., United Arab Emirates">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Country Code (ISO)</label>
+            <input type="text" class="form-control" id="country-code" placeholder="e.g., AE" maxlength="2">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Risk Level</label>
+            <select class="form-select" id="country-risk-level">
+              <option value="low">Low Risk</option>
+              <option value="medium">Medium Risk</option>
+              <option value="high">High Risk</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Document Types Supported</label>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="doc-type-passport" checked>
+              <label class="form-check-label" for="doc-type-passport">Passport</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="doc-type-id-card" checked>
+              <label class="form-check-label" for="doc-type-id-card">National ID Card</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="doc-type-drivers-license">
+              <label class="form-check-label" for="doc-type-drivers-license">Driver's License</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="doc-type-residence-permit">
+              <label class="form-check-label" for="doc-type-residence-permit">Residence Permit</label>
+            </div>
+          </div>
+
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="country-is-active" checked>
+            <label class="form-check-label" for="country-is-active">Active</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn bg-gradient-info" onclick="saveCountry()">Add Country</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../assets/js/core/popper.min.js"></script>
+  <script src="../assets/js/core/bootstrap.min.js"></script>
+  <script src="../assets/js/api-client.js"></script>
+  <script src="../assets/js/utils.js"></script>
+
+  <script>
+    // api is already defined globally in api-client.js
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+      loadConfigStats();
+      loadGeneralSettings();
+      loadRiskThresholds();
+      loadCountries();
+    });
+
+    // Load configuration statistics
+    async function loadConfigStats() {
+      try {
+        // Load supported countries count
+        const countriesResponse = await api.getCountries();
+        if (countriesResponse.success) {
+          document.getElementById('supported-countries-count').textContent = countriesResponse.data.length;
+        }
+
+        // Load active rules count (placeholder for now)
+        document.getElementById('active-rules-count').textContent = '12';
+
+        // Load blocklist entries count
+        const blocklistResponse = await api.getBlocklist({ limit: 1 });
+        if (blocklistResponse.success && blocklistResponse.data.total) {
+          document.getElementById('blocklist-entries-count').textContent = formatNumber(blocklistResponse.data.total);
+        } else {
+          document.getElementById('blocklist-entries-count').textContent = '0';
+        }
+      } catch (error) {
+        console.error('Failed to load config stats:', error);
+      }
+    }
+
+    // Load general settings
+    async function loadGeneralSettings() {
+      try {
+        const response = await api.getKYCSetup();
+        if (response.success && response.data) {
+          const settings = response.data;
+          document.getElementById('enable-kyc').checked = settings.enable_kyc !== false;
+          document.getElementById('auto-approve-low-risk').checked = settings.auto_approve_low_risk || false;
+          document.getElementById('require-biometric').checked = settings.require_biometric !== false;
+          document.getElementById('require-liveness').checked = settings.require_liveness !== false;
+          document.getElementById('enable-device-attestation').checked = settings.enable_device_attestation !== false;
+          document.getElementById('enable-pep-screening').checked = settings.enable_pep_screening !== false;
+          document.getElementById('enable-sanctions-screening').checked = settings.enable_sanctions_screening !== false;
+        }
+      } catch (error) {
+        console.error('Failed to load general settings:', error);
+      }
+    }
+
+    // Save general settings
+    async function saveGeneralSettings() {
+      const settings = {
+        enable_kyc: document.getElementById('enable-kyc').checked,
+        auto_approve_low_risk: document.getElementById('auto-approve-low-risk').checked,
+        require_biometric: document.getElementById('require-biometric').checked,
+        require_liveness: document.getElementById('require-liveness').checked,
+        enable_device_attestation: document.getElementById('enable-device-attestation').checked,
+        enable_pep_screening: document.getElementById('enable-pep-screening').checked,
+        enable_sanctions_screening: document.getElementById('enable-sanctions-screening').checked
+      };
+
+      try {
+        const response = await api.updateKYCSetup(settings);
+        if (response.success) {
+          showSuccess('General settings saved successfully');
+        } else {
+          showError(response.error || 'Failed to save settings');
+        }
+      } catch (error) {
+        console.error('Failed to save general settings:', error);
+        showError('Failed to save general settings');
+      }
+    }
+
+    // Load risk thresholds
+    async function loadRiskThresholds() {
+      try {
+        const response = await api.getKYCSetup();
+        if (response.success && response.data && response.data.risk_thresholds) {
+          const thresholds = response.data.risk_thresholds;
+          if (thresholds.low) {
+            document.getElementById('threshold-low').value = thresholds.low;
+            updateThresholdValue('low', thresholds.low);
+          }
+          if (thresholds.medium) {
+            document.getElementById('threshold-medium').value = thresholds.medium;
+            updateThresholdValue('medium', thresholds.medium);
+          }
+          if (thresholds.biometric_confidence) {
+            document.getElementById('threshold-biometric').value = thresholds.biometric_confidence;
+            updateThresholdValue('biometric', thresholds.biometric_confidence);
+          }
+          if (thresholds.aml_match) {
+            document.getElementById('threshold-aml').value = thresholds.aml_match;
+            updateThresholdValue('aml', thresholds.aml_match);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load risk thresholds:', error);
+      }
+    }
+
+    // Update threshold value display
+    function updateThresholdValue(type, value) {
+      if (type === 'low' || type === 'medium') {
+        document.getElementById(`threshold-${type}-value`).textContent = value;
+        if (type === 'medium') {
+          document.getElementById('threshold-high-value').textContent = `${parseInt(value) + 1}+`;
+        }
+      } else if (type === 'biometric' || type === 'aml') {
+        document.getElementById(`threshold-${type}-value`).textContent = `${value}%`;
+      }
+    }
+
+    // Save risk thresholds
+    async function saveRiskThresholds() {
+      const thresholds = {
+        risk_thresholds: {
+          low: parseInt(document.getElementById('threshold-low').value),
+          medium: parseInt(document.getElementById('threshold-medium').value),
+          biometric_confidence: parseInt(document.getElementById('threshold-biometric').value),
+          aml_match: parseInt(document.getElementById('threshold-aml').value)
+        }
+      };
+
+      try {
+        const response = await api.updateKYCSetup(thresholds);
+        if (response.success) {
+          showSuccess('Risk thresholds saved successfully');
+        } else {
+          showError(response.error || 'Failed to save thresholds');
+        }
+      } catch (error) {
+        console.error('Failed to save risk thresholds:', error);
+        showError('Failed to save risk thresholds');
+      }
+    }
+
+    // Load countries
+    async function loadCountries() {
+      const container = document.getElementById('countries-list');
+
+      try {
+        const response = await api.getCountries();
+
+        if (response.success) {
+          const countries = response.data;
+
+          if (countries.length === 0) {
+            container.innerHTML = `
+              <div class="text-center py-4">
+                <i class="material-symbols-rounded text-secondary" style="font-size: 48px;">public_off</i>
+                <p class="text-secondary mb-0">No countries configured</p>
+              </div>
+            `;
+            return;
+          }
+
+          container.innerHTML = countries.map(country => `
+            <div class="country-item">
+              <div class="d-flex align-items-center flex-grow-1">
+                <span class="country-flag">${getFlagEmoji(country.country_code)}</span>
+                <div>
+                  <h6 class="mb-0 text-sm">${country.country_name}</h6>
+                  <p class="text-xs text-secondary mb-0">
+                    ${country.country_code} •
+                    <span class="risk-level-indicator risk-${country.risk_level}"></span>
+                    ${capitalize(country.risk_level)} Risk
+                  </p>
+                </div>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <span class="badge badge-sm ${country.is_active ? 'badge-success' : 'badge-secondary'}">
+                  ${country.is_active ? 'Active' : 'Inactive'}
+                </span>
+                <button class="btn btn-link text-secondary mb-0 p-0" onclick="toggleCountryStatus('${country.id}', ${!country.is_active})">
+                  <i class="material-symbols-rounded text-sm">${country.is_active ? 'toggle_on' : 'toggle_off'}</i>
+                </button>
+                <button class="btn btn-link text-danger mb-0 p-0" onclick="deleteCountry('${country.id}')">
+                  <i class="material-symbols-rounded text-sm">delete</i>
+                </button>
+              </div>
+            </div>
+          `).join('');
+        }
+      } catch (error) {
+        console.error('Failed to load countries:', error);
+        container.innerHTML = `
+          <div class="text-center py-4 text-danger">
+            <i class="material-symbols-rounded">error</i>
+            <p>Failed to load countries</p>
+          </div>
+        `;
+      }
+    }
+
+    // Open add country modal
+    function openAddCountryModal() {
+      const modal = new bootstrap.Modal(document.getElementById('addCountryModal'));
+      document.getElementById('country-name').value = '';
+      document.getElementById('country-code').value = '';
+      document.getElementById('country-risk-level').value = 'low';
+      document.getElementById('doc-type-passport').checked = true;
+      document.getElementById('doc-type-id-card').checked = true;
+      document.getElementById('doc-type-drivers-license').checked = false;
+      document.getElementById('doc-type-residence-permit').checked = false;
+      document.getElementById('country-is-active').checked = true;
+      modal.show();
+    }
+
+    // Save country
+    async function saveCountry() {
+      const countryName = document.getElementById('country-name').value.trim();
+      const countryCode = document.getElementById('country-code').value.trim().toUpperCase();
+      const riskLevel = document.getElementById('country-risk-level').value;
+      const isActive = document.getElementById('country-is-active').checked;
+
+      if (!countryName || !countryCode) {
+        showError('Please provide country name and code');
+        return;
+      }
+
+      if (countryCode.length !== 2) {
+        showError('Country code must be 2 letters (ISO format)');
+        return;
+      }
+
+      const documentTypes = [];
+      if (document.getElementById('doc-type-passport').checked) documentTypes.push('passport');
+      if (document.getElementById('doc-type-id-card').checked) documentTypes.push('national_id');
+      if (document.getElementById('doc-type-drivers-license').checked) documentTypes.push('drivers_license');
+      if (document.getElementById('doc-type-residence-permit').checked) documentTypes.push('residence_permit');
+
+      const countryData = {
+        country_name: countryName,
+        country_code: countryCode,
+        risk_level: riskLevel,
+        document_types_supported: documentTypes,
+        is_active: isActive
+      };
+
+      try {
+        const response = await api.addCountry(countryData);
+
+        if (response.success) {
+          showSuccess('Country added successfully');
+          const modal = bootstrap.Modal.getInstance(document.getElementById('addCountryModal'));
+          modal.hide();
+          loadCountries();
+          loadConfigStats();
+        } else {
+          showError(response.error || 'Failed to add country');
+        }
+      } catch (error) {
+        console.error('Failed to add country:', error);
+        showError('Failed to add country');
+      }
+    }
+
+    // Toggle country status
+    async function toggleCountryStatus(countryId, newStatus) {
+      try {
+        const response = await api.updateCountry(countryId, { is_active: newStatus });
+
+        if (response.success) {
+          showSuccess(`Country ${newStatus ? 'activated' : 'deactivated'} successfully`);
+          loadCountries();
+        } else {
+          showError(response.error || 'Failed to update country status');
+        }
+      } catch (error) {
+        console.error('Failed to toggle country status:', error);
+        showError('Failed to update country status');
+      }
+    }
+
+    // Delete country
+    async function deleteCountry(countryId) {
+      const confirmed = await confirmAction('Are you sure you want to remove this country?', 'Delete Country');
+
+      if (confirmed) {
+        try {
+          const response = await api.deleteCountry(countryId);
+
+          if (response.success) {
+            showSuccess('Country removed successfully');
+            loadCountries();
+            loadConfigStats();
+          } else {
+            showError(response.error || 'Failed to delete country');
+          }
+        } catch (error) {
+          console.error('Failed to delete country:', error);
+          showError('Failed to delete country');
+        }
+      }
+    }
+
+    // Get flag emoji for country code
+    function getFlagEmoji(countryCode) {
+      if (!countryCode || countryCode.length !== 2) return '🏳️';
+      const codePoints = countryCode
+        .toUpperCase()
+        .split('')
+        .map(char => 127397 + char.charCodeAt());
+      return String.fromCodePoint(...codePoints);
+    }
+
+    function logout() {
+      localStorage.removeItem('uqudo_token');
+      localStorage.removeItem('uqudo_user');
+      window.location.href = 'uqudo-sign-in.html';
+    }
+  </script>
+</body>
+</html>
