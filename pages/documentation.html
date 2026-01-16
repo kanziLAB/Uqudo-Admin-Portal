@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="apple-touch-icon" sizes="76x76" href="../assets/img/apple-icon.png">
+  <link rel="icon" type="image/png" href="../assets/img/favicon.png">
+  <title>API Documentation - Uqudo Admin Portal</title>
+
+  <!-- Fonts and icons -->
+  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,900" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+
+  <!-- Material Dashboard CSS -->
+  <link id="pagestyle" href="../assets/css/material-dashboard.css?v=3.2.0" rel="stylesheet" />
+  <link href="../assets/css/uqudo-blue-theme.css" rel="stylesheet" />
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- Highlight.js for code syntax highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <style>
+    .markdown-content {
+      font-family: 'Inter', sans-serif;
+      line-height: 1.6;
+      color: #344767;
+    }
+    .markdown-content h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      color: #344767;
+      border-bottom: 2px solid #e9ecef;
+      padding-bottom: 0.5rem;
+    }
+    .markdown-content h2 {
+      font-size: 2rem;
+      font-weight: 600;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      color: #344767;
+    }
+    .markdown-content h3 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+      color: #344767;
+    }
+    .markdown-content h4 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+      color: #344767;
+    }
+    .markdown-content pre {
+      background-color: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 0.5rem;
+      padding: 1rem;
+      overflow-x: auto;
+      margin: 1rem 0;
+    }
+    .markdown-content code {
+      background-color: #f8f9fa;
+      color: #d63384;
+      padding: 0.2rem 0.4rem;
+      border-radius: 0.25rem;
+      font-size: 0.875rem;
+      font-family: 'Courier New', monospace;
+    }
+    .markdown-content pre code {
+      background-color: transparent;
+      color: inherit;
+      padding: 0;
+    }
+    .markdown-content table {
+      width: 100%;
+      margin: 1rem 0;
+      border-collapse: collapse;
+    }
+    .markdown-content table th,
+    .markdown-content table td {
+      border: 1px solid #dee2e6;
+      padding: 0.75rem;
+      text-align: left;
+    }
+    .markdown-content table th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+    }
+    .markdown-content a {
+      color: #1A73E8;
+      text-decoration: none;
+    }
+    .markdown-content a:hover {
+      text-decoration: underline;
+    }
+    .markdown-content blockquote {
+      border-left: 4px solid #1A73E8;
+      padding-left: 1rem;
+      margin-left: 0;
+      color: #67748e;
+      font-style: italic;
+    }
+    .markdown-content ul, .markdown-content ol {
+      margin: 1rem 0;
+      padding-left: 2rem;
+    }
+    .markdown-content li {
+      margin: 0.5rem 0;
+    }
+    .loading-spinner {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 400px;
+    }
+    .back-to-top {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(195deg, #1A73E8 0%, #004C97 100%);
+      color: white;
+      border: none;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+    }
+    .back-to-top:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+    }
+    .toc {
+      background: #f8f9fa;
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      position: sticky;
+      top: 1rem;
+    }
+    .toc h3 {
+      margin-top: 0 !important;
+      font-size: 1.25rem;
+    }
+    .toc ul {
+      list-style: none;
+      padding-left: 1rem;
+    }
+    .toc a {
+      color: #344767;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+
+<body class="g-sidenav-show bg-gray-200">
+  <!-- Sidebar -->
+  <aside class="sidenav navbar navbar-vertical navbar-expand-xs border-radius-lg fixed-start ms-2 bg-white my-2" id="sidenav-main">
+    <div class="sidenav-header">
+      <i class="fas fa-times p-3 cursor-pointer text-dark opacity-5 position-absolute end-0 top-0 d-none d-xl-none" aria-hidden="true" id="iconSidenav"></i>
+      <a class="navbar-brand px-4 py-3 m-0" href="uqudo-dashboard">
+        <img src="../assets/img/uqudo-logo.png" alt="Uqudo Logo" style="height: 28px;">
+      </a>
+    </div>
+    <hr class="horizontal dark mt-0 mb-2">
+    <div class="collapse navbar-collapse w-auto" id="sidenav-collapse-main">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="uqudo-dashboard">
+            <i class="material-symbols-rounded opacity-10">dashboard</i>
+            <span class="nav-link-text ms-1">Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="accounts">
+            <i class="material-symbols-rounded opacity-10">person</i>
+            <span class="nav-link-text ms-1">Accounts</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="alerts">
+            <i class="material-symbols-rounded opacity-10">notification_important</i>
+            <span class="nav-link-text ms-1">KYC Alerts</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="cases">
+            <i class="material-symbols-rounded opacity-10">gavel</i>
+            <span class="nav-link-text ms-1">AML Cases</span>
+          </a>
+        </li>
+        <li class="nav-item mt-3">
+          <h6 class="ps-4 ms-2 text-uppercase text-xs text-dark font-weight-bolder opacity-8">Configuration</h6>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="kyc-setup">
+            <i class="material-symbols-rounded opacity-10">settings</i>
+            <span class="nav-link-text ms-1">KYC Setup</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="blocklist">
+            <i class="material-symbols-rounded opacity-10">block</i>
+            <span class="nav-link-text ms-1">Blocklist</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+    <div class="sidenav-footer position-absolute w-100 bottom-0">
+      <div class="mx-3">
+        <a class="btn btn-outline-info mt-4 w-100 active" href="documentation">
+          <i class="material-symbols-rounded text-sm me-1">description</i>
+          Documentation
+        </a>
+        <a class="btn bg-gradient-info w-100 mt-2" href="#" id="logout-btn">
+          <i class="material-symbols-rounded text-sm me-1">logout</i>
+          Logout
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content position-relative max-height-vh-100 h-100 border-radius-lg">
+    <!-- Navbar -->
+    <nav class="navbar navbar-main navbar-expand-lg px-0 mx-3 shadow-none border-radius-xl">
+      <div class="container-fluid py-1 px-3">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb bg-transparent mb-0 pb-0 pt-1 px-0 me-sm-6 me-5">
+            <li class="breadcrumb-item text-sm"><a class="opacity-5 text-dark" href="javascript:;">Pages</a></li>
+            <li class="breadcrumb-item text-sm text-dark active" aria-current="page">Documentation</li>
+          </ol>
+          <h6 class="font-weight-bolder mb-0">API Documentation</h6>
+        </nav>
+        <div class="collapse navbar-collapse mt-sm-0 mt-2 me-md-0 me-sm-4" id="navbar">
+          <div class="ms-md-auto pe-md-3 d-flex align-items-center"></div>
+          <ul class="navbar-nav justify-content-end">
+            <li class="nav-item d-flex align-items-center">
+              <a href="#" class="nav-link text-body font-weight-bold px-0">
+                <i class="material-symbols-rounded">account_circle</i>
+                <span class="d-sm-inline d-none ms-1" id="user-name">User</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Documentation Content -->
+    <div class="container-fluid py-2">
+      <div class="row">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body">
+              <div id="loading" class="loading-spinner">
+                <div class="spinner-border text-info" role="status">
+                  <span class="visually-hidden">Loading documentation...</span>
+                </div>
+              </div>
+              <div id="documentation-content" class="markdown-content" style="display: none;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Back to Top Button -->
+  <button class="back-to-top" id="backToTop">
+    <i class="material-symbols-rounded">arrow_upward</i>
+  </button>
+
+  <!-- Core JS Files -->
+  <script src="../assets/js/core/popper.min.js"></script>
+  <script src="../assets/js/core/bootstrap.min.js"></script>
+  <script src="../assets/js/plugins/perfect-scrollbar.min.js"></script>
+  <script src="../assets/js/material-dashboard.min.js?v=3.2.0"></script>
+  <script src="../assets/js/api-client.js" type="module"></script>
+
+  <script type="module">
+    import { ApiClient } from '../assets/js/api-client.js';
+    const api = new ApiClient();
+
+    // Configure marked with options
+    marked.setOptions({
+      highlight: function(code, lang) {
+        if (lang && hljs.getLanguage(lang)) {
+          return hljs.highlight(code, { language: lang }).value;
+        }
+        return hljs.highlightAuto(code).value;
+      },
+      breaks: true,
+      gfm: true
+    });
+
+    // Load and render documentation
+    async function loadDocumentation() {
+      try {
+        const response = await fetch('../backend/API_DOCUMENTATION.md');
+        const markdown = await response.text();
+
+        const html = marked.parse(markdown);
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('documentation-content').style.display = 'block';
+        document.getElementById('documentation-content').innerHTML = html;
+
+        // Highlight code blocks
+        document.querySelectorAll('pre code').forEach((block) => {
+          hljs.highlightElement(block);
+        });
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+          anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+              target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          });
+        });
+      } catch (error) {
+        document.getElementById('loading').innerHTML = `
+          <div class="alert alert-danger" role="alert">
+            <strong>Error loading documentation:</strong> ${error.message}
+          </div>
+        `;
+      }
+    }
+
+    // Back to top button
+    const backToTopBtn = document.getElementById('backToTop');
+    window.addEventListener('scroll', () => {
+      if (window.pageYOffset > 300) {
+        backToTopBtn.style.display = 'flex';
+      } else {
+        backToTopBtn.style.display = 'none';
+      }
+    });
+
+    backToTopBtn.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // Logout
+    document.getElementById('logout-btn').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await api.logout();
+      window.location.href = '/pages/uqudo-sign-in';
+    });
+
+    // Load user info
+    const user = api.getCurrentUser();
+    if (user) {
+      document.getElementById('user-name').textContent = user.fullName;
+    }
+
+    // Initialize
+    loadDocumentation();
+  </script>
+</body>
+</html>
