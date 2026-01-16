@@ -554,8 +554,8 @@ router.post('/enrollment',
         };
 
         // Create alert in database for background check match
-        // Use tenant_id from request header or default for testing
-        const tenantId = req.headers['x-tenant-id'] || '00000000-0000-0000-0000-000000000000';
+        // Use tenant_id from request header or default demo tenant
+        const tenantId = req.headers['x-tenant-id'] || '00000000-0000-0000-0000-000000000001';
 
         try {
           // First, find or create an account with this ID number
