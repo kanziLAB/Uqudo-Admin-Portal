@@ -626,9 +626,31 @@ router.post('/enrollment',
               alertCreated = true;
               alertData = alert;
               console.log('Alert created successfully:', alert.id);
-            }
 
-            caseCreated = alertCreated;
+              // Create AML case for this background check match
+              const caseId = `BGC-${Date.now()}-${accountData?.id_number?.slice(-4) || 'XXXX'}`;
+
+              const { data: amlCase, error: caseError } = await supabaseAdmin
+                .from('aml_cases')
+                .insert({
+                  tenant_id: tenantId,
+                  account_id: accountId,
+                  case_id: caseId,
+                  match_count: matchedEntities.length,
+                  resolution_status: 'unsolved',
+                  external_case_url: null
+                })
+                .select()
+                .single();
+
+              if (caseError) {
+                console.error('Failed to create AML case:', caseError);
+              } else {
+                caseCreated = true;
+                caseData = amlCase;
+                console.log('AML case created successfully:', amlCase.id, 'Case ID:', caseId);
+              }
+            }
           } else {
             console.error('Cannot create alert: No valid account_id');
           }
