@@ -558,43 +558,80 @@ router.post('/enrollment',
         const tenantId = req.headers['x-tenant-id'] || '00000000-0000-0000-0000-000000000000';
 
         try {
-          // Create KYC Alert
-          const alertDescription = `Background check match found for ${accountData?.full_name || 'Unknown'}. ` +
-            `Risk Score: ${maxRiskScore}. Sources: ${matchedEntities[0]?.sources.join(', ')}. ` +
-            `${matchedEntities.length} match(es) found.`;
+          // First, find or create an account with this ID number
+          let accountId = null;
 
-          const { data: alert, error: alertError } = await supabaseAdmin
-            .from('kyc_alerts')
-            .insert({
-              tenant_id: tenantId,
-              alert_type: 'background_check_match',
-              priority: casePriority,
-              status: 'open',
-              account_id: accountData?.id_number || 'SDK_' + Date.now(),
-              full_name: accountData?.full_name || 'Unknown',
-              description: alertDescription,
-              metadata: {
-                background_check: {
-                  matched_entities: matchedEntities,
-                  highest_risk_score: maxRiskScore,
-                  match_count: nonReviewedAlertEntity.length
-                },
-                verification_status: verificationStatus,
-                document_info: accountData
+          if (accountData?.id_number) {
+            // Try to find existing account by id_number
+            const { data: existingAccount } = await supabaseAdmin
+              .from('accounts')
+              .select('id')
+              .eq('tenant_id', tenantId)
+              .eq('id_number', accountData.id_number)
+              .single();
+
+            if (existingAccount) {
+              accountId = existingAccount.id;
+            } else {
+              // Create a new account if not found
+              const { data: newAccount, error: accountError } = await supabaseAdmin
+                .from('accounts')
+                .insert({
+                  tenant_id: tenantId,
+                  user_id: 'SDK_' + accountData.id_number,
+                  first_name: accountData.full_name?.split(' ')[0] || 'Unknown',
+                  last_name: accountData.full_name?.split(' ').slice(1).join(' ') || '',
+                  id_number: accountData.id_number,
+                  id_type: accountData.document_type || 'UAE_ID',
+                  date_of_birth: accountData.date_of_birth || null,
+                  nationality: accountData.nationality || null,
+                  account_status: 'active',
+                  kyc_verification_status: verificationStatus === 'rejected' ? 'failed' : 'manual_review'
+                })
+                .select('id')
+                .single();
+
+              if (accountError) {
+                console.error('Failed to create account:', accountError);
+              } else {
+                accountId = newAccount.id;
+                console.log('Account created:', accountId);
               }
-            })
-            .select()
-            .single();
-
-          if (alertError) {
-            console.error('Failed to create alert:', alertError);
-          } else {
-            alertCreated = true;
-            alertData = alert;
-            console.log('Alert created successfully:', alert.id);
+            }
           }
 
-          caseCreated = alertCreated;
+          // Only create alert if we have a valid account_id
+          if (accountId) {
+            const alertDescription = `Background check match found for ${accountData?.full_name || 'Unknown'}. ` +
+              `Risk Score: ${maxRiskScore}. Sources: ${matchedEntities[0]?.sources.join(', ')}. ` +
+              `${matchedEntities.length} match(es) found. ` +
+              `Verification Status: ${verificationStatus}.`;
+
+            const { data: alert, error: alertError } = await supabaseAdmin
+              .from('kyc_alerts')
+              .insert({
+                tenant_id: tenantId,
+                alert_type: 'background_check_match',
+                priority: casePriority,
+                status: 'open',
+                account_id: accountId,
+                resolution_notes: alertDescription
+              })
+              .select()
+              .single();
+
+            if (alertError) {
+              console.error('Failed to create alert:', alertError);
+            } else {
+              alertCreated = true;
+              alertData = alert;
+              console.log('Alert created successfully:', alert.id);
+            }
+
+            caseCreated = alertCreated;
+          } else {
+            console.error('Cannot create alert: No valid account_id');
+          }
         } catch (error) {
           console.error('Error creating alert:', error);
         }
