@@ -308,7 +308,7 @@
     // Load and render documentation
     async function loadDocumentation() {
       try {
-        const response = await fetch('../backend/API_DOCUMENTATION.md');
+        const response = await fetch('../assets/API_DOCUMENTATION.md');
         const markdown = await response.text();
 
         const html = marked.parse(markdown);
