@@ -482,7 +482,10 @@ class ApiClient {
 // Create global API client instance
 const api = new ApiClient();
 
-// Export for use in other modules
+// Export for use in other modules (CommonJS)
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = ApiClient;
 }
+
+// ES6 module export
+export { ApiClient };
