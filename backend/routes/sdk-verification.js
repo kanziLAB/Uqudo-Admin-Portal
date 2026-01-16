@@ -520,7 +520,9 @@ router.post('/enrollment',
 
     // Process Background Check and create AML case if matches found
     let caseCreated = false;
+    let alertCreated = false;
     let caseData = null;
+    let alertData = null;
 
     if (backgroundCheck && backgroundCheck.match && backgroundCheck.content) {
       const { nonReviewedAlertEntity = [] } = backgroundCheck.content;
@@ -542,8 +544,6 @@ router.post('/enrollment',
         if (maxRiskScore >= 90) casePriority = 'critical';
         else if (maxRiskScore >= 70) casePriority = 'high';
 
-        // If you have tenant_id and account_id, create the case
-        // For now, we'll return the information
         caseData = {
           case_type: 'background_check_match',
           priority: casePriority,
@@ -553,7 +553,51 @@ router.post('/enrollment',
           recommended_action: maxRiskScore >= 90 ? 'ESCALATE' : 'REVIEW'
         };
 
-        caseCreated = true;
+        // Create alert in database for background check match
+        // Use tenant_id from request header or default for testing
+        const tenantId = req.headers['x-tenant-id'] || '00000000-0000-0000-0000-000000000000';
+
+        try {
+          // Create KYC Alert
+          const alertDescription = `Background check match found for ${accountData?.full_name || 'Unknown'}. ` +
+            `Risk Score: ${maxRiskScore}. Sources: ${matchedEntities[0]?.sources.join(', ')}. ` +
+            `${matchedEntities.length} match(es) found.`;
+
+          const { data: alert, error: alertError } = await supabaseAdmin
+            .from('kyc_alerts')
+            .insert({
+              tenant_id: tenantId,
+              alert_type: 'background_check_match',
+              priority: casePriority,
+              status: 'open',
+              account_id: accountData?.id_number || 'SDK_' + Date.now(),
+              full_name: accountData?.full_name || 'Unknown',
+              description: alertDescription,
+              metadata: {
+                background_check: {
+                  matched_entities: matchedEntities,
+                  highest_risk_score: maxRiskScore,
+                  match_count: nonReviewedAlertEntity.length
+                },
+                verification_status: verificationStatus,
+                document_info: accountData
+              }
+            })
+            .select()
+            .single();
+
+          if (alertError) {
+            console.error('Failed to create alert:', alertError);
+          } else {
+            alertCreated = true;
+            alertData = alert;
+            console.log('Alert created successfully:', alert.id);
+          }
+
+          caseCreated = alertCreated;
+        } catch (error) {
+          console.error('Error creating alert:', error);
+        }
       }
     }
 
@@ -569,13 +613,14 @@ router.post('/enrollment',
         },
         backgroundCheck: {
           match: backgroundCheck?.match || false,
-          caseCreated,
+          alertCreated,
+          alertData,
           caseData
         },
         account: accountData
       },
-      message: caseCreated
-        ? `Verification ${verificationStatus}. Background check match found - case created.`
+      message: alertCreated
+        ? `Verification ${verificationStatus}. Background check match found - alert created (ID: ${alertData?.id}).`
         : `Verification ${verificationStatus}. No background check matches.`
     });
   })
