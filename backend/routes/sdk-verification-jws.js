@@ -256,7 +256,7 @@ router.post('/enrollment-jws',
       }
     }
 
-    // Step 4: Process Background Check and create AML case if matches found
+    // Step 4: Create or find account in database (ALWAYS, regardless of background check)
     let caseCreated = false;
     let alertCreated = false;
     let accountCreated = false;
@@ -264,151 +264,164 @@ router.post('/enrollment-jws',
     let alertData = null;
     let accountId = null;
 
-    if (backgroundCheck && backgroundCheck.match && backgroundCheck.content) {
+    try {
+      if (accountData?.id_number) {
+        // Try to find existing account
+        const { data: existingAccount } = await supabaseAdmin
+          .from('accounts')
+          .select('id')
+          .eq('tenant_id', tenantId)
+          .eq('id_number', accountData.id_number)
+          .single();
+
+        if (existingAccount) {
+          accountId = existingAccount.id;
+          console.log(`✅ Found existing account: ${accountId}`);
+        } else {
+          // Create new account
+          const nameParts = (accountData.full_name || '').split(' ');
+          const { data: newAccount, error: accountError } = await supabaseAdmin
+            .from('accounts')
+            .insert({
+              tenant_id: tenantId,
+              user_id: 'SDK_' + accountData.id_number,
+              first_name: nameParts[0] || 'Unknown',
+              last_name: nameParts.slice(1).join(' ') || '',
+              email: accountData.email || `${accountData.id_number}@temp.uqudo.com`,
+              phone_number: accountData.phone_number || '',
+              id_type: accountData.document_type?.toLowerCase() || 'eid',
+              id_number: accountData.id_number,
+              date_of_birth: accountData.date_of_birth || null,
+              nationality: accountData.nationality || null,
+              gender: accountData.gender?.toLowerCase() || null,
+              account_status: verificationStatus === 'approved' ? 'pending_review' : 'suspended',
+              kyc_verification_status: accountData.nfc_verified ? 'verified' : 'pending'
+            })
+            .select()
+            .single();
+
+          if (accountError) throw accountError;
+
+          accountId = newAccount.id;
+          accountCreated = true;
+          console.log(`✅ Created new account: ${accountId}`);
+        }
+
+        // Log the SDK enrollment
+        await supabaseAdmin.from('analyst_logs').insert({
+          tenant_id: tenantId,
+          account_id: accountId,
+          action: 'SDK_ENROLLMENT_PROCESSED',
+          description: `SDK enrollment processed. Verification status: ${verificationStatus}. NFC verified: ${accountData.nfc_verified || false}`
+        });
+      }
+    } catch (error) {
+      console.error('Account creation failed:', error);
+      // Continue to process background check even if account creation fails
+    }
+
+    // Step 5: Process Background Check and create AML case if matches found
+    if (backgroundCheck && backgroundCheck.match && backgroundCheck.content && accountId) {
       const { nonReviewedAlertEntity = [] } = backgroundCheck.content;
 
       if (nonReviewedAlertEntity.length > 0) {
         console.log(`🚨 Background check found ${nonReviewedAlertEntity.length} matches`);
 
-        // Extract matched entities with all details
-        const matchedEntities = nonReviewedAlertEntity.map(entity => ({
-          sys_id: entity.sysId,
-          entity_id: entity.entityId,
-          name: entity.entityName,
-          entity_type: entity.entityTyp,
-          match_score: entity.matchScore,
-          risk_score: entity.riskScore,
-          rdc_url: entity.rdcURL,
-          pep_types: entity.pepTypes?.pepType || [],
-          events: entity.event || [],
-          sources: entity.sources?.source || [],
-          relationships: entity.rels?.rel || [],
-          addresses: entity.postAddr || [],
-          birth_dates: entity.birthDt || [],
-          identifications: entity.identification || [],
-          attributes: entity.attribute || []
-        }));
-
-        // Determine case priority based on highest risk score
-        const maxRiskScore = Math.max(...nonReviewedAlertEntity.map(e => e.riskScore || 0));
-        let casePriority = 'medium';
-        if (maxRiskScore >= 90) casePriority = 'critical';
-        else if (maxRiskScore >= 70) casePriority = 'high';
-
-        caseData = {
-          case_type: 'background_check_match',
-          priority: casePriority,
-          matched_entities: matchedEntities,
-          match_count: nonReviewedAlertEntity.length,
-          highest_risk_score: maxRiskScore,
-          recommended_action: maxRiskScore >= 90 ? 'ESCALATE' : 'REVIEW',
-          monitoring_id: backgroundCheck.monitoringId,
-          alert_date: backgroundCheck.content.alertDt
-        };
-
-        // Step 5: Create or find account in database
         try {
-          if (accountData?.id_number) {
-            // Try to find existing account
-            const { data: existingAccount } = await supabaseAdmin
-              .from('accounts')
-              .select('id')
-              .eq('tenant_id', tenantId)
-              .eq('id_number', accountData.id_number)
-              .single();
+          // Extract matched entities with all details
+          const matchedEntities = nonReviewedAlertEntity.map(entity => ({
+            sys_id: entity.sysId,
+            entity_id: entity.entityId,
+            name: entity.entityName,
+            entity_type: entity.entityTyp,
+            match_score: entity.matchScore,
+            risk_score: entity.riskScore,
+            rdc_url: entity.rdcURL,
+            pep_types: entity.pepTypes?.pepType || [],
+            events: entity.event || [],
+            sources: entity.sources?.source || [],
+            relationships: entity.rels?.rel || [],
+            addresses: entity.postAddr || [],
+            birth_dates: entity.birthDt || [],
+            identifications: entity.identification || [],
+            attributes: entity.attribute || []
+          }));
 
-            if (existingAccount) {
-              accountId = existingAccount.id;
-              console.log(`✅ Found existing account: ${accountId}`);
-            } else {
-              // Create new account
-              const nameParts = accountData.full_name.split(' ');
-              const { data: newAccount, error: accountError } = await supabaseAdmin
-                .from('accounts')
-                .insert({
-                  tenant_id: tenantId,
-                  user_id: 'SDK_' + accountData.id_number,
-                  first_name: nameParts[0] || 'Unknown',
-                  last_name: nameParts.slice(1).join(' ') || '',
-                  email: accountData.email || `${accountData.id_number}@temp.uqudo.com`,
-                  phone_number: accountData.phone_number || '',
-                  id_type: accountData.document_type?.toLowerCase() || 'eid',
-                  id_number: accountData.id_number,
-                  date_of_birth: accountData.date_of_birth,
-                  nationality: accountData.nationality,
-                  gender: accountData.gender?.toLowerCase(),
-                  account_status: verificationStatus === 'approved' ? 'pending_review' : 'suspended',
-                  kyc_verification_status: accountData.nfc_verified ? 'verified' : 'pending'
-                })
-                .select()
-                .single();
+          // Determine case priority based on highest risk score
+          const maxRiskScore = Math.max(...nonReviewedAlertEntity.map(e => e.riskScore || 0));
+          let casePriority = 'medium';
+          if (maxRiskScore >= 90) casePriority = 'critical';
+          else if (maxRiskScore >= 70) casePriority = 'high';
 
-              if (accountError) throw accountError;
+          caseData = {
+            case_type: 'background_check_match',
+            priority: casePriority,
+            matched_entities: matchedEntities,
+            match_count: nonReviewedAlertEntity.length,
+            highest_risk_score: maxRiskScore,
+            recommended_action: maxRiskScore >= 90 ? 'ESCALATE' : 'REVIEW',
+            monitoring_id: backgroundCheck.monitoringId,
+            alert_date: backgroundCheck.content.alertDt
+          };
 
-              accountId = newAccount.id;
-              accountCreated = true;
-              console.log(`✅ Created new account: ${accountId}`);
-            }
-
-            // Step 6: Create alert for background check match
-            const { data: alert, error: alertError } = await supabaseAdmin
-              .from('kyc_alerts')
-              .insert({
-                tenant_id: tenantId,
-                account_id: accountId,
-                alert_type: 'background_check_match',
-                priority: casePriority,
-                status: 'open',
-                resolution_notes: `Background check found ${nonReviewedAlertEntity.length} matches. Highest risk score: ${maxRiskScore}. Entities: ${matchedEntities.map(e => e.name).join(', ')}`
-              })
-              .select()
-              .single();
-
-            if (alertError) {
-              console.error('Failed to create alert:', alertError);
-            } else {
-              alertCreated = true;
-              alertData = alert;
-              console.log(`✅ Created alert: ${alert.id}`);
-            }
-
-            // Step 7: Create AML case
-            const caseId = `BGC-${Date.now()}`;
-            const { data: amlCase, error: caseError } = await supabaseAdmin
-              .from('aml_cases')
-              .insert({
-                tenant_id: tenantId,
-                account_id: accountId,
-                case_id: caseId,
-                resolution_status: 'unsolved',
-                match_count: nonReviewedAlertEntity.length,
-                external_case_url: matchedEntities[0]?.rdc_url || null,
-                alert_ids: alertData ? [alertData.id] : []
-              })
-              .select()
-              .single();
-
-            if (caseError) {
-              console.error('Failed to create case:', caseError);
-            } else {
-              caseCreated = true;
-              caseData.database_case_id = amlCase.id;
-              caseData.case_id = caseId;
-              console.log(`✅ Created AML case: ${caseId}`);
-            }
-
-            // Log the action
-            await supabaseAdmin.from('analyst_logs').insert({
+          // Step 6: Create alert for background check match
+          const { data: alert, error: alertError } = await supabaseAdmin
+            .from('kyc_alerts')
+            .insert({
               tenant_id: tenantId,
               account_id: accountId,
-              case_id: amlCase?.id,
-              action: 'SDK_ENROLLMENT_PROCESSED',
-              description: `SDK enrollment processed. Background check: ${nonReviewedAlertEntity.length} matches. Status: ${verificationStatus}`
-            });
+              alert_type: 'background_check_match',
+              priority: casePriority,
+              status: 'open',
+              resolution_notes: `Background check found ${nonReviewedAlertEntity.length} matches. Highest risk score: ${maxRiskScore}. Entities: ${matchedEntities.map(e => e.name).join(', ')}`
+            })
+            .select()
+            .single();
+
+          if (alertError) {
+            console.error('Failed to create alert:', alertError);
+          } else {
+            alertCreated = true;
+            alertData = alert;
+            console.log(`✅ Created alert: ${alert.id}`);
           }
+
+          // Step 7: Create AML case
+          const caseId = `BGC-${Date.now()}`;
+          const { data: amlCase, error: caseError } = await supabaseAdmin
+            .from('aml_cases')
+            .insert({
+              tenant_id: tenantId,
+              account_id: accountId,
+              case_id: caseId,
+              resolution_status: 'unsolved',
+              match_count: nonReviewedAlertEntity.length,
+              external_case_url: matchedEntities[0]?.rdc_url || null,
+              alert_ids: alertData ? [alertData.id] : []
+            })
+            .select()
+            .single();
+
+          if (caseError) {
+            console.error('Failed to create case:', caseError);
+          } else {
+            caseCreated = true;
+            caseData.database_case_id = amlCase.id;
+            caseData.case_id = caseId;
+            console.log(`✅ Created AML case: ${caseId}`);
+          }
+
+          // Log the background check match
+          await supabaseAdmin.from('analyst_logs').insert({
+            tenant_id: tenantId,
+            account_id: accountId,
+            case_id: amlCase?.id,
+            action: 'BACKGROUND_CHECK_MATCH',
+            description: `Background check found ${nonReviewedAlertEntity.length} matches. Case ${caseId} created.`
+          });
         } catch (error) {
-          console.error('Database operation failed:', error);
-          // Continue and return the data even if DB operations fail
+          console.error('Background check processing failed:', error);
+          // Continue and return response even if background check operations fail
         }
       }
     }
