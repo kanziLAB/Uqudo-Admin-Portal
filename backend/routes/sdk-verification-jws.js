@@ -571,38 +571,6 @@ router.post('/enrollment-jws',
               // Don't fail the whole request if image fetch fails
             }
           }
-        } else {
-          // For existing accounts, also try to fetch images if not already fetched
-          if (source?.sessionId) {
-            try {
-              const { data: existingAccountData } = await supabaseAdmin
-                .from('accounts')
-                .select('images_fetched_at')
-                .eq('id', accountId)
-                .single();
-
-              if (!existingAccountData?.images_fetched_at) {
-                const images = await fetchImagesFromUqudoAPI(source.sessionId);
-
-                if (images) {
-                  await supabaseAdmin
-                    .from('accounts')
-                    .update({
-                      face_image_url: images.faceImageUrl,
-                      face_image_base64: images.faceImageBase64,
-                      document_front_url: images.documentFrontUrl,
-                      document_back_url: images.documentBackUrl,
-                      images_fetched_at: images.fetchedAt
-                    })
-                    .eq('id', accountId);
-
-                  console.log(`✅ Images fetched and stored for existing account: ${accountId}`);
-                }
-              }
-            } catch (imageError) {
-              console.error(`⚠️ Failed to fetch images for existing account: ${imageError.message}`);
-            }
-          }
         }
 
         // Log the SDK enrollment
