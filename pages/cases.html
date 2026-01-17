@@ -592,13 +592,11 @@
             <label class="form-label">Action Type</label>
             <select class="form-select" id="action-type" required>
               <option value="">Select action...</option>
-              <option value="INVESTIGATE">Start Investigation</option>
-              <option value="ESCALATE">Escalate to Manager</option>
-              <option value="REQUEST_INFO">Request More Information</option>
-              <option value="CLEAR">Clear (False Positive)</option>
-              <option value="CONFIRM">Confirm Match</option>
-              <option value="REPORT">File SAR Report</option>
-              <option value="CLOSE">Close Case</option>
+              <option value="APPROVE">Approve (No Match - Clear)</option>
+              <option value="DECLINE">Decline (Confirmed Match - Block)</option>
+              <option value="CLEAN">Clean (False Positive)</option>
+              <option value="SUSPICIOUS">Suspicious (Needs Review)</option>
+              <option value="FALSE_POSITIVE">False Positive (Mark as Safe)</option>
             </select>
           </div>
 
