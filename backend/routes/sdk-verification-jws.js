@@ -492,77 +492,92 @@ router.post('/enrollment-jws',
     let accountId = null;
 
     try {
-      if (accountData?.id_number) {
-        // Try to find existing account
-        const { data: existingAccount } = await supabaseAdmin
+      // Generate a unique identifier for the account
+      // Priority: id_number > sessionId > timestamp
+      const uniqueId = accountData?.id_number || source?.sessionId || `WEB_${Date.now()}`;
+      const hasIdNumber = !!accountData?.id_number;
+
+      // Try to find existing account (only if we have an ID number)
+      let existingAccount = null;
+      if (hasIdNumber) {
+        const { data } = await supabaseAdmin
           .from('accounts')
           .select('id')
           .eq('tenant_id', tenantId)
           .eq('id_number', accountData.id_number)
           .single();
+        existingAccount = data;
+      }
 
-        if (existingAccount) {
-          accountId = existingAccount.id;
-          console.log(`✅ Found existing account: ${accountId}`);
+      if (existingAccount) {
+        accountId = existingAccount.id;
+        console.log(`✅ Found existing account: ${accountId}`);
 
-          // Update existing account with latest SDK analytics data
-          // Use real trace events if available, otherwise build synthetic events
-          const analyticsEvents = trace && trace.length > 0
-            ? trace
-            : buildAnalyticsEvents(source, verifications, documents, verificationStatus);
+        // Update existing account with latest SDK analytics data
+        // Use real trace events if available, otherwise build synthetic events
+        const analyticsEvents = trace && trace.length > 0
+          ? trace
+          : buildAnalyticsEvents(source, verifications, documents, verificationStatus);
 
-          console.log(`📊 Storing ${analyticsEvents.length} analytics events (${trace && trace.length > 0 ? 'real trace events' : 'synthetic events'})`);
+        console.log(`📊 Storing ${analyticsEvents.length} analytics events (${trace && trace.length > 0 ? 'real trace events' : 'synthetic events'})`);
 
-          await supabaseAdmin
-            .from('accounts')
-            .update({
-              sdk_analytics: analyticsEvents,
-              sdk_source: source,
-              sdk_verifications: verifications,
-              sdk_documents: documents
-            })
-            .eq('id', accountId);
-        } else {
-          // Create new account
-          const nameParts = (accountData.full_name || '').split(' ');
+        await supabaseAdmin
+          .from('accounts')
+          .update({
+            sdk_analytics: analyticsEvents,
+            sdk_source: source,
+            sdk_verifications: verifications,
+            sdk_documents: documents,
+            verification_channel: source?.sdkType?.toLowerCase().includes('web') ? 'web' : 'mobile',
+            verification_type: hasIdNumber ? 'document' : 'selfie_only'
+          })
+          .eq('id', accountId);
+      } else {
+        // Create new account (ALWAYS - even without ID number for web SDK)
+        const nameParts = (accountData?.full_name || '').split(' ');
+        const sdkType = source?.sdkType || 'unknown';
+        const isWebSDK = sdkType.toLowerCase().includes('web');
 
-          // Use real trace events if available, otherwise build synthetic events
-          const analyticsEvents = trace && trace.length > 0
-            ? trace
-            : buildAnalyticsEvents(source, verifications, documents, verificationStatus);
+        // Use real trace events if available, otherwise build synthetic events
+        const analyticsEvents = trace && trace.length > 0
+          ? trace
+          : buildAnalyticsEvents(source, verifications, documents, verificationStatus);
 
-          console.log(`📊 Creating account with ${analyticsEvents.length} analytics events (${trace && trace.length > 0 ? 'real trace events' : 'synthetic events'})`);
+        console.log(`📊 Creating account with ${analyticsEvents.length} analytics events (${trace && trace.length > 0 ? 'real trace events' : 'synthetic events'})`);
+        console.log(`📱 SDK Type: ${sdkType}, Is Web: ${isWebSDK}, Has ID Number: ${hasIdNumber}`);
 
-          const { data: newAccount, error: accountError } = await supabaseAdmin
-            .from('accounts')
-            .insert({
-              tenant_id: tenantId,
-              user_id: 'SDK_' + accountData.id_number,
-              first_name: nameParts[0] || 'Unknown',
-              last_name: nameParts.slice(1).join(' ') || '',
-              email: accountData.email || `${accountData.id_number}@temp.uqudo.com`,
-              phone_number: accountData.phone_number || '',
-              id_type: accountData.document_type?.toLowerCase() || 'eid',
-              id_number: accountData.id_number,
-              date_of_birth: accountData.date_of_birth || null,
-              nationality: accountData.nationality || null,
-              gender: accountData.gender?.toLowerCase() || null,
-              account_status: verificationStatus === 'approved' ? 'pending_review' : 'suspended',
-              kyc_verification_status: accountData.nfc_verified ? 'verified' : 'pending',
-              aml_status: 'pending',
-              sdk_analytics: analyticsEvents,
-              sdk_source: source,
-              sdk_verifications: verifications,
-              sdk_documents: documents
-            })
-            .select()
-            .single();
+        const { data: newAccount, error: accountError } = await supabaseAdmin
+          .from('accounts')
+          .insert({
+            tenant_id: tenantId,
+            user_id: 'SDK_' + uniqueId,
+            first_name: nameParts[0] || 'Unknown',
+            last_name: nameParts.slice(1).join(' ') || 'User',
+            email: accountData?.email || `${uniqueId}@temp.uqudo.com`,
+            phone_number: accountData?.phone_number || '',
+            id_type: accountData?.document_type?.toLowerCase() || (hasIdNumber ? 'eid' : null),
+            id_number: accountData?.id_number || null,
+            date_of_birth: accountData?.date_of_birth || null,
+            nationality: accountData?.nationality || null,
+            gender: accountData?.gender?.toLowerCase() || null,
+            account_status: verificationStatus === 'approved' ? 'pending_review' : 'suspended',
+            kyc_verification_status: accountData?.nfc_verified ? 'verified' : 'pending',
+            aml_status: 'pending',
+            verification_channel: isWebSDK ? 'web' : 'mobile',
+            verification_type: hasIdNumber ? 'document' : 'selfie_only',
+            sdk_analytics: analyticsEvents,
+            sdk_source: source,
+            sdk_verifications: verifications,
+            sdk_documents: documents
+          })
+          .select()
+          .single();
 
-          if (accountError) throw accountError;
+        if (accountError) throw accountError;
 
-          accountId = newAccount.id;
-          accountCreated = true;
-          console.log(`✅ Created new account: ${accountId}`);
+        accountId = newAccount.id;
+        accountCreated = true;
+        console.log(`✅ Created new account: ${accountId} (${isWebSDK ? 'Web SDK' : 'Mobile SDK'}, ${hasIdNumber ? 'with ID' : 'selfie-only'})`);
 
           // Fetch images from Uqudo Info API
           if (source?.sessionId) {
