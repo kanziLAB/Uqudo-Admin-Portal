@@ -579,38 +579,39 @@ router.post('/enrollment-jws',
         accountCreated = true;
         console.log(`✅ Created new account: ${accountId} (${isWebSDK ? 'Web SDK' : 'Mobile SDK'}, ${hasIdNumber ? 'with ID' : 'selfie-only'})`);
 
-          // Fetch images from Uqudo Info API
-          if (source?.sessionId) {
-            try {
-              const images = await fetchImagesFromUqudoAPI(source.sessionId);
+        // Fetch images from Uqudo Info API
+        if (source?.sessionId) {
+          try {
+            const images = await fetchImagesFromUqudoAPI(source.sessionId);
 
-              if (images) {
-                await supabaseAdmin
-                  .from('accounts')
-                  .update({
-                    face_image_url: images.faceImageUrl,
-                    face_image_base64: images.faceImageBase64,
-                    document_front_url: images.documentFrontUrl,
-                    document_back_url: images.documentBackUrl,
-                    images_fetched_at: images.fetchedAt
-                  })
-                  .eq('id', accountId);
+            if (images) {
+              await supabaseAdmin
+                .from('accounts')
+                .update({
+                  face_image_url: images.faceImageUrl,
+                  face_image_base64: images.faceImageBase64,
+                  document_front_url: images.documentFrontUrl,
+                  document_back_url: images.documentBackUrl,
+                  images_fetched_at: images.fetchedAt
+                })
+                .eq('id', accountId);
 
-                console.log(`✅ Images fetched and stored for account: ${accountId}`);
-              }
-            } catch (imageError) {
-              console.error(`⚠️ Failed to fetch images, but account created: ${imageError.message}`);
-              // Don't fail the whole request if image fetch fails
+              console.log(`✅ Images fetched and stored for account: ${accountId}`);
             }
+          } catch (imageError) {
+            console.error(`⚠️ Failed to fetch images, but account created: ${imageError.message}`);
+            // Don't fail the whole request if image fetch fails
           }
         }
+      }
 
-        // Log the SDK enrollment
+      // Log the SDK enrollment
+      if (accountId) {
         await supabaseAdmin.from('analyst_logs').insert({
           tenant_id: tenantId,
           account_id: accountId,
           action: 'SDK_ENROLLMENT_PROCESSED',
-          description: `SDK enrollment processed. Verification status: ${verificationStatus}. NFC verified: ${accountData.nfc_verified || false}`
+          description: `SDK enrollment processed. Verification status: ${verificationStatus}. NFC verified: ${accountData?.nfc_verified || false}`
         });
       }
     } catch (error) {
