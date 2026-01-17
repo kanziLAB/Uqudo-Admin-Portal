@@ -80,22 +80,27 @@ function buildAnalyticsEvents(source, verifications, documents, verificationStat
     const verification = verifications[0];
     let prevEventTime = events.length > 0 ? new Date(events[events.length - 1].timestamp) : baseTime;
 
-    // Face match event
-    if (verification.faceMatch) {
+    // Face match event (check both faceMatch and biometric fields)
+    const faceMatchData = verification.faceMatch || verification.biometric;
+    if (faceMatchData) {
       const faceMatchTime = new Date(prevEventTime.getTime() + 500).toISOString();
       const faceMatchDuration = 500;
+
+      // Check if match was successful
+      const matchSuccess = faceMatchData.match || (faceMatchData.matchLevel && faceMatchData.matchLevel >= 2);
 
       events.push({
         name: 'FACE_MATCH',
         type: 'VERIFICATION',
-        status: verification.faceMatch.match ? 'success' : 'failure',
+        status: matchSuccess ? 'success' : 'failure',
         timestamp: faceMatchTime,
         duration: faceMatchDuration,
         id: 'FACE_MATCH',
         details: {
-          match: verification.faceMatch.match,
-          match_level: verification.faceMatch.matchLevel,
-          score: verification.faceMatch.matchLevel ? verification.faceMatch.matchLevel / 5 : 0
+          match: matchSuccess,
+          match_level: faceMatchData.matchLevel || 0,
+          score: faceMatchData.matchLevel ? faceMatchData.matchLevel / 5 : 0,
+          type: faceMatchData.type || 'FACIAL_RECOGNITION'
         }
       });
       prevEventTime = new Date(faceMatchTime);
@@ -653,32 +658,38 @@ router.post('/enrollment-jws',
 
           // Step 7: Create AML case
           const caseId = `BGC-${Date.now()}`;
-          const { data: amlCase, error: caseError } = await supabaseAdmin
-            .from('aml_cases')
-            .insert({
-              tenant_id: tenantId,
-              account_id: accountId,
-              case_id: caseId,
-              resolution_status: 'unsolved',
+
+          const casePayload = {
+            tenant_id: tenantId,
+            account_id: accountId,
+            case_id: caseId,
+            resolution_status: 'unsolved',
+            match_count: nonReviewedAlertEntity.length,
+            external_case_url: matchedEntities[0]?.rdc_url || null,
+            alert_ids: alertData ? [alertData.id] : [],
+            match_details: {
+              matched_entities: matchedEntities,
               match_count: nonReviewedAlertEntity.length,
-              external_case_url: matchedEntities[0]?.rdc_url || null,
-              alert_ids: alertData ? [alertData.id] : [],
-              match_details: {
-                matched_entities: matchedEntities,
-                match_count: nonReviewedAlertEntity.length,
-                highest_risk_score: maxRiskScore
-              }
-            })
+              highest_risk_score: maxRiskScore
+            }
+          };
+
+          console.log(`📊 Creating AML case with ${matchedEntities.length} matched entities`);
+          console.log(`📊 Match details:`, JSON.stringify(casePayload.match_details, null, 2));
+
+          const { data: amlCase, error: caseError} = await supabaseAdmin
+            .from('aml_cases')
+            .insert(casePayload)
             .select()
             .single();
 
           if (caseError) {
-            console.error('Failed to create case:', caseError);
+            console.error('❌ Failed to create case:', caseError);
           } else {
             caseCreated = true;
             caseData.database_case_id = amlCase.id;
             caseData.case_id = caseId;
-            console.log(`✅ Created AML case: ${caseId}`);
+            console.log(`✅ Created AML case: ${caseId} with match_details stored`);
           }
 
           // Update account AML status to 'aml_match_found'
