@@ -144,10 +144,54 @@ function buildAnalyticsEvents(source, verifications, documents, verificationStat
   return events;
 }
 
+// Helper to get Uqudo API access token
+async function getUqudoAccessToken() {
+  try {
+    const clientId = process.env.UQUDO_CLIENT_ID || '456edf22-e887-4a32-b2e5-334bf902831f';
+    const clientSecret = process.env.UQUDO_CLIENT_SECRET || '9OPYykfpSPWVr0uCTgeaER9hTLsStlhWd2SI3JA7ycWAcOvUawUtKZJW7fGE9dbx';
+    const authUrl = process.env.UQUDO_AUTH_URL || 'https://id.uqudo.io/api/oauth2/token';
+
+    console.log('🔐 Requesting Uqudo API access token...');
+
+    const response = await fetch(authUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: clientId,
+        client_secret: clientSecret,
+        scope: 'read'
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Auth API failed: ${response.status} ${errorText}`);
+      return null;
+    }
+
+    const data = await response.json();
+    console.log('✅ Access token obtained successfully');
+    return data.access_token;
+  } catch (error) {
+    console.error('❌ Failed to get access token:', error.message);
+    return null;
+  }
+}
+
 // Helper to fetch images from Uqudo Info API
-async function fetchImagesFromUqudoAPI(sessionId, token) {
+async function fetchImagesFromUqudoAPI(sessionId) {
   try {
     console.log(`📸 Fetching images for session: ${sessionId}`);
+
+    // Get access token first
+    const accessToken = await getUqudoAccessToken();
+    if (!accessToken) {
+      console.error('❌ No access token available, skipping image fetch');
+      return null;
+    }
 
     // Uqudo Info API endpoint
     const infoApiUrl = process.env.UQUDO_INFO_API_URL || 'https://id.uqudo.io/api/v2/info';
@@ -156,7 +200,7 @@ async function fetchImagesFromUqudoAPI(sessionId, token) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token || process.env.UQUDO_API_TOKEN}`
+        'Authorization': `Bearer ${accessToken}`
       },
       body: JSON.stringify({
         sessionId: sessionId
@@ -164,7 +208,8 @@ async function fetchImagesFromUqudoAPI(sessionId, token) {
     });
 
     if (!response.ok) {
-      console.error(`❌ Info API request failed: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(`❌ Info API request failed: ${response.status} ${errorText}`);
       return null;
     }
 
@@ -505,7 +550,7 @@ router.post('/enrollment-jws',
           // Fetch images from Uqudo Info API
           if (source?.sessionId) {
             try {
-              const images = await fetchImagesFromUqudoAPI(source.sessionId, req.headers.authorization?.replace('Bearer ', ''));
+              const images = await fetchImagesFromUqudoAPI(source.sessionId);
 
               if (images) {
                 await supabaseAdmin
@@ -537,7 +582,7 @@ router.post('/enrollment-jws',
                 .single();
 
               if (!existingAccountData?.images_fetched_at) {
-                const images = await fetchImagesFromUqudoAPI(source.sessionId, req.headers.authorization?.replace('Bearer ', ''));
+                const images = await fetchImagesFromUqudoAPI(source.sessionId);
 
                 if (images) {
                   await supabaseAdmin
