@@ -425,6 +425,112 @@
         </div>
       </div>
 
+      <!-- SDK Verification Thresholds -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header pb-0">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">SDK Verification Score Thresholds</h6>
+                <button class="btn btn-sm bg-gradient-info" onclick="saveSDKThresholds()">
+                  <i class="material-symbols-rounded text-sm">save</i> Save Thresholds
+                </button>
+              </div>
+              <p class="text-sm text-secondary mb-0 mt-2">Configure minimum scores for SDK verification checks</p>
+            </div>
+            <div class="card-body">
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Face Match Threshold</div>
+                  <div class="setting-description">Minimum score for face matching between document and selfie</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="50" max="100" value="80" id="sdk-face-match" oninput="updateSDKThresholdValue('face-match', this.value)">
+                  <span class="threshold-value" id="sdk-face-match-value">80%</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Liveness Check Threshold</div>
+                  <div class="setting-description">Minimum score for liveness detection (anti-spoofing)</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="50" max="100" value="85" id="sdk-liveness" oninput="updateSDKThresholdValue('liveness', this.value)">
+                  <span class="threshold-value" id="sdk-liveness-value">85%</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Document Quality Threshold</div>
+                  <div class="setting-description">Minimum quality score for document images</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="50" max="100" value="75" id="sdk-doc-quality" oninput="updateSDKThresholdValue('doc-quality', this.value)">
+                  <span class="threshold-value" id="sdk-doc-quality-value">75%</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Face Quality Threshold</div>
+                  <div class="setting-description">Minimum quality score for face/selfie images</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="50" max="100" value="75" id="sdk-face-quality" oninput="updateSDKThresholdValue('face-quality', this.value)">
+                  <span class="threshold-value" id="sdk-face-quality-value">75%</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">OCR Confidence Threshold</div>
+                  <div class="setting-description">Minimum confidence for OCR text extraction</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="50" max="100" value="85" id="sdk-ocr" oninput="updateSDKThresholdValue('ocr', this.value)">
+                  <span class="threshold-value" id="sdk-ocr-value">85%</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">NFC Chip Reading Threshold</div>
+                  <div class="setting-description">Minimum confidence for NFC chip data reading</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="50" max="100" value="90" id="sdk-nfc" oninput="updateSDKThresholdValue('nfc', this.value)">
+                  <span class="threshold-value" id="sdk-nfc-value">90%</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Passive Authentication Threshold</div>
+                  <div class="setting-description">Minimum score for document authenticity verification</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="50" max="100" value="85" id="sdk-passive-auth" oninput="updateSDKThresholdValue('passive-auth', this.value)">
+                  <span class="threshold-value" id="sdk-passive-auth-value">85%</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Background Check Risk Threshold</div>
+                  <div class="setting-description">Minimum risk score to create AML case (0-100)</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="0" max="100" value="70" id="sdk-bgcheck-risk" oninput="updateSDKThresholdValue('bgcheck-risk', this.value)">
+                  <span class="threshold-value" id="sdk-bgcheck-risk-value">70</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Supported Countries -->
       <div class="row mb-4">
         <div class="col-12">
@@ -661,6 +767,44 @@
       } catch (error) {
         console.error('Failed to save risk thresholds:', error);
         showError('Failed to save risk thresholds');
+      }
+    }
+
+    // Update SDK threshold value display
+    function updateSDKThresholdValue(type, value) {
+      const valueElement = document.getElementById(`sdk-${type}-value`);
+      if (type === 'bgcheck-risk') {
+        valueElement.textContent = value;
+      } else {
+        valueElement.textContent = `${value}%`;
+      }
+    }
+
+    // Save SDK thresholds
+    async function saveSDKThresholds() {
+      const thresholds = {
+        sdk_verification_thresholds: {
+          face_match: parseInt(document.getElementById('sdk-face-match').value),
+          liveness: parseInt(document.getElementById('sdk-liveness').value),
+          document_quality: parseInt(document.getElementById('sdk-doc-quality').value),
+          face_quality: parseInt(document.getElementById('sdk-face-quality').value),
+          ocr_confidence: parseInt(document.getElementById('sdk-ocr').value),
+          nfc_reading: parseInt(document.getElementById('sdk-nfc').value),
+          passive_authentication: parseInt(document.getElementById('sdk-passive-auth').value),
+          background_check_risk: parseInt(document.getElementById('sdk-bgcheck-risk').value)
+        }
+      };
+
+      try {
+        const response = await api.updateKYCSetup(thresholds);
+        if (response.success) {
+          showSuccess('SDK verification thresholds saved successfully');
+        } else {
+          showError(response.error || 'Failed to save SDK thresholds');
+        }
+      } catch (error) {
+        console.error('Failed to save SDK thresholds:', error);
+        showError('Failed to save SDK thresholds');
       }
     }
 
