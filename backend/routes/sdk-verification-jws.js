@@ -351,6 +351,8 @@ router.post('/enrollment-jws',
     if (documents && documents.length > 0) {
       const doc = documents[0];
 
+      console.log('📄 Document structure:', JSON.stringify(doc, null, 2));
+
       // Priority 1: NFC Reading data (most reliable)
       if (doc.reading?.data) {
         const reading = doc.reading.data;
