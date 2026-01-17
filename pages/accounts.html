@@ -481,16 +481,16 @@
             <!-- Right Column: Biometric & Device Info -->
             <div class="col-md-6">
               <div class="modal-section">
-                <div class="modal-section-title">Biometric Data</div>
-                <div id="biometric-data-container">
-                  <p class="text-sm text-muted">Loading biometric data...</p>
+                <div class="modal-section-title">Document Images</div>
+                <div id="document-images-container">
+                  <p class="text-sm text-muted">Loading document images...</p>
                 </div>
               </div>
 
               <div class="modal-section">
-                <div class="modal-section-title">Device Attestation</div>
-                <div id="device-data-container">
-                  <p class="text-sm text-muted">Loading device data...</p>
+                <div class="modal-section-title">Verification Details</div>
+                <div id="verification-details-container">
+                  <p class="text-sm text-muted">Loading verification details...</p>
                 </div>
               </div>
 
@@ -1039,8 +1039,8 @@
           document.getElementById('detail-updated-at').textContent = formatDate(account.updated_at, { dateStyle: 'medium', timeStyle: 'short' });
 
           // Load additional data
-          loadBiometricData(accountId);
-          loadDeviceData(accountId);
+          loadDocumentImages(account);
+          loadVerificationDetails(account);
           loadActivityLog(accountId);
 
           // Load Performance Journey
@@ -1057,61 +1057,104 @@
       }
     }
 
-    // Load biometric data
-    async function loadBiometricData(accountId) {
-      const container = document.getElementById('biometric-data-container');
-      try {
-        const response = await api.getAccountBiometricData(accountId);
+    // Load document images
+    function loadDocumentImages(account) {
+      const container = document.getElementById('document-images-container');
 
-        if (response.success && response.data.length > 0) {
-          container.innerHTML = response.data.map(bio => `
-            <div class="biometric-item">
-              <div class="d-flex justify-content-between mb-1">
-                <span class="text-sm font-weight-bold">${snakeToTitle(bio.biometric_type)}</span>
-                <span class="badge badge-sm ${bio.is_verified ? 'badge-success' : 'badge-secondary'}">
-                  ${bio.is_verified ? 'Verified' : 'Pending'}
-                </span>
-              </div>
-              <p class="text-xs text-muted mb-1">Confidence: ${(bio.confidence_score * 100).toFixed(1)}%</p>
-              <p class="text-xs text-muted mb-0">Captured: ${formatDate(bio.captured_at, { dateStyle: 'short', timeStyle: 'short' })}</p>
-            </div>
-          `).join('');
-        } else {
-          container.innerHTML = '<p class="text-sm text-muted">No biometric data available</p>';
-        }
-      } catch (error) {
-        container.innerHTML = '<p class="text-sm text-danger">Failed to load biometric data</p>';
+      const hasDocumentFront = account.document_front_url;
+      const hasDocumentBack = account.document_back_url;
+
+      if (!hasDocumentFront && !hasDocumentBack) {
+        container.innerHTML = '<p class="text-sm text-muted">No document images available</p>';
+        return;
       }
+
+      let imagesHtml = '<div class="row">';
+
+      if (hasDocumentFront) {
+        imagesHtml += `
+          <div class="col-12 mb-3">
+            <p class="text-xs font-weight-bold mb-2">Document Front</p>
+            <img src="${account.document_front_url}" alt="Document Front"
+                 style="width: 100%; max-width: 400px; border-radius: 0.5rem; border: 1px solid #e0e0e0;"
+                 onerror="this.parentElement.innerHTML='<p class=\\'text-sm text-danger\\'>Failed to load front image</p>'">
+          </div>
+        `;
+      }
+
+      if (hasDocumentBack) {
+        imagesHtml += `
+          <div class="col-12 mb-3">
+            <p class="text-xs font-weight-bold mb-2">Document Back</p>
+            <img src="${account.document_back_url}" alt="Document Back"
+                 style="width: 100%; max-width: 400px; border-radius: 0.5rem; border: 1px solid #e0e0e0;"
+                 onerror="this.parentElement.innerHTML='<p class=\\'text-sm text-danger\\'>Failed to load back image</p>'">
+          </div>
+        `;
+      }
+
+      imagesHtml += '</div>';
+      container.innerHTML = imagesHtml;
     }
 
-    // Load device data
-    async function loadDeviceData(accountId) {
-      const container = document.getElementById('device-data-container');
-      try {
-        const response = await api.getAccountDeviceAttestation(accountId);
+    // Load verification details
+    function loadVerificationDetails(account) {
+      const container = document.getElementById('verification-details-container');
 
-        if (response.success && response.data.length > 0) {
-          container.innerHTML = response.data.map(device => `
-            <div class="device-card">
-              <div class="d-flex justify-content-between align-items-start mb-2">
-                <div>
-                  <h6 class="text-sm mb-0">${device.device_model || 'Unknown Device'}</h6>
-                  <p class="text-xs text-muted mb-0">${device.os_name} ${device.os_version}</p>
-                </div>
-                <span class="badge badge-sm ${device.is_trusted ? 'badge-success' : 'badge-warning'}">
-                  ${device.is_trusted ? 'Trusted' : 'Untrusted'}
-                </span>
-              </div>
-              <p class="text-xs mb-1"><strong>Device ID:</strong> ${device.device_id.substring(0, 16)}...</p>
-              <p class="text-xs mb-0"><strong>Last Seen:</strong> ${formatDate(device.last_seen_at, { dateStyle: 'short', timeStyle: 'short' })}</p>
-            </div>
-          `).join('');
-        } else {
-          container.innerHTML = '<p class="text-sm text-muted">No device data available</p>';
-        }
-      } catch (error) {
-        container.innerHTML = '<p class="text-sm text-danger">Failed to load device data</p>';
+      const details = [];
+
+      // SDK Information
+      if (account.sdk_source) {
+        details.push(`
+          <div class="info-row">
+            <span class="info-label">SDK Type</span>
+            <span class="info-value">${account.sdk_source.sdkType || '-'}</span>
+          </div>
+        `);
+        details.push(`
+          <div class="info-row">
+            <span class="info-label">SDK Version</span>
+            <span class="info-value">${account.sdk_source.sdkVersion || '-'}</span>
+          </div>
+        `);
+        details.push(`
+          <div class="info-row">
+            <span class="info-label">Device</span>
+            <span class="info-value">${account.sdk_source.deviceModel || '-'}</span>
+          </div>
+        `);
+        details.push(`
+          <div class="info-row">
+            <span class="info-label">Platform</span>
+            <span class="info-value">${account.sdk_source.devicePlatform || '-'}</span>
+          </div>
+        `);
       }
+
+      // Verification Status
+      details.push(`
+        <div class="info-row">
+          <span class="info-label">Verification Channel</span>
+          <span class="info-value">${snakeToTitle(account.verification_channel || 'unknown')}</span>
+        </div>
+      `);
+      details.push(`
+        <div class="info-row">
+          <span class="info-label">Verification Type</span>
+          <span class="info-value">${snakeToTitle(account.verification_type || 'unknown')}</span>
+        </div>
+      `);
+
+      if (account.images_fetched_at) {
+        details.push(`
+          <div class="info-row">
+            <span class="info-label">Images Fetched</span>
+            <span class="info-value">${formatDate(account.images_fetched_at, { dateStyle: 'short', timeStyle: 'short' })}</span>
+          </div>
+        `);
+      }
+
+      container.innerHTML = details.length > 0 ? details.join('') : '<p class="text-sm text-muted">No verification details available</p>';
     }
 
     // Load activity log
