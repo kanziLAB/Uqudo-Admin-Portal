@@ -386,6 +386,28 @@ router.post('/enrollment-jws',
           passive_authentication: false
         };
       }
+      // Priority 3: Document exists but no data extracted (e.g., document type only)
+      else {
+        accountData = {
+          full_name: '',
+          id_number: '',
+          document_type: doc.documentType || 'GENERIC_ID',
+          nfc_verified: false,
+          passive_authentication: false
+        };
+      }
+    }
+
+    // If no documents at all (selfie-only flow), create minimal account data
+    if (!accountData) {
+      accountData = {
+        full_name: '',
+        id_number: '',
+        document_type: null,
+        nfc_verified: false,
+        passive_authentication: false
+      };
+      console.log('📸 Selfie-only verification detected (no documents)');
     }
 
     // Step 3: Process verification results
