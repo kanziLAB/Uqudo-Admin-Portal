@@ -2,7 +2,7 @@
 
 ## Quick Reference
 
-You have already rotated the database password to: `G0zVkCkEfdUj0Dq8`
+**Important Note**: Database password (`G0zVkCkEfdUj0Dq8`) is only for running diagnostic scripts locally. It is NOT needed in Vercel environment variables.
 
 ## Required Actions
 
@@ -23,22 +23,25 @@ Go to your Vercel project settings: https://vercel.com/
 
 Navigate to: **Your Project** → **Settings** → **Environment Variables**
 
-#### Update These Variables:
+#### Update This Variable:
 
 | Variable Name | New Value | Notes |
 |--------------|-----------|-------|
 | `SUPABASE_SERVICE_ROLE_KEY` | `<NEW_KEY_FROM_STEP_1>` | 🔴 Get from Supabase (Step 1) |
-| `DB_PASSWORD` | `G0zVkCkEfdUj0Dq8` | ✅ Already rotated |
 
 #### Verify These Exist (should already be set):
 
-| Variable Name | Expected Value |
-|--------------|----------------|
-| `SUPABASE_URL` | `https://kpmcigujptbolpdlfojo.supabase.co` |
-| `DB_USER` | `postgres` |
-| `DB_HOST` | `db.kpmcigujptbolpdlfojo.supabase.co` |
-| `DB_PORT` | `5432` |
-| `DB_NAME` | `postgres` |
+| Variable Name | Expected Value | Notes |
+|--------------|----------------|-------|
+| `SUPABASE_URL` | `https://kpmcigujptbolpdlfojo.supabase.co` | Required |
+| `SUPABASE_ANON_KEY` | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` | Required |
+| `JWT_SECRET` | Your JWT secret | Required |
+| `UQUDO_CLIENT_ID` | `456edf22-e887-4a32-b2e5-334bf902831f` | For face images |
+| `UQUDO_CLIENT_SECRET` | Your client secret | For face images |
+| `UQUDO_AUTH_URL` | `https://id.uqudo.io/api/oauth2/token` | For face images |
+| `UQUDO_INFO_API_URL` | `https://id.uqudo.io/api/v2/info` | For face images |
+
+**Note**: `DB_PASSWORD`, `DB_USER`, `DB_HOST`, `DB_PORT`, and `DB_NAME` are NOT needed in Vercel. They are only for running migration/diagnostic scripts locally.
 
 **For each variable:**
 1. Click **Edit** next to the variable name
@@ -85,14 +88,15 @@ After redeployment completes:
 3. Select all environments
 4. Redeploy
 
-### Error: "Failed to connect to database"
+### Error: "Failed to connect to Supabase"
 
-**Cause**: Incorrect `DB_PASSWORD` in Vercel
+**Cause**: Incorrect `SUPABASE_SERVICE_ROLE_KEY` or `SUPABASE_URL` in Vercel
 
 **Fix**:
-1. Verify password is: `G0zVkCkEfdUj0Dq8`
-2. Update in Vercel environment variables
-3. Redeploy
+1. Verify `SUPABASE_URL` is: `https://kpmcigujptbolpdlfojo.supabase.co`
+2. Verify `SUPABASE_SERVICE_ROLE_KEY` is the NEW rotated key
+3. Update in Vercel environment variables
+4. Redeploy
 
 ### Deployment succeeds but authentication fails
 
@@ -107,20 +111,21 @@ After redeployment completes:
 ## Security Checklist
 
 - [ ] Rotated Supabase service role key in Supabase dashboard
-- [ ] Updated `SUPABASE_SERVICE_ROLE_KEY` in Vercel
-- [ ] Updated `DB_PASSWORD` in Vercel
-- [ ] Verified all other environment variables exist
+- [ ] Updated `SUPABASE_SERVICE_ROLE_KEY` in Vercel (ONLY this one needs updating)
+- [ ] Verified all other environment variables exist in Vercel
 - [ ] Redeployed application
 - [ ] Tested login and core functionality
 - [ ] Verified SDK verification works end-to-end
 - [ ] Checked GitGuardian alerts are resolved
 
+**Important**: `DB_PASSWORD` is NOT a Vercel environment variable. It's only used for running diagnostic scripts locally.
+
 ## Timeline
 
 - ✅ Code fixed (12 files updated to use environment variables)
-- ✅ Database password rotated: `G0zVkCkEfdUj0Dq8`
+- ✅ Database password rotated: `G0zVkCkEfdUj0Dq8` (for local diagnostic scripts only)
 - ⏳ **NEXT**: Rotate Supabase service role key
-- ⏳ **NEXT**: Update Vercel environment variables
+- ⏳ **NEXT**: Update `SUPABASE_SERVICE_ROLE_KEY` in Vercel (ONLY this variable needs updating)
 - ⏳ **NEXT**: Redeploy and verify
 
 ## Support
@@ -134,11 +139,7 @@ If you need help:
 ## Quick Command Reference
 
 ```bash
-# Check if environment variables are set locally (for testing scripts)
-echo $SUPABASE_SERVICE_ROLE_KEY
-echo $DB_PASSWORD
-
-# Test a diagnostic script locally
+# For running diagnostic scripts LOCALLY (not needed in Vercel):
 export SUPABASE_SERVICE_ROLE_KEY="<your_new_key>"
 export DB_PASSWORD="G0zVkCkEfdUj0Dq8"
 node backend/check-cases.js
@@ -149,6 +150,8 @@ git push origin main
 # Check Vercel deployment status
 vercel ls
 ```
+
+**Important**: The diagnostic scripts (check-*.js, execute-migrations-*.js) in the `backend/` folder are for LOCAL development only. They are NOT deployed to Vercel and do NOT need environment variables set in Vercel.
 
 ## After Completing All Steps
 
