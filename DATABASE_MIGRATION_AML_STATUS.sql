@@ -17,12 +17,8 @@ WHERE id IN (
 
 UPDATE accounts SET aml_status = 'aml_clear'
 WHERE aml_status = 'pending'
-AND id IN (
-  SELECT DISTINCT account_id
-  FROM accounts
-  WHERE created_at < NOW() - INTERVAL '1 hour'
-  AND id NOT IN (SELECT DISTINCT account_id FROM aml_cases)
-);
+AND created_at < NOW() - INTERVAL '1 hour'
+AND id NOT IN (SELECT DISTINCT account_id FROM aml_cases);
 
 -- Create index for performance
 CREATE INDEX IF NOT EXISTS idx_accounts_aml_status ON accounts(aml_status);
