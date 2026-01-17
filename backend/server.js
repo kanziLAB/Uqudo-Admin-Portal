@@ -15,6 +15,7 @@ import casesRoutes from './routes/cases.js';
 import configRoutes from './routes/config.js';
 import workflowRoutes from './routes/workflow.js';
 import sdkVerificationRoutes from './routes/sdk-verification.js';
+import sdkVerificationJWSRoutes from './routes/sdk-verification-jws.js';
 
 // Import middleware
 import { authenticate } from './middleware/auth.js';
@@ -87,9 +88,10 @@ app.get('/health', (req, res) => {
 // Public routes (no authentication required)
 app.use('/api/auth', authRoutes);
 
-// SDK verification endpoint - can be public for webhook integration
+// SDK verification endpoints - public for webhook integration
 // Use authentication if you want to require it: authenticate, auditLogger,
 app.use('/api/sdk-verification', sdkVerificationRoutes);
+app.use('/api/sdk-verification', sdkVerificationJWSRoutes);
 
 // Protected routes (authentication required)
 app.use('/api/dashboard', authenticate, auditLogger, dashboardRoutes);
