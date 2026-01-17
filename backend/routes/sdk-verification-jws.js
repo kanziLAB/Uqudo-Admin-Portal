@@ -521,10 +521,15 @@ router.post('/enrollment-jws',
     let alertData = null;
     let accountId = null;
 
+    console.log('🏁 Starting account creation process...');
+    console.log('   Tenant ID:', tenantId);
+    console.log('   accountData is null?', accountData === null);
+
     try {
       // Generate a unique identifier for the account
       // Priority: id_number > sessionId > timestamp
       const uniqueId = accountData?.id_number || source?.sessionId || `WEB_${Date.now()}`;
+      console.log('   Generated uniqueId:', uniqueId);
       const hasIdNumber = !!accountData?.id_number;
 
       // Try to find existing account (only if we have an ID number)
