@@ -7,17 +7,22 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// PostgreSQL connection configuration - use direct connection from POSTGRES_HOST
+// PostgreSQL connection configuration - use environment variables
 const config = {
-  user: 'postgres',
-  password: '+Mz/KD_Sa@d-JW5',
-  host: 'db.kpmcigujptbolpdlfojo.supabase.co',
-  port: 5432,
-  database: 'postgres',
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD,
+  host: process.env.DB_HOST || 'db.kpmcigujptbolpdlfojo.supabase.co',
+  port: parseInt(process.env.DB_PORT || '5432'),
+  database: process.env.DB_NAME || 'postgres',
   ssl: {
     rejectUnauthorized: false
   }
 };
+
+if (!config.password) {
+  console.error('❌ DB_PASSWORD environment variable is required');
+  process.exit(1);
+}
 
 async function executeMigrations() {
   console.log('🚀 Starting database migrations using PostgreSQL client...\n');
