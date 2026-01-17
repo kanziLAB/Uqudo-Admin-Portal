@@ -38,7 +38,11 @@ router.get('/', asyncHandler(async (req, res) => {
         email,
         verification_channel,
         verification_type,
-        account_status
+        account_status,
+        sdk_analytics,
+        sdk_source,
+        sdk_verifications,
+        sdk_documents
       )
     `, { count: 'exact' })
     .eq('tenant_id', tenantId);
