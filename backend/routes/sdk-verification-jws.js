@@ -662,7 +662,12 @@ router.post('/enrollment-jws',
               resolution_status: 'unsolved',
               match_count: nonReviewedAlertEntity.length,
               external_case_url: matchedEntities[0]?.rdc_url || null,
-              alert_ids: alertData ? [alertData.id] : []
+              alert_ids: alertData ? [alertData.id] : [],
+              match_details: {
+                matched_entities: matchedEntities,
+                match_count: nonReviewedAlertEntity.length,
+                highest_risk_score: maxRiskScore
+              }
             })
             .select()
             .single();
