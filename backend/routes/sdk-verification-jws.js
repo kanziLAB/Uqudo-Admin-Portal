@@ -331,14 +331,16 @@ router.post('/enrollment-jws',
       });
     }
 
-    const { source, documents, verifications, backgroundCheck } = data;
+    const { source, documents, verifications, backgroundCheck, trace } = data;
 
     console.log('📥 Received SDK verification request:', {
       sdkType: source?.sdkType,
       sdkVersion: source?.sdkVersion,
       documentType: documents?.[0]?.documentType,
       hasBackgroundCheck: !!backgroundCheck,
-      backgroundCheckMatch: backgroundCheck?.match
+      backgroundCheckMatch: backgroundCheck?.match,
+      hasTraceEvents: !!trace,
+      traceEventsCount: trace?.length || 0
     });
 
     // Step 2: Extract account information from documents (scan OR reading)
@@ -503,7 +505,13 @@ router.post('/enrollment-jws',
           console.log(`✅ Found existing account: ${accountId}`);
 
           // Update existing account with latest SDK analytics data
-          const analyticsEvents = buildAnalyticsEvents(source, verifications, documents, verificationStatus);
+          // Use real trace events if available, otherwise build synthetic events
+          const analyticsEvents = trace && trace.length > 0
+            ? trace
+            : buildAnalyticsEvents(source, verifications, documents, verificationStatus);
+
+          console.log(`📊 Storing ${analyticsEvents.length} analytics events (${trace && trace.length > 0 ? 'real trace events' : 'synthetic events'})`);
+
           await supabaseAdmin
             .from('accounts')
             .update({
@@ -517,8 +525,12 @@ router.post('/enrollment-jws',
           // Create new account
           const nameParts = (accountData.full_name || '').split(' ');
 
-          // Build analytics events from real SDK data
-          const analyticsEvents = buildAnalyticsEvents(source, verifications, documents, verificationStatus);
+          // Use real trace events if available, otherwise build synthetic events
+          const analyticsEvents = trace && trace.length > 0
+            ? trace
+            : buildAnalyticsEvents(source, verifications, documents, verificationStatus);
+
+          console.log(`📊 Creating account with ${analyticsEvents.length} analytics events (${trace && trace.length > 0 ? 'real trace events' : 'synthetic events'})`);
 
           const { data: newAccount, error: accountError } = await supabaseAdmin
             .from('accounts')
