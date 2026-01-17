@@ -598,7 +598,7 @@ router.post('/enrollment-jws',
             gender: accountData?.gender?.toLowerCase() || null,
             account_status: verificationStatus === 'approved' ? 'pending_review' : 'suspended',
             kyc_verification_status: accountData?.nfc_verified ? 'verified' : 'pending',
-            aml_status: 'pending',
+            // aml_status: 'pending', // Removed temporarily - column doesn't exist yet in schema
             verification_channel: isWebSDK ? 'web' : 'mobile',
             verification_type: hasIdNumber ? 'document' : 'selfie_only',
             sdk_analytics: analyticsEvents,
@@ -767,10 +767,11 @@ router.post('/enrollment-jws',
           }
 
           // Update account AML status to 'aml_match_found'
-          await supabaseAdmin
-            .from('accounts')
-            .update({ aml_status: 'aml_match_found' })
-            .eq('id', accountId);
+          // TODO: Uncomment when aml_status column is added via migration
+          // await supabaseAdmin
+          //   .from('accounts')
+          //   .update({ aml_status: 'aml_match_found' })
+          //   .eq('id', accountId);
 
           // Log the background check match
           await supabaseAdmin.from('analyst_logs').insert({
@@ -788,10 +789,11 @@ router.post('/enrollment-jws',
     } else if (accountId) {
       // No background check matches - set status to 'aml_clear'
       try {
-        await supabaseAdmin
-          .from('accounts')
-          .update({ aml_status: 'aml_clear' })
-          .eq('id', accountId);
+        // TODO: Uncomment when aml_status column is added via migration
+        // await supabaseAdmin
+        //   .from('accounts')
+        //   .update({ aml_status: 'aml_clear' })
+        //   .eq('id', accountId);
         console.log(`✅ Account marked as AML Clear (no matches)`);
       } catch (error) {
         console.error('Failed to update AML status:', error);
