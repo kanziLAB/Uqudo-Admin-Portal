@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- Version: 2.1 - Visible View/Delete Buttons with Icons -->
+<!-- Version: 2.2 - DELETE BUTTON FORCED VISIBLE -->
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -767,7 +767,7 @@
 
   <script>
     // Version check
-    console.log('✅ Accounts page loaded - Version 2.1 with visible View/Delete buttons');
+    console.log('✅ Accounts page loaded - Version 2.2 - DELETE BUTTON FORCED VISIBLE');
 
     // api is already defined globally in api-client.js
     let accounts = [];
@@ -863,6 +863,8 @@
             return;
           }
 
+          console.log('🔄 Rendering', accounts.length, 'accounts with View/Delete buttons');
+
           tableBody.innerHTML = accounts.map(account => {
             const initials = getInitials(account.first_name, account.last_name);
             const avatarColor = getAvatarColor(account.id);
@@ -920,16 +922,16 @@
                 <td class="align-middle text-center">
                   <span class="text-secondary text-xs">${formatDate(account.created_at, { dateStyle: 'short' })}</span>
                 </td>
-                <td class="align-middle text-center">
-                  <button class="btn btn-info btn-sm me-2" onclick="viewAccountDetail('${account.id}')" title="View Details">
-                    <i class="material-symbols-rounded" style="font-size: 18px;">search</i>
+                <td class="align-middle text-center" style="white-space: nowrap;">
+                  <button class="btn btn-info btn-sm" onclick="viewAccountDetail('${account.id}')" title="View Details" style="margin-right: 4px; padding: 4px 8px;">
+                    <i class="material-symbols-rounded" style="font-size: 18px; vertical-align: middle;">search</i>
                   </button>
-                  <button class="btn btn-danger btn-sm me-2" onclick="confirmDeleteAccount('${account.id}', '${account.first_name} ${account.last_name}')" title="Delete Account">
-                    <i class="material-symbols-rounded" style="font-size: 18px;">delete</i>
+                  <button class="btn btn-danger btn-sm" onclick="confirmDeleteAccount('${account.id}', '${account.first_name} ${account.last_name}')" title="Delete Account" style="margin-right: 4px; padding: 4px 8px; background-color: #dc3545 !important;">
+                    <i class="material-symbols-rounded" style="font-size: 18px; vertical-align: middle; color: white;">delete</i>
                   </button>
                   <div class="dropdown d-inline">
-                    <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                      <i class="material-symbols-rounded" style="font-size: 18px;">more_horiz</i>
+                    <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 4px 8px;">
+                      <i class="material-symbols-rounded" style="font-size: 18px; vertical-align: middle;">more_horiz</i>
                     </button>
                     <ul class="dropdown-menu">
                       <li><a class="dropdown-item" href="javascript:;" onclick="viewAccountDocuments('${account.id}')">
