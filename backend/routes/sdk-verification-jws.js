@@ -410,6 +410,14 @@ router.post('/enrollment-jws',
       console.log('📸 Selfie-only verification detected (no documents)');
     }
 
+    console.log('🔍 Account data prepared:', {
+      hasFullName: !!accountData.full_name,
+      hasIdNumber: !!accountData.id_number,
+      documentType: accountData.document_type,
+      nfcVerified: accountData.nfc_verified,
+      sdkType: source?.sdkType
+    });
+
     // Step 3: Process verification results
     let verificationStatus = 'approved';
     const issues = [];
@@ -567,6 +575,7 @@ router.post('/enrollment-jws',
 
         console.log(`📊 Creating account with ${analyticsEvents.length} analytics events (${trace && trace.length > 0 ? 'real trace events' : 'synthetic events'})`);
         console.log(`📱 SDK Type: ${sdkType}, Is Web: ${isWebSDK}, Has ID Number: ${hasIdNumber}`);
+        console.log(`🆕 About to create account with user_id: SDK_${uniqueId}`);
 
         const { data: newAccount, error: accountError } = await supabaseAdmin
           .from('accounts')
@@ -595,11 +604,20 @@ router.post('/enrollment-jws',
           .select()
           .single();
 
-        if (accountError) throw accountError;
+        if (accountError) {
+          console.error('❌ Account creation failed:', accountError);
+          throw accountError;
+        }
 
         accountId = newAccount.id;
         accountCreated = true;
         console.log(`✅ Created new account: ${accountId} (${isWebSDK ? 'Web SDK' : 'Mobile SDK'}, ${hasIdNumber ? 'with ID' : 'selfie-only'})`);
+        console.log(`✅ Account details:`, {
+          user_id: newAccount.user_id,
+          email: newAccount.email,
+          verification_channel: newAccount.verification_channel,
+          verification_type: newAccount.verification_type
+        });
 
         // Fetch images from Uqudo Info API
         if (source?.sessionId) {
