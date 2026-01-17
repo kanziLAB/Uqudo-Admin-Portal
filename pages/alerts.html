@@ -18,6 +18,7 @@
   <!-- CSS Files -->
   <link id="pagestyle" href="../assets/css/material-dashboard.css?v=3.2.0" rel="stylesheet" />
   <link href="../assets/css/uqudo-blue-theme.css" rel="stylesheet" />
+  <link href="../assets/css/performance-journey.css" rel="stylesheet" />
 </head>
 
 <body class="g-sidenav-show bg-gray-200">
@@ -354,6 +355,7 @@
   <!-- API Client & Utils -->
   <script src="../assets/js/api-client.js"></script>
   <script src="../assets/js/utils.js"></script>
+  <script src="../assets/js/performance-journey.js"></script>
 
   <!-- Alerts Page Script -->
   <script>
@@ -514,7 +516,18 @@
                 <p class="text-sm">${alert.assigned_user?.full_name || 'Unassigned'}</p>
               </div>
             </div>
+            <div class="row mt-4">
+              <div class="col-12">
+                <div id="alert-performance-journey"></div>
+              </div>
+            </div>
           `;
+
+          // Load Performance Journey
+          const events = parseSDKAnalytics(alert.accounts || alert);
+          const journey = new PerformanceJourney('alert-performance-journey', events);
+          window.performanceJourney = journey;
+          journey.render();
 
           // Add action button in footer if not resolved
           if (alert.status !== 'resolved') {

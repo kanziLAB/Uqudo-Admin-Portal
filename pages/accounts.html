@@ -15,6 +15,7 @@
   <!-- Material Dashboard CSS -->
   <link id="pagestyle" href="../assets/css/material-dashboard.css?v=3.2.0" rel="stylesheet" />
   <link href="../assets/css/uqudo-blue-theme.css" rel="stylesheet" />
+  <link href="../assets/css/performance-journey.css" rel="stylesheet" />
 
   <style>
     .account-avatar {
@@ -488,6 +489,13 @@
               </div>
             </div>
           </div>
+
+          <!-- Performance Journey Section (Full Width) -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <div id="account-performance-journey"></div>
+            </div>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -617,6 +625,7 @@
   <script src="../assets/js/core/bootstrap.min.js"></script>
   <script src="../assets/js/api-client.js"></script>
   <script src="../assets/js/utils.js"></script>
+  <script src="../assets/js/performance-journey.js"></script>
 
   <script>
     // api is already defined globally in api-client.js
@@ -867,6 +876,9 @@
           loadDeviceData(accountId);
           loadActivityLog(accountId);
 
+          // Load Performance Journey
+          loadPerformanceJourney(account);
+
           modal.show();
         }
       } catch (error) {
@@ -955,6 +967,14 @@
       } catch (error) {
         container.innerHTML = '<p class="text-sm text-danger">Failed to load activity</p>';
       }
+    }
+
+    // Load Performance Journey
+    function loadPerformanceJourney(account) {
+      const events = parseSDKAnalytics(account);
+      const journey = new PerformanceJourney('account-performance-journey', events);
+      window.performanceJourney = journey; // Make globally accessible
+      journey.render();
     }
 
     // Open action modal
