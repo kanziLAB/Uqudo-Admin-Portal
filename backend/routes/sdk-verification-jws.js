@@ -2,7 +2,6 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import { body, validationResult } from 'express-validator';
 import { supabaseAdmin } from '../config/supabase.js';
-import fetch from 'node-fetch';
 
 const router = express.Router();
 
