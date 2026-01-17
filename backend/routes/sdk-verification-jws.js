@@ -2,6 +2,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import { body, validationResult } from 'express-validator';
 import { supabaseAdmin } from '../config/supabase.js';
+import fetch from 'node-fetch';
 
 const router = express.Router();
 
@@ -141,6 +142,47 @@ function buildAnalyticsEvents(source, verifications, documents, verificationStat
   });
 
   return events;
+}
+
+// Helper to fetch images from Uqudo Info API
+async function fetchImagesFromUqudoAPI(sessionId, token) {
+  try {
+    console.log(`📸 Fetching images for session: ${sessionId}`);
+
+    // Uqudo Info API endpoint
+    const infoApiUrl = process.env.UQUDO_INFO_API_URL || 'https://id.uqudo.io/api/v2/info';
+
+    const response = await fetch(infoApiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token || process.env.UQUDO_API_TOKEN}`
+      },
+      body: JSON.stringify({
+        sessionId: sessionId
+      })
+    });
+
+    if (!response.ok) {
+      console.error(`❌ Info API request failed: ${response.status} ${response.statusText}`);
+      return null;
+    }
+
+    const data = await response.json();
+    console.log(`✅ Info API response received for session: ${sessionId}`);
+
+    // Extract image URLs or base64 data
+    return {
+      faceImageUrl: data.faceImage || data.selfieImage || null,
+      faceImageBase64: data.faceImageBase64 || data.selfieBase64 || null,
+      documentFrontUrl: data.documentFront || data.idFront || null,
+      documentBackUrl: data.documentBack || data.idBack || null,
+      fetchedAt: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('❌ Failed to fetch images from Uqudo Info API:', error.message);
+    return null;
+  }
 }
 
 // Verification thresholds
@@ -459,6 +501,63 @@ router.post('/enrollment-jws',
           accountId = newAccount.id;
           accountCreated = true;
           console.log(`✅ Created new account: ${accountId}`);
+
+          // Fetch images from Uqudo Info API
+          if (source?.sessionId) {
+            try {
+              const images = await fetchImagesFromUqudoAPI(source.sessionId, req.headers.authorization?.replace('Bearer ', ''));
+
+              if (images) {
+                await supabaseAdmin
+                  .from('accounts')
+                  .update({
+                    face_image_url: images.faceImageUrl,
+                    face_image_base64: images.faceImageBase64,
+                    document_front_url: images.documentFrontUrl,
+                    document_back_url: images.documentBackUrl,
+                    images_fetched_at: images.fetchedAt
+                  })
+                  .eq('id', accountId);
+
+                console.log(`✅ Images fetched and stored for account: ${accountId}`);
+              }
+            } catch (imageError) {
+              console.error(`⚠️ Failed to fetch images, but account created: ${imageError.message}`);
+              // Don't fail the whole request if image fetch fails
+            }
+          }
+        } else {
+          // For existing accounts, also try to fetch images if not already fetched
+          if (source?.sessionId) {
+            try {
+              const { data: existingAccountData } = await supabaseAdmin
+                .from('accounts')
+                .select('images_fetched_at')
+                .eq('id', accountId)
+                .single();
+
+              if (!existingAccountData?.images_fetched_at) {
+                const images = await fetchImagesFromUqudoAPI(source.sessionId, req.headers.authorization?.replace('Bearer ', ''));
+
+                if (images) {
+                  await supabaseAdmin
+                    .from('accounts')
+                    .update({
+                      face_image_url: images.faceImageUrl,
+                      face_image_base64: images.faceImageBase64,
+                      document_front_url: images.documentFrontUrl,
+                      document_back_url: images.documentBackUrl,
+                      images_fetched_at: images.fetchedAt
+                    })
+                    .eq('id', accountId);
+
+                  console.log(`✅ Images fetched and stored for existing account: ${accountId}`);
+                }
+              }
+            } catch (imageError) {
+              console.error(`⚠️ Failed to fetch images for existing account: ${imageError.message}`);
+            }
+          }
         }
 
         // Log the SDK enrollment

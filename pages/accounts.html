@@ -397,6 +397,19 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
+          <!-- Face Image Section -->
+          <div class="row mb-4" id="face-image-section" style="display: none;">
+            <div class="col-12 text-center">
+              <div style="display: inline-block; position: relative;">
+                <img id="detail-face-image" src="" alt="Face Image"
+                     style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 4px solid #1e88e5; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <div style="position: absolute; bottom: 10px; right: 10px; background: #4caf50; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center;">
+                  <i class="material-symbols-rounded" style="font-size: 14px; color: white;">check</i>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="row">
             <!-- Left Column: Personal & Contact Info -->
             <div class="col-md-6">
@@ -725,14 +738,24 @@
           tableBody.innerHTML = accounts.map(account => {
             const initials = getInitials(account.first_name, account.last_name);
             const avatarColor = getAvatarColor(account.id);
+            const hasFaceImage = account.face_image_url || account.face_image_base64;
 
             return `
               <tr>
                 <td>
                   <div class="d-flex px-2 py-1">
-                    <div class="account-avatar" style="background: ${avatarColor};">
-                      ${initials}
-                    </div>
+                    ${hasFaceImage ? `
+                      <div class="account-avatar" style="padding: 0; overflow: hidden;">
+                        <img src="${account.face_image_base64 ? 'data:image/jpeg;base64,' + account.face_image_base64 : account.face_image_url}"
+                             alt="Face"
+                             style="width: 100%; height: 100%; object-fit: cover;"
+                             onerror="this.parentElement.innerHTML='${initials}'; this.parentElement.style.background='${avatarColor}'; this.parentElement.style.padding='0'; this.parentElement.style.display='flex'; this.parentElement.style.alignItems='center'; this.parentElement.style.justifyContent='center'; this.parentElement.style.fontWeight='600'; this.parentElement.style.color='white'; this.parentElement.style.fontSize='16px';">
+                      </div>
+                    ` : `
+                      <div class="account-avatar" style="background: ${avatarColor};">
+                        ${initials}
+                      </div>
+                    `}
                     <div class="d-flex flex-column justify-content-center ms-2">
                       <h6 class="mb-0 text-sm">${account.first_name} ${account.last_name}</h6>
                       <p class="text-xs text-secondary mb-0">ID: ${account.id.substring(0, 8)}...</p>
@@ -745,15 +768,15 @@
                 </td>
                 <td>
                   <div class="verification-badge">
-                    <i class="material-symbols-rounded text-${account.verification_type === 'uae_national' ? 'success' : 'info'}">
-                      ${account.verification_type === 'uae_national' ? 'verified_user' : 'public'}
+                    <i class="material-symbols-rounded text-${getSDKVerificationColor(account)}">
+                      ${getSDKVerificationIcon(account)}
                     </i>
-                    <span class="text-xs">${snakeToTitle(account.verification_type || 'unknown')}</span>
+                    <span class="text-xs">${getSDKVersionLabel(account)}</span>
                   </div>
                 </td>
                 <td class="align-middle text-center text-sm">
-                  <span class="badge badge-sm ${getAccountStatusBadge(account.status)}">
-                    ${capitalize(account.status || 'unknown')}
+                  <span class="badge badge-sm ${getAccountStatusBadge(getAccountStatusWithAML(account))}">
+                    ${capitalize(getAccountStatusWithAML(account))}
                   </span>
                 </td>
                 <td class="align-middle text-center text-sm">
@@ -849,6 +872,19 @@
 
         if (response.success) {
           const account = response.data;
+
+          // Display face image if available
+          const faceImageSection = document.getElementById('face-image-section');
+          const faceImage = document.getElementById('detail-face-image');
+
+          if (account.face_image_url || account.face_image_base64) {
+            faceImage.src = account.face_image_base64
+              ? `data:image/jpeg;base64,${account.face_image_base64}`
+              : account.face_image_url;
+            faceImageSection.style.display = 'block';
+          } else {
+            faceImageSection.style.display = 'none';
+          }
 
           // Personal Information
           document.getElementById('detail-name').textContent = `${account.first_name} ${account.last_name}`;
@@ -1072,16 +1108,6 @@
       return colors[hash % colors.length];
     }
 
-    function getAccountStatusBadge(status) {
-      const badges = {
-        active: 'badge-success',
-        pending: 'badge-warning',
-        suspended: 'badge-secondary',
-        rejected: 'badge-danger'
-      };
-      return badges[status] || 'badge-secondary';
-    }
-
     function getRiskScoreBadge(score) {
       const badges = {
         low: 'badge-success',
@@ -1127,6 +1153,94 @@
       } catch (error) {
         showError(error.message || 'Failed to create account');
       }
+    }
+
+    // SDK Version helpers
+    function getSDKVersionLabel(account) {
+      if (!account.sdk_source) {
+        return 'Manual';
+      }
+
+      const sdkType = account.sdk_source.sdkType?.toLowerCase() || '';
+      const sdkVersion = account.sdk_source.sdkVersion || '';
+
+      if (sdkType.includes('mobile') || sdkType.includes('android') || sdkType.includes('ios')) {
+        return `Mobile ${sdkVersion ? 'v' + sdkVersion : ''}`.trim();
+      } else if (sdkType.includes('web') || sdkType.includes('browser')) {
+        return `Web ${sdkVersion ? 'v' + sdkVersion : ''}`.trim();
+      }
+
+      return sdkVersion ? `SDK v${sdkVersion}` : 'SDK';
+    }
+
+    function getSDKVerificationIcon(account) {
+      if (!account.sdk_source) {
+        return 'edit';
+      }
+
+      const sdkType = account.sdk_source.sdkType?.toLowerCase() || '';
+
+      if (sdkType.includes('mobile') || sdkType.includes('android') || sdkType.includes('ios')) {
+        return 'phone_iphone';
+      } else if (sdkType.includes('web') || sdkType.includes('browser')) {
+        return 'language';
+      }
+
+      return 'verified_user';
+    }
+
+    function getSDKVerificationColor(account) {
+      if (!account.sdk_source) {
+        return 'secondary';
+      }
+
+      const sdkType = account.sdk_source.sdkType?.toLowerCase() || '';
+
+      if (sdkType.includes('mobile') || sdkType.includes('android') || sdkType.includes('ios')) {
+        return 'success';
+      } else if (sdkType.includes('web') || sdkType.includes('browser')) {
+        return 'info';
+      }
+
+      return 'info';
+    }
+
+    // Update Account Status Badge to consider AML and scores
+    function getAccountStatusBadge(status) {
+      const badges = {
+        active: 'badge-success',
+        pending: 'badge-warning',
+        suspended: 'badge-secondary',
+        rejected: 'badge-danger',
+        pending_review: 'badge-warning'
+      };
+      return badges[status] || 'badge-secondary';
+    }
+
+    // Enhanced status determination based on AML and scores
+    function getAccountStatusWithAML(account) {
+      // If account has AML match, it should show under review or rejected
+      if (account.aml_status === 'aml_match_found') {
+        return 'under_review';
+      }
+
+      // If scores are very low (potential fraud)
+      if (account.sdk_verifications && account.sdk_verifications.length > 0) {
+        const verification = account.sdk_verifications[0];
+
+        // Check face match score
+        if (verification.faceMatch && verification.faceMatch.matchLevel < 2) {
+          return 'rejected';
+        }
+
+        // Check liveness confidence
+        if (verification.liveness && verification.liveness.confidence < 0.5) {
+          return 'rejected';
+        }
+      }
+
+      // Otherwise return actual status
+      return account.account_status || account.status || 'pending';
     }
 
     function logout() {
