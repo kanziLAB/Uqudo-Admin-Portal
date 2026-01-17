@@ -390,9 +390,23 @@ router.post('/enrollment-jws',
       }
       // Priority 3: Document exists but no data extracted (e.g., document type only)
       else {
+        console.log('⚠️ No reading or scan data found. Checking for alternative data sources...');
+        console.log('Document keys:', Object.keys(doc));
+
+        // Check if there's data in other fields we might have missed
+        let extractedName = '';
+        let extractedIdNumber = '';
+
+        // Try to extract from any field that might contain the data
+        if (doc.data) {
+          console.log('Found doc.data:', doc.data);
+          extractedName = doc.data.fullName || doc.data.name || '';
+          extractedIdNumber = doc.data.idNumber || doc.data.identityNumber || '';
+        }
+
         accountData = {
-          full_name: '',
-          id_number: '',
+          full_name: extractedName,
+          id_number: extractedIdNumber,
           document_type: doc.documentType || 'GENERIC_ID',
           nfc_verified: false,
           passive_authentication: false
