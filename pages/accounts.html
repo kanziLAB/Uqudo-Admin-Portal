@@ -1219,9 +1219,22 @@
 
     // Enhanced status determination based on AML and scores
     function getAccountStatusWithAML(account) {
-      // If account has AML match, it should show under review or rejected
+      // Check if account has AML match status
       if (account.aml_status === 'aml_match_found') {
         return 'under_review';
+      }
+
+      // Also check if there are actual AML hits/alerts in the account data
+      if (account.aml_hits && account.aml_hits.length > 0) {
+        return 'under_review';
+      }
+
+      // Check background_check_data for matches
+      if (account.background_check_data && account.background_check_data.matches) {
+        const matches = account.background_check_data.matches;
+        if (Array.isArray(matches) && matches.length > 0) {
+          return 'under_review';
+        }
       }
 
       // If scores are very low (potential fraud)

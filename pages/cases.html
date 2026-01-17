@@ -428,78 +428,108 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <div class="row">
-            <!-- Left Column: Case & Account Info -->
-            <div class="col-md-6">
-              <div class="modal-section">
-                <div class="modal-section-title">Case Information</div>
-                <div class="info-row">
-                  <span class="info-label">Case ID</span>
-                  <span class="info-value" id="detail-case-id">-</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Case Type</span>
-                  <span class="info-value" id="detail-case-type">-</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Priority</span>
-                  <span class="info-value" id="detail-priority">-</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Status</span>
-                  <span class="info-value" id="detail-status">-</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Assigned To</span>
-                  <span class="info-value" id="detail-assigned-to">-</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Created At</span>
-                  <span class="info-value" id="detail-created-at">-</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Last Updated</span>
-                  <span class="info-value" id="detail-updated-at">-</span>
-                </div>
-              </div>
+          <!-- Navigation Tabs -->
+          <ul class="nav nav-tabs mb-3" id="caseDetailTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">
+                Overview
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="matches-tab" data-bs-toggle="tab" data-bs-target="#matches" type="button" role="tab">
+                Match Details <span class="badge bg-primary ms-1" id="match-count-badge">0</span>
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="workflow-tab" data-bs-toggle="tab" data-bs-target="#workflow" type="button" role="tab">
+                Resolution Workflow
+              </button>
+            </li>
+          </ul>
 
-              <div class="modal-section">
-                <div class="modal-section-title">Account Information</div>
-                <div class="info-row">
-                  <span class="info-label">Account Name</span>
-                  <span class="info-value" id="detail-account-name">-</span>
+          <!-- Tab Content -->
+          <div class="tab-content" id="caseDetailTabsContent">
+            <!-- Overview Tab -->
+            <div class="tab-pane fade show active" id="overview" role="tabpanel">
+              <div class="row">
+                <!-- Left Column: Case Info -->
+                <div class="col-md-6">
+                  <div class="modal-section">
+                    <div class="modal-section-title">Case Information</div>
+                    <div class="info-row">
+                      <span class="info-label">Case ID</span>
+                      <span class="info-value" id="detail-case-id">-</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">Case Type</span>
+                      <span class="info-value" id="detail-case-type">-</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">Priority</span>
+                      <span class="info-value" id="detail-priority">-</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">Status</span>
+                      <span class="info-value" id="detail-status">-</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">Assigned To</span>
+                      <span class="info-value" id="detail-assigned-to">-</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">Created At</span>
+                      <span class="info-value" id="detail-created-at">-</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">Last Updated</span>
+                      <span class="info-value" id="detail-updated-at">-</span>
+                    </div>
+                  </div>
                 </div>
-                <div class="info-row">
-                  <span class="info-label">Account ID</span>
-                  <span class="info-value" id="detail-account-id">-</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Email</span>
-                  <span class="info-value" id="detail-account-email">-</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Risk Score</span>
-                  <span class="info-value" id="detail-account-risk">-</span>
-                </div>
-              </div>
 
-              <div class="modal-section">
-                <div class="modal-section-title">Case Description</div>
-                <p class="text-sm" id="detail-description">-</p>
+                <!-- Right Column: Account Info -->
+                <div class="col-md-6">
+                  <div class="modal-section">
+                    <div class="modal-section-title">Account Information</div>
+                    <div class="info-row">
+                      <span class="info-label">Account Name</span>
+                      <span class="info-value" id="detail-account-name">-</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">Account ID</span>
+                      <span class="info-value" id="detail-account-id">-</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">Email</span>
+                      <span class="info-value" id="detail-account-email">-</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">Risk Score</span>
+                      <span class="info-value" id="detail-account-risk">-</span>
+                    </div>
+                  </div>
+
+                  <div class="modal-section">
+                    <div class="modal-section-title">Case Description</div>
+                    <p class="text-sm" id="detail-description">-</p>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- Right Column: Match Details & Resolution -->
-            <div class="col-md-6">
+            <!-- Match Details Tab -->
+            <div class="tab-pane fade" id="matches" role="tabpanel">
               <div class="modal-section">
-                <div class="modal-section-title">Match Details</div>
                 <div id="match-details-container">
                   <p class="text-sm text-muted">Loading match details...</p>
                 </div>
               </div>
+            </div>
 
+            <!-- Resolution Workflow Tab -->
+            <div class="tab-pane fade" id="workflow" role="tabpanel">
               <div class="modal-section">
-                <div class="modal-section-title">Resolution Workflow</div>
+                <div class="modal-section-title">Resolution Timeline</div>
                 <div class="resolution-timeline">
                   <div class="resolution-step">
                     <div class="resolution-dot" id="step-open"></div>
@@ -932,6 +962,7 @@
     // Load match details
     function loadMatchDetails(caseData) {
       const container = document.getElementById('match-details-container');
+      const matchCountBadge = document.getElementById('match-count-badge');
 
       // First check match_details field
       if (caseData.match_details && typeof caseData.match_details === 'object') {
@@ -939,8 +970,16 @@
 
         // Check if it has matched_entities array (new format from SDK)
         if (matchDetails.matched_entities && Array.isArray(matchDetails.matched_entities)) {
+          const matchCount = matchDetails.match_count || matchDetails.matched_entities.length;
+
+          // Update the match count badge in the tab
+          if (matchCountBadge) {
+            matchCountBadge.textContent = matchCount;
+            matchCountBadge.className = matchCount > 0 ? 'badge bg-danger ms-1' : 'badge bg-primary ms-1';
+          }
+
           let html = `<div class="mb-3">
-            <span class="badge bg-gradient-warning">Found ${matchDetails.match_count || matchDetails.matched_entities.length} Match(es)</span>
+            <span class="badge bg-gradient-warning">Found ${matchCount} Match(es)</span>
             ${matchDetails.highest_risk_score ? `<span class="badge bg-gradient-danger ms-2">Risk Score: ${matchDetails.highest_risk_score}</span>` : ''}
           </div>`;
 
