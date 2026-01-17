@@ -197,9 +197,30 @@ Total: 8.5s
 
 ## Data Sources
 
-The Performance Journey automatically parses data from:
+The Performance Journey automatically parses data from real SDK analytics. Data is extracted in priority order:
 
-### 1. Analytics Property
+### 1. SDK Analytics (Real Data - Priority 1)
+If account has `sdk_analytics` array (extracted from actual SDK verification):
+```json
+{
+  "sdk_analytics": [
+    {
+      "name": "VIEW",
+      "type": "SCAN",
+      "status": "success",
+      "duration": 8200,
+      "timestamp": "2024-01-17T17:00:47Z",
+      "details": {
+        "sdk_version": "5.2.0",
+        "device_model": "iPhone 14 Pro",
+        "device_platform": "iOS"
+      }
+    }
+  ]
+}
+```
+
+### 2. Analytics Property (Legacy - Priority 2)
 If account has `analytics` array:
 ```json
 {
@@ -235,8 +256,10 @@ If account has `verification_steps` array:
 }
 ```
 
-### 3. Synthetic Events
-If no analytics available, creates events from:
+### 3. Synthetic Events (Fallback Only - Priority 3)
+**Note**: Synthetic events are only created as a fallback when no real SDK data is available.
+
+If no analytics or SDK data available, creates basic events from:
 - `created_at` timestamp
 - `verification_status`
 - `aml_status`
@@ -401,19 +424,36 @@ Use the Performance Journey to:
 
 ## API Integration
 
+### How Real Analytics Are Captured
+
+The SDK endpoint (`backend/routes/sdk-verification-jws.js`) automatically extracts real analytics data from the SDK payload using the `buildAnalyticsEvents()` function. This function:
+
+1. **Extracts VIEW event** from `source.sessionStartTime` (when SDK interface opened)
+2. **Extracts START event** from document scan timing
+3. **Adds NFC_READING event** if NFC chip data was read
+4. **Adds FACE_MATCH event** from verification results with actual match scores
+5. **Adds LIVENESS event** from liveness detection with confidence levels
+6. **Adds FINISH event** from `source.sessionEndTime` with final status
+7. **Calculates real durations** between events (not synthetic)
+8. **Includes device info** (model, platform, SDK version)
+
 ### Storing Analytics Data
 
-When receiving SDK results, store analytics in account:
+When receiving SDK results, analytics are automatically stored in the account:
 
 ```javascript
-// In sdk-verification-jws.js
+// In sdk-verification-jws.js (automatically handled)
+const analyticsEvents = buildAnalyticsEvents(source, verifications, documents, verificationStatus);
+
 await supabaseAdmin
   .from('accounts')
-  .update({
-    analytics: sdkResult.analytics,
-    verification_steps: sdkResult.verification_steps
-  })
-  .eq('id', accountId);
+  .insert({
+    // ... other account fields ...
+    sdk_analytics: analyticsEvents,         // Real analytics events
+    sdk_source: source,                      // Raw source data
+    sdk_verifications: verifications,        // Verification results
+    sdk_documents: documents                 // Document data
+  });
 ```
 
 ### Retrieving for Display

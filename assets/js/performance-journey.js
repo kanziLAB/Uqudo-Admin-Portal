@@ -321,7 +321,13 @@ class PerformanceJourney {
 function parseSDKAnalytics(data) {
   const events = [];
 
-  // If data has analytics property
+  // Priority 1: Use sdk_analytics (real data from SDK)
+  if (data.sdk_analytics && Array.isArray(data.sdk_analytics)) {
+    console.log('✅ Using real SDK analytics data:', data.sdk_analytics.length, 'events');
+    return data.sdk_analytics;
+  }
+
+  // Priority 2: If data has analytics property (legacy)
   if (data.analytics && Array.isArray(data.analytics)) {
     return data.analytics;
   }
