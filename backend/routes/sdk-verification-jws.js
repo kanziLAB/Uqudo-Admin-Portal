@@ -295,7 +295,8 @@ router.post('/enrollment-jws',
               nationality: accountData.nationality || null,
               gender: accountData.gender?.toLowerCase() || null,
               account_status: verificationStatus === 'approved' ? 'pending_review' : 'suspended',
-              kyc_verification_status: accountData.nfc_verified ? 'verified' : 'pending'
+              kyc_verification_status: accountData.nfc_verified ? 'verified' : 'pending',
+              aml_status: 'pending'
             })
             .select()
             .single();
@@ -411,6 +412,12 @@ router.post('/enrollment-jws',
             console.log(`✅ Created AML case: ${caseId}`);
           }
 
+          // Update account AML status to 'aml_match_found'
+          await supabaseAdmin
+            .from('accounts')
+            .update({ aml_status: 'aml_match_found' })
+            .eq('id', accountId);
+
           // Log the background check match
           await supabaseAdmin.from('analyst_logs').insert({
             tenant_id: tenantId,
@@ -423,6 +430,17 @@ router.post('/enrollment-jws',
           console.error('Background check processing failed:', error);
           // Continue and return response even if background check operations fail
         }
+      }
+    } else if (accountId) {
+      // No background check matches - set status to 'aml_clear'
+      try {
+        await supabaseAdmin
+          .from('accounts')
+          .update({ aml_status: 'aml_clear' })
+          .eq('id', accountId);
+        console.log(`✅ Account marked as AML Clear (no matches)`);
+      } catch (error) {
+        console.error('Failed to update AML status:', error);
       }
     }
 
@@ -447,6 +465,7 @@ router.post('/enrollment-jws',
         account: {
           account_id: accountId,
           account_created: accountCreated,
+          aml_status: caseCreated ? 'aml_match_found' : (accountId ? 'aml_clear' : 'pending'),
           ...accountData
         },
         source: {

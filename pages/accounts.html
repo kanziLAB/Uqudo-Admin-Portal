@@ -361,6 +361,7 @@
                       <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Contact</th>
                       <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Verification</th>
                       <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Status</th>
+                      <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">AML Status</th>
                       <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Risk Score</th>
                       <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Created</th>
                       <th class="text-secondary opacity-7"></th>
@@ -368,7 +369,7 @@
                   </thead>
                   <tbody id="accounts-table-body">
                     <tr>
-                      <td colspan="7" class="text-center py-4">
+                      <td colspan="8" class="text-center py-4">
                         <div class="spinner-border text-info" role="status">
                           <span class="visually-hidden">Loading...</span>
                         </div>
@@ -746,6 +747,11 @@
                     ${capitalize(account.status || 'unknown')}
                   </span>
                 </td>
+                <td class="align-middle text-center text-sm">
+                  <span class="badge badge-sm ${getAMLStatusBadge(account.aml_status)}">
+                    ${formatAMLStatus(account.aml_status || 'pending')}
+                  </span>
+                </td>
                 <td class="align-middle text-center">
                   <span class="badge badge-sm ${getRiskScoreBadge(account.risk_score)}">
                     ${capitalize(account.risk_score || 'unknown')}
@@ -788,7 +794,7 @@
         showError('Failed to load accounts');
         tableBody.innerHTML = `
           <tr>
-            <td colspan="7" class="text-center py-4 text-danger">
+            <td colspan="8" class="text-center py-4 text-danger">
               <i class="material-symbols-rounded">error</i>
               <p>Failed to load accounts</p>
             </td>
@@ -1063,6 +1069,26 @@
         high: 'badge-danger'
       };
       return badges[score] || 'badge-secondary';
+    }
+
+    function getAMLStatusBadge(status) {
+      const badges = {
+        'aml_clear': 'badge-success',
+        'pending': 'badge-warning',
+        'aml_match_found': 'badge-danger',
+        'under_review': 'badge-info'
+      };
+      return badges[status] || 'badge-secondary';
+    }
+
+    function formatAMLStatus(status) {
+      const formats = {
+        'aml_clear': 'AML Clear',
+        'pending': 'Pending',
+        'aml_match_found': 'AML Match Found',
+        'under_review': 'Under Review'
+      };
+      return formats[status] || status;
     }
 
     async function submitCreateAccount() {

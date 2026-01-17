@@ -1235,3 +1235,213 @@ For API support:
 
 **Last Updated:** 2024-01-15
 **API Version:** 1.0.0
+
+---
+
+## SDK Verification
+
+### SDK Enrollment - JWS Token (Recommended)
+
+Process complete Uqudo SDK enrollment results with JWS token validation.
+
+```http
+POST /api/sdk-verification/enrollment-jws
+Content-Type: application/json
+
+{
+  "token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Optional Headers:**
+- `X-Tenant-ID`: Your tenant UUID (defaults to demo tenant)
+
+**Features:**
+- ✅ JWS token decoding and validation
+- ✅ Full NFC reading data support
+- ✅ Document verification (scan + NFC)
+- ✅ Biometric verification (face match)
+- ✅ Fraud detection (screen, print, tampering)
+- ✅ MRZ checksum validation
+- ✅ Data consistency checks
+- ✅ Background check processing (PEP, Sanctions)
+- ✅ **Automatic account creation**
+- ✅ **Automatic alert creation** (if background check matches)
+- ✅ **Automatic AML case creation** (if background check matches)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "verification": {
+      "status": "approved",
+      "issues": [],
+      "warnings": [],
+      "passed_checks": true,
+      "nfc_verified": true,
+      "passive_authentication": true
+    },
+    "backgroundCheck": {
+      "match": true,
+      "case_created": true,
+      "alert_created": true,
+      "case_data": {
+        "case_id": "BGC-1768642496490",
+        "database_case_id": "uuid",
+        "case_type": "background_check_match",
+        "priority": "critical",
+        "matched_entities": [
+          {
+            "name": "Yahya Hadi",
+            "match_score": 91,
+            "risk_score": 90,
+            "pep_types": [
+              {
+                "type": "AMB",
+                "level": 3,
+                "position": "Deputy Consul"
+              }
+            ],
+            "events": [],
+            "sources": [],
+            "relationships": [],
+            "addresses": [],
+            "attributes": []
+          }
+        ],
+        "match_count": 1,
+        "highest_risk_score": 90,
+        "recommended_action": "ESCALATE",
+        "monitoring_id": null
+      }
+    },
+    "account": {
+      "account_id": "uuid",
+      "account_created": true,
+      "full_name": "Yahia Elhadi Hassan Elkanzi",
+      "id_number": "784198520387683",
+      "date_of_birth": "1985-06-08",
+      "nationality": "SDN",
+      "document_type": "UAE_ID",
+      "card_number": "145217945",
+      "gender": "M",
+      "passport_number": "P13244869",
+      "email": "user@example.com",
+      "phone_number": "971504351311",
+      "occupation": "09552661",
+      "employer": "Uqudo Computer Systems Consultancies L.l.c",
+      "nfc_verified": true,
+      "passive_authentication": true
+    },
+    "source": {
+      "sdk_type": "KYC_MOBILE",
+      "sdk_version": "3.6.1",
+      "device_model": "SM-A256E",
+      "device_platform": "Android",
+      "source_ip": "92.96.124.42"
+    }
+  },
+  "message": "Verification approved. Background check match found - case BGC-1768642496490 created."
+}
+```
+
+**Verification Thresholds:**
+
+| Check | Threshold | Action |
+|-------|-----------|--------|
+| Screen Detection | > 50 | REJECT |
+| Screen Detection | > 30 | WARNING |
+| Print Detection | > 50 | REJECT |
+| Photo Tampering | > 70 | REJECT |
+| Face Match Level | < 3 | REJECT |
+| MRZ Checksum | Invalid | REJECT |
+
+**Case Priority Mapping:**
+
+| Risk Score | Case Priority | Recommended Action |
+|-----------|--------------|-------------------|
+| 90-100 | Critical | ESCALATE |
+| 70-89 | High | REVIEW |
+| 0-69 | Medium | REVIEW |
+
+**What It Does Automatically:**
+
+When background check finds PEP/Sanctions matches:
+1. ✅ Finds or creates account by ID number
+2. ✅ Creates alert with priority (critical/high/medium)
+3. ✅ Creates AML case with case ID (e.g., BGC-1768642496490)
+4. ✅ Links alert to case via `alert_ids` JSON field
+5. ✅ Logs all actions in analyst_logs table
+
+**Testing:**
+```bash
+curl -X POST http://localhost:3000/api/sdk-verification/enrollment-jws \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-ID: 00000000-0000-0000-0000-000000000001" \
+  -d '{"token": "YOUR_JWS_TOKEN_HERE"}'
+```
+
+---
+
+### SDK Enrollment - Direct Data (Legacy)
+
+Process enrollment data directly (backward compatible).
+
+```http
+POST /api/sdk-verification/enrollment
+Content-Type: application/json
+
+{
+  "data": {
+    "source": { ... },
+    "documents": [ ... ],
+    "verifications": [ ... ],
+    "backgroundCheck": { ... }
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "verification": {
+      "status": "approved",
+      "issues": [],
+      "warnings": [],
+      "passedChecks": true
+    },
+    "backgroundCheck": {
+      "match": true,
+      "caseCreated": false,
+      "caseData": {
+        "case_type": "background_check_match",
+        "priority": "critical",
+        "matched_entities": [...],
+        "recommended_action": "ESCALATE"
+      }
+    },
+    "account": {...}
+  },
+  "message": "Verification approved. Background check match found."
+}
+```
+
+**Note:** This endpoint returns case data but does not create database records automatically. Use the JWS endpoint for full automation.
+
+---
+
+## Additional Documentation
+
+For complete integration guides and detailed documentation, see:
+
+- **SDK JWS Integration**: `/UQUDO_SDK_JWS_INTEGRATION.md` - Complete guide for JWS endpoint
+- **SDK Integration**: `/UQUDO_SDK_INTEGRATION.md` - Original endpoint documentation
+- **Endpoints Summary**: `/SDK_ENDPOINTS_SUMMARY.md` - Quick comparison and reference
+- **Deployment Guide**: `/DEPLOYMENT_GUIDE.md` - Vercel deployment instructions
+- **Project Overview**: `/README_UQUDO.md` - Features, setup, and troubleshooting
+
+All documentation files are available in the project root directory.
+

@@ -420,8 +420,8 @@
   </main>
 
   <!-- Case Detail Modal -->
-  <div class="modal fade" id="caseDetailModal" tabindex="-1" aria-labelledby="caseDetailModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+  <div class="modal fade" id="caseDetailModal" tabindex="-1" aria-labelledby="caseDetailModalLabel" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog modal-fullscreen-lg-down modal-dialog-scrollable" style="max-width: 90%; margin: 1.75rem auto;">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="caseDetailModalLabel">Case Details</h5>
@@ -933,24 +933,113 @@
     function loadMatchDetails(caseData) {
       const container = document.getElementById('match-details-container');
 
+      // First check match_details field
       if (caseData.match_details && typeof caseData.match_details === 'object') {
         const matchDetails = caseData.match_details;
 
-        container.innerHTML = `
-          <div class="match-details">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <span class="text-sm font-weight-bold">Match Score</span>
-              <span class="match-score ${getMatchScoreColor(caseData.match_score)}">
-                ${(caseData.match_score * 100).toFixed(0)}%
-              </span>
+        // Check if it has matched_entities array (new format from SDK)
+        if (matchDetails.matched_entities && Array.isArray(matchDetails.matched_entities)) {
+          let html = `<div class="mb-3">
+            <span class="badge bg-gradient-warning">Found ${matchDetails.match_count || matchDetails.matched_entities.length} Match(es)</span>
+            ${matchDetails.highest_risk_score ? `<span class="badge bg-gradient-danger ms-2">Risk Score: ${matchDetails.highest_risk_score}</span>` : ''}
+          </div>`;
+
+          matchDetails.matched_entities.forEach((entity, index) => {
+            html += `
+              <div class="match-details mb-3">
+                <h6 class="text-sm font-weight-bold mb-2">Match #${index + 1}: ${entity.name || 'Unknown Entity'}</h6>
+
+                <div class="row">
+                  <div class="col-6">
+                    <p class="text-xs mb-1"><strong>Entity Type:</strong> ${entity.entity_type || '-'}</p>
+                    <p class="text-xs mb-1"><strong>Match Score:</strong>
+                      <span class="${entity.match_score >= 90 ? 'text-danger' : entity.match_score >= 70 ? 'text-warning' : 'text-info'} font-weight-bold">
+                        ${entity.match_score || '-'}%
+                      </span>
+                    </p>
+                    <p class="text-xs mb-1"><strong>Risk Score:</strong>
+                      <span class="${entity.risk_score >= 90 ? 'text-danger' : entity.risk_score >= 70 ? 'text-warning' : 'text-info'} font-weight-bold">
+                        ${entity.risk_score || '-'}
+                      </span>
+                    </p>
+                  </div>
+                  <div class="col-6">
+                    ${entity.pep_types && entity.pep_types.length > 0 ? `<p class="text-xs mb-1"><strong>PEP Types:</strong> ${entity.pep_types.join(', ')}</p>` : ''}
+                    ${entity.rdc_url ? `<p class="text-xs mb-1"><strong>RDC URL:</strong> <a href="${entity.rdc_url}" target="_blank" class="text-info">View Details</a></p>` : ''}
+                  </div>
+                </div>
+
+                ${entity.birth_dates && entity.birth_dates.length > 0 ? `
+                  <div class="mt-2">
+                    <p class="text-xs mb-1"><strong>Birth Dates:</strong></p>
+                    <ul class="text-xs mb-1">
+                      ${entity.birth_dates.map(bd => `<li>${bd.birthDt || bd}</li>`).join('')}
+                    </ul>
+                  </div>
+                ` : ''}
+
+                ${entity.identifications && entity.identifications.length > 0 ? `
+                  <div class="mt-2">
+                    <p class="text-xs mb-1"><strong>Identifications:</strong></p>
+                    <ul class="text-xs mb-1">
+                      ${entity.identifications.slice(0, 3).map(id => `<li>${id.identificationNumber || id} (${id.identificationType || 'ID'})</li>`).join('')}
+                      ${entity.identifications.length > 3 ? `<li class="text-muted">... and ${entity.identifications.length - 3} more</li>` : ''}
+                    </ul>
+                  </div>
+                ` : ''}
+
+                ${entity.sources && entity.sources.length > 0 ? `
+                  <div class="mt-2">
+                    <p class="text-xs mb-1"><strong>Sources:</strong></p>
+                    <div class="d-flex flex-wrap gap-1">
+                      ${entity.sources.slice(0, 5).map(src => `<span class="badge badge-sm bg-secondary">${src.sourceProviderName || src.source || src}</span>`).join('')}
+                      ${entity.sources.length > 5 ? `<span class="badge badge-sm bg-light text-dark">+${entity.sources.length - 5} more</span>` : ''}
+                    </div>
+                  </div>
+                ` : ''}
+
+                ${entity.events && entity.events.length > 0 ? `
+                  <div class="mt-2">
+                    <p class="text-xs mb-1"><strong>Events:</strong></p>
+                    <ul class="text-xs mb-1">
+                      ${entity.events.slice(0, 2).map(evt => `<li>${evt.eventDescription || evt.event || evt}</li>`).join('')}
+                      ${entity.events.length > 2 ? `<li class="text-muted">... and ${entity.events.length - 2} more events</li>` : ''}
+                    </ul>
+                  </div>
+                ` : ''}
+
+                ${entity.addresses && entity.addresses.length > 0 ? `
+                  <div class="mt-2">
+                    <p class="text-xs mb-1"><strong>Addresses:</strong></p>
+                    <ul class="text-xs mb-1">
+                      ${entity.addresses.slice(0, 2).map(addr => `<li>${[addr.city, addr.region, addr.country].filter(Boolean).join(', ')}</li>`).join('')}
+                      ${entity.addresses.length > 2 ? `<li class="text-muted">... and ${entity.addresses.length - 2} more</li>` : ''}
+                    </ul>
+                  </div>
+                ` : ''}
+              </div>
+            `;
+          });
+
+          container.innerHTML = html;
+        } else {
+          // Old format - simple match details
+          container.innerHTML = `
+            <div class="match-details">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-sm font-weight-bold">Match Score</span>
+                <span class="match-score ${getMatchScoreColor(caseData.match_score)}">
+                  ${(caseData.match_score * 100).toFixed(0)}%
+                </span>
+              </div>
+              ${matchDetails.entity_name ? `<p class="text-xs mb-1"><strong>Entity Name:</strong> ${matchDetails.entity_name}</p>` : ''}
+              ${matchDetails.entity_type ? `<p class="text-xs mb-1"><strong>Entity Type:</strong> ${snakeToTitle(matchDetails.entity_type)}</p>` : ''}
+              ${matchDetails.source ? `<p class="text-xs mb-1"><strong>Source:</strong> ${matchDetails.source}</p>` : ''}
+              ${matchDetails.match_reason ? `<p class="text-xs mb-1"><strong>Match Reason:</strong> ${matchDetails.match_reason}</p>` : ''}
+              ${matchDetails.additional_info ? `<p class="text-xs mb-0"><strong>Additional Info:</strong> ${matchDetails.additional_info}</p>` : ''}
             </div>
-            ${matchDetails.entity_name ? `<p class="text-xs mb-1"><strong>Entity Name:</strong> ${matchDetails.entity_name}</p>` : ''}
-            ${matchDetails.entity_type ? `<p class="text-xs mb-1"><strong>Entity Type:</strong> ${snakeToTitle(matchDetails.entity_type)}</p>` : ''}
-            ${matchDetails.source ? `<p class="text-xs mb-1"><strong>Source:</strong> ${matchDetails.source}</p>` : ''}
-            ${matchDetails.match_reason ? `<p class="text-xs mb-1"><strong>Match Reason:</strong> ${matchDetails.match_reason}</p>` : ''}
-            ${matchDetails.additional_info ? `<p class="text-xs mb-0"><strong>Additional Info:</strong> ${matchDetails.additional_info}</p>` : ''}
-          </div>
-        `;
+          `;
+        }
       } else {
         container.innerHTML = '<p class="text-sm text-muted">No match details available</p>';
       }

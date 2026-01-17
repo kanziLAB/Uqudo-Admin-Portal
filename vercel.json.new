@@ -1,0 +1,87 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "backend/server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/health",
+      "dest": "/backend/server.js"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/backend/server.js"
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "/pages/uqudo-sign-in\\.html",
+      "dest": "/pages/uqudo-sign-in.html"
+    },
+    {
+      "src": "/pages/uqudo-sign-in",
+      "dest": "/pages/uqudo-sign-in.html"
+    },
+    {
+      "src": "/pages/uqudo-dashboard\\.html",
+      "dest": "/pages/uqudo-dashboard.html"
+    },
+    {
+      "src": "/pages/uqudo-dashboard",
+      "dest": "/pages/uqudo-dashboard.html"
+    },
+    {
+      "src": "/pages/accounts\\.html",
+      "dest": "/pages/accounts.html"
+    },
+    {
+      "src": "/pages/accounts",
+      "dest": "/pages/accounts.html"
+    },
+    {
+      "src": "/pages/alerts\\.html",
+      "dest": "/pages/alerts.html"
+    },
+    {
+      "src": "/pages/alerts",
+      "dest": "/pages/alerts.html"
+    },
+    {
+      "src": "/pages/cases\\.html",
+      "dest": "/pages/cases.html"
+    },
+    {
+      "src": "/pages/cases",
+      "dest": "/pages/cases.html"
+    },
+    {
+      "src": "/pages/blocklist\\.html",
+      "dest": "/pages/blocklist.html"
+    },
+    {
+      "src": "/pages/blocklist",
+      "dest": "/pages/blocklist.html"
+    },
+    {
+      "src": "/pages/kyc-setup\\.html",
+      "dest": "/pages/kyc-setup.html"
+    },
+    {
+      "src": "/pages/kyc-setup",
+      "dest": "/pages/kyc-setup.html"
+    },
+    {
+      "src": "/",
+      "dest": "/pages/uqudo-sign-in.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/pages/uqudo-sign-in.html"
+    }
+  ]
+}

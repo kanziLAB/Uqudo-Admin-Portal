@@ -1,0 +1,29 @@
+Add SDK JWS endpoint and prepare for Vercel deployment
+
+- Add JWS token validation endpoint with complete NFC support
+- Implement automatic account/alert/case creation for background checks
+- Add comprehensive SDK documentation and API docs
+- Fix 405 error handling with debug logging and multiple endpoints
+- Add deployment guides and troubleshooting documentation
+- Update CORS configuration for mobile app integration
+- Add alternative shorter endpoint URLs for flexibility
+
+Features:
+✅ Full JWS token decoding and validation
+✅ NFC reading data support (passport, chip data)
+✅ Automatic database operations (account, alert, case)
+✅ Background check processing (PEP, Sanctions)
+✅ Comprehensive error handling and debugging
+✅ Production-ready Vercel configuration
+
+API Endpoints Available:
+- POST /api/sdk-verification/enrollment-jws (primary)
+- POST /api/sdk-verification/jws (shorter alternative)
+- POST /api/sdk-verification/enrollment (legacy)
+
+Documentation:
+- UQUDO_SDK_JWS_INTEGRATION.md - Complete SDK guide
+- SDK_ENDPOINTS_SUMMARY.md - Quick reference
+- SDK_MOBILE_405_FIX.md - Troubleshooting 405 errors
+- MOBILE_URL_FIX.md - URL configuration guide
+- DEPLOY_TO_VERCEL.md - Deployment instructions
