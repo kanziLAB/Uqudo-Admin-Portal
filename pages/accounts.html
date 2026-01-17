@@ -509,6 +509,86 @@
               <div id="account-performance-journey"></div>
             </div>
           </div>
+
+          <!-- SDK Submission Data Section (Full Width) -->
+          <div class="row mt-4" id="sdk-submission-section" style="display: none;">
+            <div class="col-12">
+              <div class="modal-section">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <div class="modal-section-title mb-0">SDK Submission Data</div>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleSDKDataExpanded()">
+                    <i class="material-symbols-rounded text-sm">code</i> View Raw JSON
+                  </button>
+                </div>
+
+                <!-- Collapsed View (Summary) -->
+                <div id="sdk-data-summary">
+                  <div class="row">
+                    <div class="col-md-4 mb-3">
+                      <div style="background: #f8f9fa; padding: 1rem; border-radius: 0.5rem;">
+                        <div style="font-size: 0.75rem; color: #67748e; text-transform: uppercase; margin-bottom: 0.5rem;">SDK Info</div>
+                        <div id="sdk-source-summary" style="font-size: 0.875rem;"></div>
+                      </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                      <div style="background: #f8f9fa; padding: 1rem; border-radius: 0.5rem;">
+                        <div style="font-size: 0.75rem; color: #67748e; text-transform: uppercase; margin-bottom: 0.5rem;">Documents</div>
+                        <div id="sdk-documents-summary" style="font-size: 0.875rem;"></div>
+                      </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                      <div style="background: #f8f9fa; padding: 1rem; border-radius: 0.5rem;">
+                        <div style="font-size: 0.75rem; color: #67748e; text-transform: uppercase; margin-bottom: 0.5rem;">Verifications</div>
+                        <div id="sdk-verifications-summary" style="font-size: 0.875rem;"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Expanded View (Full JSON) -->
+                <div id="sdk-data-expanded" style="display: none;">
+                  <div class="accordion" id="sdkDataAccordion">
+                    <div class="accordion-item">
+                      <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSource">
+                          SDK Source
+                        </button>
+                      </h2>
+                      <div id="collapseSource" class="accordion-collapse collapse show" data-bs-parent="#sdkDataAccordion">
+                        <div class="accordion-body">
+                          <pre id="sdk-source-json" style="background: #f8f9fa; padding: 1rem; border-radius: 0.5rem; font-size: 0.75rem; max-height: 400px; overflow-y: auto;"></pre>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="accordion-item">
+                      <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDocuments">
+                          SDK Documents
+                        </button>
+                      </h2>
+                      <div id="collapseDocuments" class="accordion-collapse collapse" data-bs-parent="#sdkDataAccordion">
+                        <div class="accordion-body">
+                          <pre id="sdk-documents-json" style="background: #f8f9fa; padding: 1rem; border-radius: 0.5rem; font-size: 0.75rem; max-height: 400px; overflow-y: auto;"></pre>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="accordion-item">
+                      <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseVerifications">
+                          SDK Verifications
+                        </button>
+                      </h2>
+                      <div id="collapseVerifications" class="accordion-collapse collapse" data-bs-parent="#sdkDataAccordion">
+                        <div class="accordion-body">
+                          <pre id="sdk-verifications-json" style="background: #f8f9fa; padding: 1rem; border-radius: 0.5rem; font-size: 0.75rem; max-height: 400px; overflow-y: auto;"></pre>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -915,6 +995,9 @@
           // Load Performance Journey
           loadPerformanceJourney(account);
 
+          // Load SDK Submission Data
+          loadSDKSubmissionData(account);
+
           modal.show();
         }
       } catch (error) {
@@ -1011,6 +1094,78 @@
       const journey = new PerformanceJourney('account-performance-journey', events);
       window.performanceJourney = journey; // Make globally accessible
       journey.render();
+    }
+
+    // Load SDK Submission Data
+    function loadSDKSubmissionData(account) {
+      const section = document.getElementById('sdk-submission-section');
+      const hasSDKData = account.sdk_source || account.sdk_documents || account.sdk_verifications;
+
+      if (!hasSDKData) {
+        section.style.display = 'none';
+        return;
+      }
+
+      section.style.display = 'block';
+
+      // Populate summaries
+      if (account.sdk_source) {
+        document.getElementById('sdk-source-summary').innerHTML = `
+          <div><strong>Type:</strong> ${account.sdk_source.sdkType || 'N/A'}</div>
+          <div><strong>Version:</strong> ${account.sdk_source.sdkVersion || 'N/A'}</div>
+          <div><strong>Platform:</strong> ${account.sdk_source.devicePlatform || 'N/A'}</div>
+          <div><strong>Model:</strong> ${account.sdk_source.deviceModel || 'N/A'}</div>
+        `;
+      } else {
+        document.getElementById('sdk-source-summary').innerHTML = '<em>No source data</em>';
+      }
+
+      if (account.sdk_documents && account.sdk_documents.length > 0) {
+        const doc = account.sdk_documents[0];
+        document.getElementById('sdk-documents-summary').innerHTML = `
+          <div><strong>Type:</strong> ${doc.documentType || 'N/A'}</div>
+          <div><strong>Has Reading:</strong> ${doc.reading ? 'Yes' : 'No'}</div>
+          <div><strong>Has Scan:</strong> ${doc.scan ? 'Yes' : 'No'}</div>
+          <div><strong>Total:</strong> ${account.sdk_documents.length} document(s)</div>
+        `;
+      } else {
+        document.getElementById('sdk-documents-summary').innerHTML = '<em>No documents</em>';
+      }
+
+      if (account.sdk_verifications && account.sdk_verifications.length > 0) {
+        const verif = account.sdk_verifications[0];
+        const checks = [];
+        if (verif.faceLiveness) checks.push('Face Liveness');
+        if (verif.idScreenDetection) checks.push('Screen Detection');
+        if (verif.faceMatch) checks.push('Face Match');
+
+        document.getElementById('sdk-verifications-summary').innerHTML = `
+          <div><strong>Checks:</strong> ${checks.length > 0 ? checks.join(', ') : 'None'}</div>
+          <div><strong>Total:</strong> ${account.sdk_verifications.length} verification(s)</div>
+        `;
+      } else {
+        document.getElementById('sdk-verifications-summary').innerHTML = '<em>No verifications</em>';
+      }
+
+      // Populate raw JSON
+      document.getElementById('sdk-source-json').textContent = JSON.stringify(account.sdk_source || {}, null, 2);
+      document.getElementById('sdk-documents-json').textContent = JSON.stringify(account.sdk_documents || [], null, 2);
+      document.getElementById('sdk-verifications-json').textContent = JSON.stringify(account.sdk_verifications || [], null, 2);
+    }
+
+    // Toggle SDK data view
+    function toggleSDKDataExpanded() {
+      const summary = document.getElementById('sdk-data-summary');
+      const expanded = document.getElementById('sdk-data-expanded');
+      const isExpanded = expanded.style.display !== 'none';
+
+      if (isExpanded) {
+        expanded.style.display = 'none';
+        summary.style.display = 'block';
+      } else {
+        expanded.style.display = 'block';
+        summary.style.display = 'none';
+      }
     }
 
     // Open action modal
