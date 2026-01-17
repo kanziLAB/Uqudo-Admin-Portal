@@ -264,6 +264,103 @@ router.patch('/:id',
 );
 
 /**
+ * @route   DELETE /api/accounts/:id
+ * @desc    Delete account and all related data
+ * @access  Private (Manager/MLRO only)
+ */
+router.delete('/:id',
+  preventViewOnlyModifications,
+  authorize(['manager', 'mlro']),
+  asyncHandler(async (req, res) => {
+    const { tenantId, id: userId } = req.user;
+    const { id } = req.params;
+
+    console.log(`🗑️ Deleting account ${id} and all related data...`);
+
+    // Get account details before deletion for logging
+    const { data: account } = await supabaseAdmin
+      .from('accounts')
+      .select('user_id, first_name, last_name, email')
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .single();
+
+    if (!account) {
+      return res.status(404).json({
+        success: false,
+        error: 'Account not found'
+      });
+    }
+
+    // Delete related data in order (due to foreign key constraints)
+    // 1. Delete analyst logs
+    await supabaseAdmin
+      .from('analyst_logs')
+      .delete()
+      .eq('account_id', id);
+
+    // 2. Delete AML cases
+    await supabaseAdmin
+      .from('aml_cases')
+      .delete()
+      .eq('account_id', id);
+
+    // 3. Delete biometric data (if table exists)
+    try {
+      await supabaseAdmin
+        .from('biometric_data')
+        .delete()
+        .eq('account_id', id);
+    } catch (err) {
+      console.log('Biometric data table not found or already deleted');
+    }
+
+    // 4. Delete device attestation (if table exists)
+    try {
+      await supabaseAdmin
+        .from('device_attestation')
+        .delete()
+        .eq('account_id', id);
+    } catch (err) {
+      console.log('Device attestation table not found or already deleted');
+    }
+
+    // 5. Delete notes (if table exists)
+    try {
+      await supabaseAdmin
+        .from('account_notes')
+        .delete()
+        .eq('account_id', id);
+    } catch (err) {
+      console.log('Notes table not found or already deleted');
+    }
+
+    // 6. Finally, delete the account
+    const { error } = await supabaseAdmin
+      .from('accounts')
+      .delete()
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      console.error('Failed to delete account:', error);
+      throw error;
+    }
+
+    console.log(`✅ Account ${id} and all related data deleted successfully`);
+
+    // Log the deletion action (in a separate log table or external system if needed)
+    // Note: We can't log to analyst_logs since the account is deleted
+    console.log(`📝 Deletion performed by user ${userId}: ${account.first_name} ${account.last_name} (${account.email})`);
+
+    res.json({
+      success: true,
+      message: 'Account and all related data deleted successfully'
+    });
+  })
+);
+
+/**
  * @route   GET /api/accounts/:id/verification-tickets
  * @desc    Get verification tickets for an account
  * @access  Private

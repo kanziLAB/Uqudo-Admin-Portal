@@ -713,6 +713,51 @@
     </div>
   </div>
 
+  <!-- Delete Account Confirmation Modal -->
+  <div class="modal fade" id="deleteAccountModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-gradient-danger">
+          <h5 class="modal-title text-white">
+            <i class="material-symbols-rounded me-2">warning</i>
+            Delete Account
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="delete-account-id">
+          <div class="alert alert-danger d-flex align-items-center" role="alert">
+            <i class="material-symbols-rounded me-2">info</i>
+            <div>
+              <strong>Warning:</strong> This action cannot be undone. All related data will be permanently deleted.
+            </div>
+          </div>
+          <p class="mb-3">Are you sure you want to delete the account for <strong id="delete-account-name"></strong>?</p>
+          <p class="text-sm text-muted mb-3">The following data will be deleted:</p>
+          <ul class="text-sm text-muted">
+            <li>Account profile and personal information</li>
+            <li>Biometric data and face images</li>
+            <li>Device attestation records</li>
+            <li>Activity logs and audit trail</li>
+            <li>SDK submission data</li>
+            <li>Related AML cases and alerts</li>
+          </ul>
+          <div class="form-group mt-3">
+            <label class="form-label">Type <strong>DELETE</strong> to confirm:</label>
+            <input type="text" class="form-control" id="delete-confirmation-input" placeholder="DELETE">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirm-delete-btn" onclick="deleteAccount()" disabled>
+            <i class="material-symbols-rounded text-sm me-1">delete_forever</i>
+            Delete Permanently
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="../assets/js/core/popper.min.js"></script>
   <script src="../assets/js/core/bootstrap.min.js"></script>
@@ -872,26 +917,31 @@
                 <td class="align-middle text-center">
                   <span class="text-secondary text-xs">${formatDate(account.created_at, { dateStyle: 'short' })}</span>
                 </td>
-                <td class="align-middle">
-                  <div class="dropdown">
-                    <button class="btn btn-sm btn-icon-only" type="button" data-bs-toggle="dropdown">
-                      <i class="material-symbols-rounded">more_vert</i>
+                <td class="align-middle text-center">
+                  <div class="d-flex gap-2 justify-content-center">
+                    <button class="btn btn-sm bg-gradient-info" onclick="viewAccountDetail('${account.id}')" title="View Account Details">
+                      <i class="material-symbols-rounded text-sm">visibility</i>
                     </button>
-                    <ul class="dropdown-menu action-dropdown">
-                      <li><a class="dropdown-item" href="javascript:;" onclick="viewAccountDetail('${account.id}')">
-                        <i class="material-symbols-rounded text-sm me-2">visibility</i> View Details
-                      </a></li>
-                      <li><a class="dropdown-item" href="javascript:;" onclick="viewAccountDocuments('${account.id}')">
-                        <i class="material-symbols-rounded text-sm me-2">description</i> Documents
-                      </a></li>
-                      <li><a class="dropdown-item" href="javascript:;" onclick="viewAccountActivity('${account.id}')">
-                        <i class="material-symbols-rounded text-sm me-2">history</i> Activity Log
-                      </a></li>
-                      <li><hr class="dropdown-divider"></li>
-                      <li><a class="dropdown-item" href="javascript:;" onclick="openActionModalForAccount('${account.id}')">
-                        <i class="material-symbols-rounded text-sm me-2">edit</i> Manual Action
-                      </a></li>
-                    </ul>
+                    <button class="btn btn-sm bg-gradient-danger" onclick="confirmDeleteAccount('${account.id}', '${account.first_name} ${account.last_name}')" title="Delete Account">
+                      <i class="material-symbols-rounded text-sm">delete</i>
+                    </button>
+                    <div class="dropdown">
+                      <button class="btn btn-sm btn-outline-secondary btn-icon-only" type="button" data-bs-toggle="dropdown" title="More Actions">
+                        <i class="material-symbols-rounded text-sm">more_vert</i>
+                      </button>
+                      <ul class="dropdown-menu action-dropdown">
+                        <li><a class="dropdown-item" href="javascript:;" onclick="viewAccountDocuments('${account.id}')">
+                          <i class="material-symbols-rounded text-sm me-2">description</i> Documents
+                        </a></li>
+                        <li><a class="dropdown-item" href="javascript:;" onclick="viewAccountActivity('${account.id}')">
+                          <i class="material-symbols-rounded text-sm me-2">history</i> Activity Log
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="javascript:;" onclick="openActionModalForAccount('${account.id}')">
+                          <i class="material-symbols-rounded text-sm me-2">edit</i> Manual Action
+                        </a></li>
+                      </ul>
+                    </div>
                   </div>
                 </td>
               </tr>
@@ -1307,6 +1357,66 @@
         }
       } catch (error) {
         showError(error.message || 'Failed to create account');
+      }
+    }
+
+    // Delete account functions
+    function confirmDeleteAccount(accountId, accountName) {
+      const modal = new bootstrap.Modal(document.getElementById('deleteAccountModal'));
+      document.getElementById('delete-account-id').value = accountId;
+      document.getElementById('delete-account-name').textContent = accountName;
+      document.getElementById('delete-confirmation-input').value = '';
+      document.getElementById('confirm-delete-btn').disabled = true;
+      modal.show();
+    }
+
+    // Enable delete button when user types DELETE
+    document.addEventListener('DOMContentLoaded', function() {
+      const deleteInput = document.getElementById('delete-confirmation-input');
+      const deleteBtn = document.getElementById('confirm-delete-btn');
+
+      if (deleteInput && deleteBtn) {
+        deleteInput.addEventListener('input', function() {
+          deleteBtn.disabled = this.value !== 'DELETE';
+        });
+      }
+    });
+
+    async function deleteAccount() {
+      const accountId = document.getElementById('delete-account-id').value;
+      const deleteBtn = document.getElementById('confirm-delete-btn');
+
+      if (!accountId) {
+        showError('Invalid account ID');
+        return;
+      }
+
+      // Disable button and show loading state
+      deleteBtn.disabled = true;
+      deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deleting...';
+
+      try {
+        const response = await api.deleteAccount(accountId);
+
+        if (response.success) {
+          showSuccess('Account and all related data deleted successfully');
+
+          // Close modal
+          const modal = bootstrap.Modal.getInstance(document.getElementById('deleteAccountModal'));
+          if (modal) modal.hide();
+
+          // Reload accounts list
+          loadAccounts(currentPage);
+        } else {
+          throw new Error(response.error || 'Failed to delete account');
+        }
+      } catch (error) {
+        console.error('Failed to delete account:', error);
+        showError(error.message || 'Failed to delete account');
+
+        // Re-enable button
+        deleteBtn.disabled = false;
+        deleteBtn.innerHTML = '<i class="material-symbols-rounded text-sm me-1">delete_forever</i> Delete Permanently';
       }
     }
 

@@ -224,6 +224,10 @@ class ApiClient {
     return this.patch(`/accounts/${id}`, updates);
   }
 
+  async deleteAccount(id) {
+    return this.delete(`/accounts/${id}`);
+  }
+
   async getVerificationTickets(accountId) {
     return this.get(`/accounts/${accountId}/verification-tickets`);
   }
