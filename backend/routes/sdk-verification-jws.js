@@ -5,6 +5,7 @@ import { supabaseAdmin } from '../config/supabase.js';
 
 const router = express.Router();
 
+// Updated: 2026-01-17 - Added match_details storage with logging
 // Helper to wrap async route handlers
 const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
