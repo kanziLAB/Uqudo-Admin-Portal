@@ -808,8 +808,8 @@
                   </span>
                 </td>
                 <td class="align-middle text-center">
-                  <span class="badge badge-sm ${getCaseStatusBadge(caseItem.status)}">
-                    ${snakeToTitle(caseItem.status || 'unknown')}
+                  <span class="badge badge-sm ${getCaseStatusBadge(caseItem.resolution_status || caseItem.status)}">
+                    ${snakeToTitle(caseItem.resolution_status || caseItem.status || 'unknown')}
                   </span>
                 </td>
                 <td class="align-middle text-center">
@@ -926,7 +926,7 @@
           document.getElementById('detail-priority').innerHTML =
             `<span class="badge ${getCasePriorityBadge(caseData.priority)}">${capitalize(caseData.priority)}</span>`;
           document.getElementById('detail-status').innerHTML =
-            `<span class="badge ${getCaseStatusBadge(caseData.status)}">${snakeToTitle(caseData.status)}</span>`;
+            `<span class="badge ${getCaseStatusBadge(caseData.resolution_status || caseData.status)}">${snakeToTitle(caseData.resolution_status || caseData.status)}</span>`;
           document.getElementById('detail-assigned-to').textContent = caseData.assigned_to_user?.full_name || 'Unassigned';
           document.getElementById('detail-created-at').textContent = formatDate(caseData.created_at, { dateStyle: 'medium', timeStyle: 'short' });
           document.getElementById('detail-updated-at').textContent = formatDate(caseData.updated_at, { dateStyle: 'medium', timeStyle: 'short' });
@@ -1096,6 +1096,9 @@
 
     // Update resolution timeline
     function updateResolutionTimeline(caseData) {
+      // Use resolution_status field (database column name) or fall back to status
+      const status = caseData.resolution_status || caseData.status;
+
       // Reset all dots
       ['open', 'investigation', 'review', 'resolved'].forEach(step => {
         document.getElementById(`step-${step}`).classList.remove('completed');
@@ -1108,17 +1111,17 @@
         document.getElementById('step-open-time').textContent = formatDate(caseData.created_at, { dateStyle: 'short', timeStyle: 'short' });
       }
 
-      if (caseData.status === 'under_investigation' || caseData.status === 'escalated' || caseData.status === 'resolved' || caseData.status === 'closed') {
+      if (status === 'under_investigation' || status === 'escalated' || status === 'resolved' || status === 'closed') {
         document.getElementById('step-investigation').classList.add('completed');
         document.getElementById('step-investigation-time').textContent = 'In Progress';
       }
 
-      if (caseData.status === 'escalated' || caseData.status === 'resolved' || caseData.status === 'closed') {
+      if (status === 'escalated' || status === 'resolved' || status === 'closed') {
         document.getElementById('step-review').classList.add('completed');
         document.getElementById('step-review-time').textContent = 'Under Review';
       }
 
-      if (caseData.status === 'resolved' || caseData.status === 'closed') {
+      if (status === 'resolved' || status === 'closed') {
         document.getElementById('step-resolved').classList.add('completed');
         document.getElementById('step-resolved-time').textContent = formatDate(caseData.resolved_at || caseData.updated_at, { dateStyle: 'short', timeStyle: 'short' });
       }
@@ -1219,6 +1222,7 @@
 
     function getCaseStatusBadge(status) {
       const badges = {
+        unsolved: 'badge-info',
         open: 'badge-info',
         under_investigation: 'badge-warning',
         escalated: 'badge-danger',
