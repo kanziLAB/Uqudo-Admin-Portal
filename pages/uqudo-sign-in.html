@@ -219,10 +219,10 @@
   </script>
 
   <!-- Vercel Analytics -->
-  <script type="module">
-    import { inject } from 'https://cdn.jsdelivr.net/npm/@vercel/analytics@1.6.1/+esm';
-    inject();
+  <script>
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
   </script>
+  <script defer src="/_vercel/insights/script.js"></script>
 </body>
 
 </html>
