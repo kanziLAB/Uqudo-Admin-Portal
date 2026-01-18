@@ -626,14 +626,23 @@
       console.log('📊 Processing', accounts.length, 'accounts for duration data...');
 
       accounts.forEach((account, index) => {
-        if (!account.sdk_submission_data) return;
+        // Check if account has any SDK data (stored in separate fields)
+        if (!account.sdk_source && !account.sdk_documents && !account.sdk_verifications) return;
 
         accountsWithSDK++;
 
         try {
-          const sdkData = typeof account.sdk_submission_data === 'string'
-            ? JSON.parse(account.sdk_submission_data)
-            : account.sdk_submission_data;
+          // Parse SDK data from separate fields
+          const sdkSource = account.sdk_source ? (typeof account.sdk_source === 'string' ? JSON.parse(account.sdk_source) : account.sdk_source) : null;
+          const sdkDocuments = account.sdk_documents ? (typeof account.sdk_documents === 'string' ? JSON.parse(account.sdk_documents) : account.sdk_documents) : null;
+          const sdkVerifications = account.sdk_verifications ? (typeof account.sdk_verifications === 'string' ? JSON.parse(account.sdk_verifications) : account.sdk_verifications) : null;
+
+          // Combine into single structure for easier processing
+          const sdkData = {
+            source: sdkSource,
+            documents: sdkDocuments,
+            verifications: sdkVerifications
+          };
 
           // Debug: Log SDK data structure for first 3 accounts
           if (index < 3) {
