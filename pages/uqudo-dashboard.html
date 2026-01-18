@@ -620,19 +620,69 @@
     // Process duration data from SDK submissions
     function processDurationData(accounts) {
       const monthlyData = {};
+      let processedCount = 0;
+      let accountsWithSDK = 0;
 
-      accounts.forEach(account => {
+      console.log('📊 Processing', accounts.length, 'accounts for duration data...');
+
+      accounts.forEach((account, index) => {
         if (!account.sdk_submission_data) return;
+
+        accountsWithSDK++;
 
         try {
           const sdkData = typeof account.sdk_submission_data === 'string'
             ? JSON.parse(account.sdk_submission_data)
             : account.sdk_submission_data;
 
-          // Extract durations from SDK data
-          const totalDuration = sdkData.source?.totalDuration || 0;
-          const documentDuration = sdkData.documents?.[0]?.scanDuration || 0;
-          const faceDuration = sdkData.verifications?.face?.duration || 0;
+          // Debug: Log SDK data structure for first 3 accounts
+          if (index < 3) {
+            console.log(`📝 Account ${index + 1} SDK structure:`, {
+              hasSource: !!sdkData.source,
+              sourceKeys: sdkData.source ? Object.keys(sdkData.source) : [],
+              hasDocuments: !!sdkData.documents,
+              documentsCount: Array.isArray(sdkData.documents) ? sdkData.documents.length : 0,
+              hasVerifications: !!sdkData.verifications,
+              verificationsKeys: sdkData.verifications ? Object.keys(sdkData.verifications) : []
+            });
+          }
+
+          // Try multiple paths to extract durations (in milliseconds)
+          let totalDuration = 0;
+          let documentDuration = 0;
+          let faceDuration = 0;
+
+          // Extract total duration - try multiple paths
+          if (sdkData.source?.totalDuration) {
+            totalDuration = sdkData.source.totalDuration;
+          } else if (sdkData.source?.duration) {
+            totalDuration = sdkData.source.duration;
+          } else if (sdkData.source?.startedAt && sdkData.source?.completedAt) {
+            totalDuration = new Date(sdkData.source.completedAt) - new Date(sdkData.source.startedAt);
+          }
+
+          // Extract document scan duration
+          if (sdkData.documents && Array.isArray(sdkData.documents)) {
+            for (const doc of sdkData.documents) {
+              if (doc.scanDuration) {
+                documentDuration = Math.max(documentDuration, doc.scanDuration);
+              } else if (doc.duration) {
+                documentDuration = Math.max(documentDuration, doc.duration);
+              } else if (doc.capturedAt && doc.processedAt) {
+                const dur = new Date(doc.processedAt) - new Date(doc.capturedAt);
+                documentDuration = Math.max(documentDuration, dur);
+              }
+            }
+          }
+
+          // Extract face verification duration
+          if (sdkData.verifications?.face?.duration) {
+            faceDuration = sdkData.verifications.face.duration;
+          } else if (sdkData.verifications?.face?.startedAt && sdkData.verifications?.face?.completedAt) {
+            faceDuration = new Date(sdkData.verifications.face.completedAt) - new Date(sdkData.verifications.face.startedAt);
+          } else if (sdkData.verifications?.liveness?.duration) {
+            faceDuration = sdkData.verifications.liveness.duration;
+          }
 
           // Get month from created_at
           const date = new Date(account.created_at);
@@ -642,28 +692,59 @@
             monthlyData[monthKey] = {
               totalDurations: [],
               documentDurations: [],
-              faceDurations: []
+              faceDurations: [],
+              count: 0
             };
           }
 
-          if (totalDuration > 0) monthlyData[monthKey].totalDurations.push(totalDuration / 1000); // Convert to seconds
-          if (documentDuration > 0) monthlyData[monthKey].documentDurations.push(documentDuration / 1000);
-          if (faceDuration > 0) monthlyData[monthKey].faceDurations.push(faceDuration / 1000);
+          // Convert to seconds and add to monthly data (only if > 0)
+          if (totalDuration > 0) {
+            monthlyData[monthKey].totalDurations.push(totalDuration / 1000);
+            monthlyData[monthKey].count++;
+            processedCount++;
+          }
+          if (documentDuration > 0) {
+            monthlyData[monthKey].documentDurations.push(documentDuration / 1000);
+          }
+          if (faceDuration > 0) {
+            monthlyData[monthKey].faceDurations.push(faceDuration / 1000);
+          }
+
         } catch (error) {
-          console.error('Error processing SDK data:', error);
+          console.error('Error processing SDK data for account:', account.id, error);
         }
       });
 
+      console.log(`✅ Found ${accountsWithSDK} accounts with SDK data, processed ${processedCount} with valid durations`);
+
       // Calculate averages for each month
-      const labels = Object.keys(monthlyData).sort((a, b) => new Date(a) - new Date(b)).slice(-6); // Last 6 months
+      const sortedMonths = Object.keys(monthlyData).sort((a, b) => new Date(a) - new Date(b));
+      const labels = sortedMonths.slice(-6); // Last 6 months
+
+      console.log(`📅 Chart months:`, labels.map(m => `${m} (${monthlyData[m].count} entries)`).join(', '));
+
+      if (labels.length === 0) {
+        console.warn('⚠️ No monthly data available - showing placeholder');
+        return {
+          labels: ['No Data'],
+          totalDurations: [0],
+          documentDurations: [0],
+          faceDurations: [0]
+        };
+      }
+
       const totalDurations = labels.map(month => {
         const durations = monthlyData[month].totalDurations;
-        return durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
+        const avg = durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
+        if (avg > 0) console.log(`  ${month} - Avg Total: ${avg.toFixed(2)}s (${durations.length} samples)`);
+        return avg;
       });
+
       const documentDurations = labels.map(month => {
         const durations = monthlyData[month].documentDurations;
         return durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
       });
+
       const faceDurations = labels.map(month => {
         const durations = monthlyData[month].faceDurations;
         return durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
