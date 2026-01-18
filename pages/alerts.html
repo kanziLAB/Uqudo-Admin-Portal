@@ -43,8 +43,8 @@
   <aside class="sidenav navbar navbar-vertical navbar-expand-xs border-radius-lg fixed-start ms-2 bg-white my-2" id="sidenav-main">
     <div class="sidenav-header">
       <i class="fas fa-times p-3 cursor-pointer text-dark opacity-5 position-absolute end-0 top-0 d-none d-xl-none" aria-hidden="true" id="iconSidenav"></i>
-      <a class="navbar-brand px-4 py-3 m-0" href="./uqudo-dashboard">
-        <img src="../assets/img/uqudo-logo.png" alt="Uqudo Logo" style="height: 28px;">
+      <a class="navbar-brand m-0 p-0 d-block w-100" href="./uqudo-dashboard">
+        <img src="../assets/img/uqudo-logo.png" alt="Uqudo Logo" style="width: 100%; height: auto; display: block;">
       </a>
     </div>
     <hr class="horizontal dark mt-0 mb-2">
@@ -143,7 +143,10 @@
             <div class="card-header p-2 ps-3">
               <div class="d-flex justify-content-between">
                 <div>
-                  <p class="text-sm mb-0 text-capitalize">Pending Alerts</p>
+                  <p class="text-sm mb-0 text-capitalize editable-label"
+                     data-key="alerts_pending_label"
+                     data-default="Pending Alerts"
+                     style="cursor: pointer;">Pending Alerts</p>
                   <h4 class="mb-0" id="pending-count">
                     <span class="spinner-border spinner-border-sm" role="status"></span>
                   </h4>
@@ -161,7 +164,10 @@
             <div class="card-header p-2 ps-3">
               <div class="d-flex justify-content-between">
                 <div>
-                  <p class="text-sm mb-0 text-capitalize">In Review</p>
+                  <p class="text-sm mb-0 text-capitalize editable-label"
+                     data-key="alerts_inreview_label"
+                     data-default="In Review"
+                     style="cursor: pointer;">In Review</p>
                   <h4 class="mb-0" id="inreview-count">
                     <span class="spinner-border spinner-border-sm" role="status"></span>
                   </h4>
@@ -179,7 +185,10 @@
             <div class="card-header p-2 ps-3">
               <div class="d-flex justify-content-between">
                 <div>
-                  <p class="text-sm mb-0 text-capitalize">My Queue</p>
+                  <p class="text-sm mb-0 text-capitalize editable-label"
+                     data-key="alerts_myqueue_label"
+                     data-default="My Queue"
+                     style="cursor: pointer;">My Queue</p>
                   <h4 class="mb-0" id="myqueue-count">
                     <span class="spinner-border spinner-border-sm" role="status"></span>
                   </h4>
@@ -655,6 +664,9 @@
       }, 30000);
     });
   </script>
+
+  <!-- Editable Labels Script -->
+  <script src="../assets/js/editable-labels.js"></script>
 
   <!-- Vercel Analytics -->
   <script type="module">

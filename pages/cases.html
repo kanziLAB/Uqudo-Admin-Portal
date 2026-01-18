@@ -157,8 +157,8 @@
   <aside class="sidenav navbar navbar-vertical navbar-expand-xs border-radius-lg fixed-start ms-2 bg-white my-2" id="sidenav-main">
     <div class="sidenav-header">
       <i class="fas fa-times p-3 cursor-pointer text-dark opacity-5 position-absolute end-0 top-0 d-none d-xl-none" aria-hidden="true" id="iconSidenav"></i>
-      <a class="navbar-brand px-4 py-3 m-0" href="uqudo-dashboard">
-        <img src="../assets/img/uqudo-logo.png" alt="Uqudo Logo" style="height: 28px;">
+      <a class="navbar-brand m-0 p-0 d-block w-100" href="uqudo-dashboard">
+        <img src="../assets/img/uqudo-logo.png" alt="Uqudo Logo" style="width: 100%; height: auto; display: block;">
       </a>
     </div>
     <hr class="horizontal dark mt-0 mb-2">
@@ -244,7 +244,10 @@
             <div class="card-header p-2 ps-3">
               <div class="d-flex justify-content-between">
                 <div>
-                  <p class="text-sm mb-0">Total Cases</p>
+                  <p class="text-sm mb-0 editable-label"
+                     data-key="cases_total_label"
+                     data-default="Total Cases"
+                     style="cursor: pointer;">Total Cases</p>
                   <h4 class="mb-0" id="total-cases">
                     <span class="spinner-border spinner-border-sm"></span>
                   </h4>
@@ -262,7 +265,10 @@
             <div class="card-header p-2 ps-3">
               <div class="d-flex justify-content-between">
                 <div>
-                  <p class="text-sm mb-0">Under Investigation</p>
+                  <p class="text-sm mb-0 editable-label"
+                     data-key="cases_investigation_label"
+                     data-default="Under Investigation"
+                     style="cursor: pointer;">Under Investigation</p>
                   <h4 class="mb-0 text-warning" id="under-investigation-cases">
                     <span class="spinner-border spinner-border-sm"></span>
                   </h4>
@@ -280,7 +286,10 @@
             <div class="card-header p-2 ps-3">
               <div class="d-flex justify-content-between">
                 <div>
-                  <p class="text-sm mb-0">Escalated</p>
+                  <p class="text-sm mb-0 editable-label"
+                     data-key="cases_escalated_label"
+                     data-default="Escalated"
+                     style="cursor: pointer;">Escalated</p>
                   <h4 class="mb-0 text-danger" id="escalated-cases">
                     <span class="spinner-border spinner-border-sm"></span>
                   </h4>
@@ -298,7 +307,10 @@
             <div class="card-header p-2 ps-3">
               <div class="d-flex justify-content-between">
                 <div>
-                  <p class="text-sm mb-0">Resolved</p>
+                  <p class="text-sm mb-0 editable-label"
+                     data-key="cases_resolved_label"
+                     data-default="Resolved"
+                     style="cursor: pointer;">Resolved</p>
                   <h4 class="mb-0 text-success" id="resolved-cases">
                     <span class="spinner-border spinner-border-sm"></span>
                   </h4>
@@ -1361,6 +1373,9 @@
       window.location.href = 'uqudo-sign-in.html';
     }
   </script>
+
+  <!-- Editable Labels Script -->
+  <script src="../assets/js/editable-labels.js"></script>
 
   <!-- Vercel Analytics -->
   <script type="module">
