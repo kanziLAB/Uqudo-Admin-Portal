@@ -260,7 +260,11 @@
                   <h6>Onboarding Duration Analytics</h6>
                   <p class="text-sm mb-0">Average time breakdown from SDK submissions</p>
                 </div>
-                <div>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-info" id="filter-7days" onclick="updateChartFilter('7days')">Last 7 Days</button>
+                    <button type="button" class="btn btn-info active" id="filter-6months" onclick="updateChartFilter('6months')">Last 6 Months</button>
+                  </div>
                   <span class="badge badge-sm bg-gradient-info">Real-time Data</span>
                 </div>
               </div>
@@ -476,22 +480,26 @@
 
     // Initialize Onboarding Duration Chart
     let onboardingChart = null;
+    let currentChartFilter = '6months'; // Default filter
+    let cachedAccountData = null; // Cache account data to avoid refetching
 
-    async function initOnboardingDurationChart() {
+    async function initOnboardingDurationChart(filter = '6months') {
       const ctx = document.getElementById('onboarding-duration-chart');
       if (!ctx) return;
 
       try {
-        // Fetch onboarding duration data from accounts with SDK submissions
-        const response = await api.getAccounts();
-
-        if (!response.success || !response.data || response.data.length === 0) {
-          console.log('No account data available for chart');
-          return;
+        // Fetch onboarding duration data from accounts with SDK submissions (or use cache)
+        if (!cachedAccountData) {
+          const response = await api.getAccounts();
+          if (!response.success || !response.data || response.data.length === 0) {
+            console.log('No account data available for chart');
+            return;
+          }
+          cachedAccountData = response.data;
         }
 
         // Process SDK submission data to extract durations
-        const durationData = processDurationData(response.data);
+        const durationData = processDurationData(cachedAccountData, filter);
 
         // Destroy existing chart if it exists
         if (onboardingChart) {
@@ -666,12 +674,18 @@
     }
 
     // Process duration data from SDK analytics events
-    function processDurationData(accounts) {
-      const monthlyData = {};
+    function processDurationData(accounts, filter = '6months') {
+      const timeData = {};
       let processedCount = 0;
       let accountsWithAnalytics = 0;
 
-      console.log('📊 Processing', accounts.length, 'accounts for duration data...');
+      console.log('📊 Processing', accounts.length, 'accounts for duration data with filter:', filter);
+
+      // Calculate date range based on filter
+      const now = new Date();
+      const cutoffDate = filter === '7days'
+        ? new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        : new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000); // ~6 months
 
       accounts.forEach((account, index) => {
         // Check if account has analytics data
@@ -738,12 +752,25 @@
             }
           });
 
-          // Get month from created_at
+          // Get date from created_at
           const date = new Date(account.created_at);
-          const monthKey = date.toLocaleString('default', { month: 'short', year: 'numeric' });
 
-          if (!monthlyData[monthKey]) {
-            monthlyData[monthKey] = {
+          // Skip if outside date range
+          if (date < cutoffDate) return;
+
+          // Group by day or month depending on filter
+          let timeKey;
+          if (filter === '7days') {
+            // Group by day
+            timeKey = date.toLocaleDateString('default', { month: 'short', day: 'numeric' });
+          } else {
+            // Group by month
+            timeKey = date.toLocaleString('default', { month: 'short', year: 'numeric' });
+          }
+
+          if (!timeData[timeKey]) {
+            timeData[timeKey] = {
+              date: date,
               totalDurations: [],
               viewDurations: [],
               startDurations: [],
@@ -755,16 +782,16 @@
             };
           }
 
-          // Convert to seconds and add to monthly data
+          // Convert to seconds and add to time data
           if (totalDuration > 0) {
-            monthlyData[monthKey].totalDurations.push(totalDuration / 1000);
-            monthlyData[monthKey].viewDurations.push(viewDuration / 1000);
-            monthlyData[monthKey].startDurations.push(startDuration / 1000);
-            monthlyData[monthKey].nfcDurations.push(nfcDuration / 1000);
-            monthlyData[monthKey].faceMatchDurations.push(faceMatchDuration / 1000);
-            monthlyData[monthKey].livenessDurations.push(livenessDuration / 1000);
-            monthlyData[monthKey].finishDurations.push(finishDuration / 1000);
-            monthlyData[monthKey].count++;
+            timeData[timeKey].totalDurations.push(totalDuration / 1000);
+            timeData[timeKey].viewDurations.push(viewDuration / 1000);
+            timeData[timeKey].startDurations.push(startDuration / 1000);
+            timeData[timeKey].nfcDurations.push(nfcDuration / 1000);
+            timeData[timeKey].faceMatchDurations.push(faceMatchDuration / 1000);
+            timeData[timeKey].livenessDurations.push(livenessDuration / 1000);
+            timeData[timeKey].finishDurations.push(finishDuration / 1000);
+            timeData[timeKey].count++;
             processedCount++;
           }
 
@@ -775,11 +802,11 @@
 
       console.log(`✅ Found ${accountsWithAnalytics} accounts with analytics data, processed ${processedCount} with valid durations`);
 
-      // Calculate averages for each month
-      const sortedMonths = Object.keys(monthlyData).sort((a, b) => new Date(a) - new Date(b));
-      const labels = sortedMonths.slice(-6); // Last 6 months
+      // Sort by date and get labels
+      const sortedKeys = Object.keys(timeData).sort((a, b) => timeData[a].date - timeData[b].date);
+      const labels = filter === '7days' ? sortedKeys.slice(-7) : sortedKeys.slice(-6);
 
-      console.log(`📅 Chart months:`, labels.map(m => `${m} (${monthlyData[m].count} entries)`).join(', '));
+      console.log(`📅 Chart time periods (${filter}):`, labels.map(k => `${k} (${timeData[k].count} entries)`).join(', '));
 
       if (labels.length === 0) {
         console.warn('⚠️ No monthly data available - showing placeholder');
@@ -795,40 +822,40 @@
         };
       }
 
-      const totalDurations = labels.map(month => {
-        const durations = monthlyData[month].totalDurations;
+      const totalDurations = labels.map(key => {
+        const durations = timeData[key].totalDurations;
         const avg = durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
-        if (avg > 0) console.log(`  ${month} - Avg Total: ${avg.toFixed(2)}s (${durations.length} samples)`);
+        if (avg > 0) console.log(`  ${key} - Avg Total: ${avg.toFixed(2)}s (${durations.length} samples)`);
         return avg;
       });
 
-      const viewDurations = labels.map(month => {
-        const durations = monthlyData[month].viewDurations;
+      const viewDurations = labels.map(key => {
+        const durations = timeData[key].viewDurations;
         return durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
       });
 
-      const startDurations = labels.map(month => {
-        const durations = monthlyData[month].startDurations;
+      const startDurations = labels.map(key => {
+        const durations = timeData[key].startDurations;
         return durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
       });
 
-      const nfcDurations = labels.map(month => {
-        const durations = monthlyData[month].nfcDurations;
+      const nfcDurations = labels.map(key => {
+        const durations = timeData[key].nfcDurations;
         return durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
       });
 
-      const faceMatchDurations = labels.map(month => {
-        const durations = monthlyData[month].faceMatchDurations;
+      const faceMatchDurations = labels.map(key => {
+        const durations = timeData[key].faceMatchDurations;
         return durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
       });
 
-      const livenessDurations = labels.map(month => {
-        const durations = monthlyData[month].livenessDurations;
+      const livenessDurations = labels.map(key => {
+        const durations = timeData[key].livenessDurations;
         return durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
       });
 
-      const finishDurations = labels.map(month => {
-        const durations = monthlyData[month].finishDurations;
+      const finishDurations = labels.map(key => {
+        const durations = timeData[key].finishDurations;
         return durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
       });
 
@@ -842,6 +869,28 @@
         livenessDurations,
         finishDurations
       };
+    }
+
+    // Update chart filter
+    function updateChartFilter(filter) {
+      currentChartFilter = filter;
+
+      // Update button states
+      document.getElementById('filter-7days').classList.remove('active', 'btn-info');
+      document.getElementById('filter-7days').classList.add('btn-outline-info');
+      document.getElementById('filter-6months').classList.remove('active', 'btn-info');
+      document.getElementById('filter-6months').classList.add('btn-outline-info');
+
+      if (filter === '7days') {
+        document.getElementById('filter-7days').classList.remove('btn-outline-info');
+        document.getElementById('filter-7days').classList.add('active', 'btn-info');
+      } else {
+        document.getElementById('filter-6months').classList.remove('btn-outline-info');
+        document.getElementById('filter-6months').classList.add('active', 'btn-info');
+      }
+
+      // Reinitialize chart with new filter
+      initOnboardingDurationChart(filter);
     }
 
     // Initialize dashboard
