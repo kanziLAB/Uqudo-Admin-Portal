@@ -1,6 +1,16 @@
 /**
  * Custom Frontend Server with Clean URLs
  * Serves HTML files without .html extension
+ * 
+ * Vercel Web Analytics is integrated into all HTML pages via the /_vercel/insights/script.js
+ * The tracking script is included in the head section of each HTML file to enable
+ * automatic visitor tracking and page view analytics.
+ * 
+ * To enable Web Analytics on your Vercel deployment:
+ * 1. Go to your Vercel dashboard and select your project
+ * 2. Click the "Analytics" tab and click "Enable"
+ * 3. Deploy your application using: vercel deploy
+ * 4. View your analytics in the dashboard after deployment
  */
 
 import express from 'express';
