@@ -1637,6 +1637,7 @@
           // Save to localStorage for persistence
           const labelKey = 'widget_label_' + originalText.replace(/\s+/g, '_').toLowerCase();
           localStorage.setItem(labelKey, newValue);
+          console.log('✅ Label saved:', labelKey, '=', newValue);
           showSuccess('Label updated successfully');
         } else {
           element.textContent = currentText;
@@ -1655,16 +1656,36 @@
     }
 
     // Load saved labels on page load
-    document.addEventListener('DOMContentLoaded', () => {
+    function loadSavedLabels() {
+      console.log('🔄 Loading saved widget labels...');
+      let loadedCount = 0;
+
       document.querySelectorAll('.editable-label').forEach(label => {
         const originalText = label.getAttribute('data-original');
+        if (!originalText) return;
+
         const labelKey = 'widget_label_' + originalText.replace(/\s+/g, '_').toLowerCase();
         const savedValue = localStorage.getItem(labelKey);
-        if (savedValue) {
+
+        if (savedValue && savedValue.trim()) {
           label.textContent = savedValue;
+          loadedCount++;
+          console.log('✅ Loaded label:', labelKey, '=', savedValue);
         }
       });
-    });
+
+      if (loadedCount === 0) {
+        console.log('ℹ️ No saved labels found');
+      } else {
+        console.log(`✅ Loaded ${loadedCount} saved labels`);
+      }
+    }
+
+    // Load labels when DOM is ready
+    document.addEventListener('DOMContentLoaded', loadSavedLabels);
+
+    // Also reload labels after a short delay (in case DOM updates after initial load)
+    setTimeout(loadSavedLabels, 500);
   </script>
 
   <!-- Vercel Analytics -->
