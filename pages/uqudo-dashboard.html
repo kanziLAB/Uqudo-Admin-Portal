@@ -35,6 +35,38 @@
   <!-- CSS Files -->
   <link id="pagestyle" href="../assets/css/material-dashboard.css?v=3.2.0" rel="stylesheet" />
   <link href="../assets/css/uqudo-blue-theme.css" rel="stylesheet" />
+
+  <!-- Editable Label Styles -->
+  <style>
+    .editable-label {
+      cursor: pointer;
+      position: relative;
+      display: inline-block;
+      padding: 2px 4px;
+      border-radius: 3px;
+      transition: background-color 0.2s;
+    }
+    .editable-label:hover {
+      background-color: rgba(30, 136, 229, 0.1);
+    }
+    .editable-label:hover::after {
+      content: '✎';
+      position: absolute;
+      right: -18px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 12px;
+      color: #1e88e5;
+    }
+    .editable-label-input {
+      border: 2px solid #1e88e5;
+      padding: 2px 4px;
+      font-size: inherit;
+      font-weight: inherit;
+      border-radius: 3px;
+      outline: none;
+    }
+  </style>
 </head>
 
 <body class="g-sidenav-show bg-gray-200">
@@ -153,7 +185,7 @@
             <div class="card-header p-2 ps-3">
               <div class="d-flex justify-content-between">
                 <div>
-                  <p class="text-sm mb-0 text-capitalize">Total Onboarding</p>
+                  <p class="text-sm mb-0 text-capitalize editable-label" onclick="makeEditable(this)" data-original="Total Onboarding">Total Onboarding</p>
                   <h4 class="mb-0" id="total-onboarding">
                     <span class="spinner-border spinner-border-sm" role="status"></span>
                   </h4>
@@ -179,7 +211,7 @@
             <div class="card-header p-2 ps-3">
               <div class="d-flex justify-content-between">
                 <div>
-                  <p class="text-sm mb-0 text-capitalize">Active Accounts</p>
+                  <p class="text-sm mb-0 text-capitalize editable-label" onclick="makeEditable(this)" data-original="Active Accounts">Active Accounts</p>
                   <h4 class="mb-0" id="active-accounts">
                     <span class="spinner-border spinner-border-sm" role="status"></span>
                   </h4>
@@ -205,7 +237,7 @@
             <div class="card-header p-2 ps-3">
               <div class="d-flex justify-content-between">
                 <div>
-                  <p class="text-sm mb-0 text-capitalize">Pending Alerts</p>
+                  <p class="text-sm mb-0 text-capitalize editable-label" onclick="makeEditable(this)" data-original="Pending Alerts">Pending Alerts</p>
                   <h4 class="mb-0" id="pending-alerts">
                     <span class="spinner-border spinner-border-sm" role="status"></span>
                   </h4>
@@ -230,7 +262,7 @@
             <div class="card-header p-2 ps-3">
               <div class="d-flex justify-content-between">
                 <div>
-                  <p class="text-sm mb-0 text-capitalize">Unresolved Cases</p>
+                  <p class="text-sm mb-0 text-capitalize editable-label" onclick="makeEditable(this)" data-original="Unresolved Cases">Unresolved Cases</p>
                   <h4 class="mb-0" id="unresolved-cases">
                     <span class="spinner-border spinner-border-sm" role="status"></span>
                   </h4>
@@ -907,11 +939,70 @@
       initOnboardingDurationChart(filter);
     }
 
+    // Editable Label Functionality
+    function makeEditable(element) {
+      if (element.querySelector('input')) return;
+
+      const currentText = element.textContent;
+      const originalText = element.getAttribute('data-original');
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = currentText;
+      input.className = 'editable-label-input ' + element.className.replace('editable-label', '');
+
+      element.textContent = '';
+      element.appendChild(input);
+      input.focus();
+      input.select();
+
+      const saveEdit = () => {
+        const newValue = input.value.trim();
+        if (newValue) {
+          element.textContent = newValue;
+          const labelKey = 'widget_label_' + originalText.replace(/\s+/g, '_').toLowerCase();
+          localStorage.setItem(labelKey, newValue);
+          console.log('✅ Label saved:', labelKey, '=', newValue);
+        } else {
+          element.textContent = currentText;
+        }
+      };
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') saveEdit();
+        else if (e.key === 'Escape') element.textContent = currentText;
+      });
+      input.addEventListener('blur', saveEdit);
+    }
+
+    function loadSavedLabels() {
+      console.log('🔄 Loading saved widget labels...');
+      let loadedCount = 0;
+
+      document.querySelectorAll('.editable-label').forEach(label => {
+        const originalText = label.getAttribute('data-original');
+        if (!originalText) return;
+
+        const labelKey = 'widget_label_' + originalText.replace(/\s+/g, '_').toLowerCase();
+        const savedValue = localStorage.getItem(labelKey);
+
+        if (savedValue && savedValue.trim()) {
+          label.textContent = savedValue;
+          loadedCount++;
+          console.log('✅ Loaded label:', labelKey, '=', savedValue);
+        }
+      });
+
+      if (loadedCount === 0) console.log('ℹ️ No saved labels found');
+      else console.log(`✅ Loaded ${loadedCount} saved labels`);
+    }
+
     // Initialize dashboard
     document.addEventListener('DOMContentLoaded', () => {
       loadDashboardData();
       updateRecentActivity();
       initOnboardingDurationChart();
+      loadSavedLabels();
 
       // Refresh data every 30 seconds
       setInterval(() => {
@@ -919,6 +1010,9 @@
         initOnboardingDurationChart();
       }, 30000);
     });
+
+    // Also reload labels after a short delay
+    setTimeout(loadSavedLabels, 500);
   </script>
 
   <!-- Vercel Analytics -->
