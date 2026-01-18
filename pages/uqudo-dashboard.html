@@ -498,7 +498,7 @@
           onboardingChart.destroy();
         }
 
-        // Create mixed chart
+        // Create mixed chart with all onboarding steps
         onboardingChart = new Chart(ctx, {
           type: 'bar',
           data: {
@@ -506,37 +506,85 @@
             datasets: [
               {
                 type: 'bar',
-                label: 'Avg Total Duration (seconds)',
+                label: 'Total Duration',
                 data: durationData.totalDurations,
                 backgroundColor: 'rgba(30, 136, 229, 0.8)',
                 borderColor: '#1e88e5',
                 borderWidth: 1,
                 borderRadius: 4,
-                barThickness: 50
+                barThickness: 40
               },
               {
                 type: 'line',
-                label: 'Document Scan Duration (seconds)',
-                data: durationData.documentDurations,
+                label: 'VIEW - SDK Interface Opened',
+                data: durationData.viewDurations,
+                borderColor: '#9c27b0',
+                backgroundColor: 'rgba(156, 39, 176, 0.1)',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 4,
+                pointHoverRadius: 6
+              },
+              {
+                type: 'line',
+                label: 'START - Document Scanning',
+                data: durationData.startDurations,
                 borderColor: '#e91e63',
                 backgroundColor: 'rgba(233, 30, 99, 0.1)',
-                borderWidth: 3,
-                fill: true,
+                borderWidth: 2,
+                fill: false,
                 tension: 0.4,
-                pointRadius: 5,
-                pointHoverRadius: 7
+                pointRadius: 4,
+                pointHoverRadius: 6
               },
               {
                 type: 'line',
-                label: 'Face Verification Duration (seconds)',
-                data: durationData.faceDurations,
+                label: 'NFC_READING - Chip Reading',
+                data: durationData.nfcDurations,
+                borderColor: '#ff9800',
+                backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 4,
+                pointHoverRadius: 6
+              },
+              {
+                type: 'line',
+                label: 'FACE_MATCH - Face Verification',
+                data: durationData.faceMatchDurations,
                 borderColor: '#4caf50',
                 backgroundColor: 'rgba(76, 175, 80, 0.1)',
-                borderWidth: 3,
-                fill: true,
+                borderWidth: 2,
+                fill: false,
                 tension: 0.4,
-                pointRadius: 5,
-                pointHoverRadius: 7
+                pointRadius: 4,
+                pointHoverRadius: 6
+              },
+              {
+                type: 'line',
+                label: 'LIVENESS - Liveness Check',
+                data: durationData.livenessDurations,
+                borderColor: '#00bcd4',
+                backgroundColor: 'rgba(0, 188, 212, 0.1)',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 4,
+                pointHoverRadius: 6
+              },
+              {
+                type: 'line',
+                label: 'FINISH - Final Result',
+                data: durationData.finishDurations,
+                borderColor: '#607d8b',
+                backgroundColor: 'rgba(96, 125, 139, 0.1)',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 4,
+                pointHoverRadius: 6
               }
             ]
           },
@@ -655,27 +703,38 @@
         try {
           // Calculate durations from analytics events
           let totalDuration = 0;
-          let documentDuration = 0;
-          let faceDuration = 0;
+          let viewDuration = 0;
+          let startDuration = 0;
+          let nfcDuration = 0;
+          let faceMatchDuration = 0;
+          let livenessDuration = 0;
+          let finishDuration = 0;
 
-          // Sum all event durations for total time
+          // Sum all event durations for total time and track each step
           analyticsEvents.forEach(event => {
             const duration = event.duration || 0;
             totalDuration += duration;
 
-            // Track document scan duration (START event)
-            if (event.name === 'START' && event.type === 'SCAN') {
-              documentDuration += duration;
-            }
-
-            // Track face match duration
-            if (event.name === 'FACE_MATCH' || event.name === 'LIVENESS') {
-              faceDuration += duration;
-            }
-
-            // Also include NFC reading if present
-            if (event.name === 'NFC_READING') {
-              documentDuration += duration;
+            // Track each specific event type
+            switch(event.name) {
+              case 'VIEW':
+                viewDuration += duration;
+                break;
+              case 'START':
+                startDuration += duration;
+                break;
+              case 'NFC_READING':
+                nfcDuration += duration;
+                break;
+              case 'FACE_MATCH':
+                faceMatchDuration += duration;
+                break;
+              case 'LIVENESS':
+                livenessDuration += duration;
+                break;
+              case 'FINISH':
+                finishDuration += duration;
+                break;
             }
           });
 
@@ -686,23 +745,27 @@
           if (!monthlyData[monthKey]) {
             monthlyData[monthKey] = {
               totalDurations: [],
-              documentDurations: [],
-              faceDurations: [],
+              viewDurations: [],
+              startDurations: [],
+              nfcDurations: [],
+              faceMatchDurations: [],
+              livenessDurations: [],
+              finishDurations: [],
               count: 0
             };
           }
 
-          // Convert to seconds and add to monthly data (only if > 0)
+          // Convert to seconds and add to monthly data
           if (totalDuration > 0) {
             monthlyData[monthKey].totalDurations.push(totalDuration / 1000);
+            monthlyData[monthKey].viewDurations.push(viewDuration / 1000);
+            monthlyData[monthKey].startDurations.push(startDuration / 1000);
+            monthlyData[monthKey].nfcDurations.push(nfcDuration / 1000);
+            monthlyData[monthKey].faceMatchDurations.push(faceMatchDuration / 1000);
+            monthlyData[monthKey].livenessDurations.push(livenessDuration / 1000);
+            monthlyData[monthKey].finishDurations.push(finishDuration / 1000);
             monthlyData[monthKey].count++;
             processedCount++;
-          }
-          if (documentDuration > 0) {
-            monthlyData[monthKey].documentDurations.push(documentDuration / 1000);
-          }
-          if (faceDuration > 0) {
-            monthlyData[monthKey].faceDurations.push(faceDuration / 1000);
           }
 
         } catch (error) {
@@ -723,8 +786,12 @@
         return {
           labels: ['No Data'],
           totalDurations: [0],
-          documentDurations: [0],
-          faceDurations: [0]
+          viewDurations: [0],
+          startDurations: [0],
+          nfcDurations: [0],
+          faceMatchDurations: [0],
+          livenessDurations: [0],
+          finishDurations: [0]
         };
       }
 
@@ -735,21 +802,45 @@
         return avg;
       });
 
-      const documentDurations = labels.map(month => {
-        const durations = monthlyData[month].documentDurations;
+      const viewDurations = labels.map(month => {
+        const durations = monthlyData[month].viewDurations;
         return durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
       });
 
-      const faceDurations = labels.map(month => {
-        const durations = monthlyData[month].faceDurations;
+      const startDurations = labels.map(month => {
+        const durations = monthlyData[month].startDurations;
+        return durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
+      });
+
+      const nfcDurations = labels.map(month => {
+        const durations = monthlyData[month].nfcDurations;
+        return durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
+      });
+
+      const faceMatchDurations = labels.map(month => {
+        const durations = monthlyData[month].faceMatchDurations;
+        return durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
+      });
+
+      const livenessDurations = labels.map(month => {
+        const durations = monthlyData[month].livenessDurations;
+        return durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
+      });
+
+      const finishDurations = labels.map(month => {
+        const durations = monthlyData[month].finishDurations;
         return durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
       });
 
       return {
         labels,
         totalDurations,
-        documentDurations,
-        faceDurations
+        viewDurations,
+        startDurations,
+        nfcDurations,
+        faceMatchDurations,
+        livenessDurations,
+        finishDurations
       };
     }
 
