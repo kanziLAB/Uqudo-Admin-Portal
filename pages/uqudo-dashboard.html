@@ -649,10 +649,13 @@
             console.log(`📝 Account ${index + 1} SDK structure:`, {
               hasSource: !!sdkData.source,
               sourceKeys: sdkData.source ? Object.keys(sdkData.source) : [],
+              sourceData: sdkData.source, // Log actual data
               hasDocuments: !!sdkData.documents,
               documentsCount: Array.isArray(sdkData.documents) ? sdkData.documents.length : 0,
+              documentsData: sdkData.documents, // Log actual data
               hasVerifications: !!sdkData.verifications,
-              verificationsKeys: sdkData.verifications ? Object.keys(sdkData.verifications) : []
+              verificationsKeys: sdkData.verifications ? Object.keys(sdkData.verifications) : [],
+              verificationsData: sdkData.verifications // Log actual data
             });
           }
 
