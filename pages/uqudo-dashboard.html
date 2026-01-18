@@ -262,6 +262,7 @@
                 </div>
                 <div class="d-flex align-items-center gap-2">
                   <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-info" id="filter-1day" onclick="updateChartFilter('1day')">Last 1 Day</button>
                     <button type="button" class="btn btn-outline-info" id="filter-7days" onclick="updateChartFilter('7days')">Last 7 Days</button>
                     <button type="button" class="btn btn-info active" id="filter-6months" onclick="updateChartFilter('6months')">Last 6 Months</button>
                   </div>
@@ -683,9 +684,14 @@
 
       // Calculate date range based on filter
       const now = new Date();
-      const cutoffDate = filter === '7days'
-        ? new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-        : new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000); // ~6 months
+      let cutoffDate;
+      if (filter === '1day') {
+        cutoffDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      } else if (filter === '7days') {
+        cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      } else {
+        cutoffDate = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000); // ~6 months
+      }
 
       accounts.forEach((account, index) => {
         // Check if account has analytics data
@@ -758,9 +764,12 @@
           // Skip if outside date range
           if (date < cutoffDate) return;
 
-          // Group by day or month depending on filter
+          // Group by hour, day, or month depending on filter
           let timeKey;
-          if (filter === '7days') {
+          if (filter === '1day') {
+            // Group by hour
+            timeKey = date.toLocaleTimeString('default', { hour: '2-digit', minute: '2-digit', hour12: false });
+          } else if (filter === '7days') {
             // Group by day
             timeKey = date.toLocaleDateString('default', { month: 'short', day: 'numeric' });
           } else {
@@ -804,7 +813,14 @@
 
       // Sort by date and get labels
       const sortedKeys = Object.keys(timeData).sort((a, b) => timeData[a].date - timeData[b].date);
-      const labels = filter === '7days' ? sortedKeys.slice(-7) : sortedKeys.slice(-6);
+      let labels;
+      if (filter === '1day') {
+        labels = sortedKeys.slice(-24); // Last 24 hours
+      } else if (filter === '7days') {
+        labels = sortedKeys.slice(-7); // Last 7 days
+      } else {
+        labels = sortedKeys.slice(-6); // Last 6 months
+      }
 
       console.log(`📅 Chart time periods (${filter}):`, labels.map(k => `${k} (${timeData[k].count} entries)`).join(', '));
 
@@ -876,18 +892,16 @@
       currentChartFilter = filter;
 
       // Update button states
+      document.getElementById('filter-1day').classList.remove('active', 'btn-info');
+      document.getElementById('filter-1day').classList.add('btn-outline-info');
       document.getElementById('filter-7days').classList.remove('active', 'btn-info');
       document.getElementById('filter-7days').classList.add('btn-outline-info');
       document.getElementById('filter-6months').classList.remove('active', 'btn-info');
       document.getElementById('filter-6months').classList.add('btn-outline-info');
 
-      if (filter === '7days') {
-        document.getElementById('filter-7days').classList.remove('btn-outline-info');
-        document.getElementById('filter-7days').classList.add('active', 'btn-info');
-      } else {
-        document.getElementById('filter-6months').classList.remove('btn-outline-info');
-        document.getElementById('filter-6months').classList.add('active', 'btn-info');
-      }
+      const activeButton = document.getElementById(`filter-${filter}`);
+      activeButton.classList.remove('btn-outline-info');
+      activeButton.classList.add('active', 'btn-info');
 
       // Reinitialize chart with new filter
       initOnboardingDurationChart(filter);
