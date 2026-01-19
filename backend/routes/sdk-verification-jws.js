@@ -12,6 +12,7 @@ const asyncHandler = (fn) => (req, res, next) => {
 };
 
 // Helper function to normalize trace events from Web SDK format to expected format
+// Preserves ALL trace properties as required by analytics
 function normalizeTraceEvents(trace) {
   if (!trace || trace.length === 0) return [];
 
@@ -27,18 +28,34 @@ function normalizeTraceEvents(trace) {
       duration = currentTimestamp - prevTimestamp;
     }
 
-    // Transform Web SDK format to expected format
+    // Transform Web SDK format to expected format while preserving ALL original properties
+    // Web SDK trace properties: deviceIdentifier, sessionId, category, event, status, page, statusCode, statusMessage, documentType, timestamp
     normalized.push({
+      // Normalized properties
       name: event.event || event.name,           // Web SDK uses "event", Mobile uses "name"
       type: event.category || event.type || 'journey',
       status: event.status || 'SUCCESS',
       duration: duration,                        // Calculated duration in milliseconds
       timestamp: event.timestamp,
+
+      // Preserved original properties (required for analytics)
+      deviceIdentifier: event.deviceIdentifier,
+      sessionId: event.sessionId,
+      category: event.category,
+      event: event.event,
+      page: event.page,
+      statusCode: event.statusCode,
+      statusMessage: event.statusMessage,
+      documentType: event.documentType,
+
+      // Legacy metadata object for backward compatibility
       metadata: {
         page: event.page,
         documentType: event.documentType,
         deviceIdentifier: event.deviceIdentifier,
-        sessionId: event.sessionId
+        sessionId: event.sessionId,
+        statusCode: event.statusCode,
+        statusMessage: event.statusMessage
       }
     });
 
@@ -46,6 +63,67 @@ function normalizeTraceEvents(trace) {
   });
 
   return normalized;
+}
+
+// Helper function to extract fraud detection scores from verifications
+function extractFraudScores(verifications) {
+  if (!verifications || verifications.length === 0) return null;
+
+  const verification = verifications[0];
+  const fraudScores = {};
+
+  // Extract idPrintDetection
+  if (verification.idPrintDetection) {
+    fraudScores.idPrintDetection = {
+      score: verification.idPrintDetection.score,
+      enabled: verification.idPrintDetection.enabled
+    };
+  }
+
+  // Extract idScreenDetection
+  if (verification.idScreenDetection) {
+    fraudScores.idScreenDetection = {
+      score: verification.idScreenDetection.score,
+      enabled: verification.idScreenDetection.enabled
+    };
+  }
+
+  // Extract idPhotoTamperingDetection
+  if (verification.idPhotoTamperingDetection) {
+    fraudScores.idPhotoTamperingDetection = {
+      score: verification.idPhotoTamperingDetection.score,
+      enabled: verification.idPhotoTamperingDetection.enabled
+    };
+  }
+
+  // Extract dataConsistencyCheck
+  if (verification.dataConsistencyCheck) {
+    fraudScores.dataConsistencyCheck = {
+      fields: verification.dataConsistencyCheck.fields || [],
+      enabled: verification.dataConsistencyCheck.enabled
+    };
+  }
+
+  // Extract biometric/face match data
+  if (verification.biometric) {
+    fraudScores.biometric = {
+      type: verification.biometric.type,
+      match: verification.biometric.match,
+      matchLevel: verification.biometric.matchLevel,
+      enabled: verification.biometric.enabled
+    };
+  }
+
+  // Extract liveness data
+  if (verification.liveness) {
+    fraudScores.liveness = {
+      live: verification.liveness.live,
+      confidence: verification.liveness.confidence,
+      enabled: verification.liveness.enabled
+    };
+  }
+
+  return Object.keys(fraudScores).length > 0 ? fraudScores : null;
 }
 
 // Helper to build analytics events from SDK data
@@ -614,18 +692,35 @@ router.post('/enrollment-jws',
           ? normalizeTraceEvents(trace)
           : buildAnalyticsEvents(source, verifications, documents, verificationStatus);
 
+        // Extract fraud detection scores
+        const fraudScores = extractFraudScores(verifications);
+
         console.log(`📊 Storing ${analyticsEvents.length} analytics events (${trace && trace.length > 0 ? 'real trace events (normalized)' : 'synthetic events'})`);
+        console.log(`🔍 Fraud scores:`, fraudScores ? Object.keys(fraudScores).join(', ') : 'none');
+
+        // Update full name from SDK documents if not already set
+        const updateData = {
+          sdk_analytics: analyticsEvents,
+          sdk_source: source,
+          sdk_verifications: verifications,
+          sdk_documents: documents,
+          sdk_trace: trace, // Store original trace for complete analytics
+          verification_channel: source?.sdkType?.toLowerCase().includes('web') ? 'web' : 'mobile',
+          verification_type: hasIdNumber ? 'document' : 'selfie_only',
+          document_type: accountData?.document_type || null,
+          fraud_scores: fraudScores
+        };
+
+        // Update first_name and last_name if we have a full_name from SDK
+        if (accountData?.full_name) {
+          const nameParts = accountData.full_name.split(' ');
+          updateData.first_name = nameParts[0] || 'Unknown';
+          updateData.last_name = nameParts.slice(1).join(' ') || '';
+        }
 
         await supabaseAdmin
           .from('accounts')
-          .update({
-            sdk_analytics: analyticsEvents,
-            sdk_source: source,
-            sdk_verifications: verifications,
-            sdk_documents: documents,
-            verification_channel: source?.sdkType?.toLowerCase().includes('web') ? 'web' : 'mobile',
-            verification_type: hasIdNumber ? 'document' : 'selfie_only'
-          })
+          .update(updateData)
           .eq('id', accountId);
       } else {
         // Create new account (ALWAYS - even without ID number for web SDK)
@@ -638,9 +733,14 @@ router.post('/enrollment-jws',
           ? normalizeTraceEvents(trace)
           : buildAnalyticsEvents(source, verifications, documents, verificationStatus);
 
+        // Extract fraud detection scores
+        const fraudScores = extractFraudScores(verifications);
+
         console.log(`📊 Creating account with ${analyticsEvents.length} analytics events (${trace && trace.length > 0 ? 'real trace events (normalized)' : 'synthetic events'})`);
         console.log(`📱 SDK Type: ${sdkType}, Is Web: ${isWebSDK}, Has ID Number: ${hasIdNumber}`);
         console.log(`🆕 About to create account with user_id: SDK_${uniqueId}`);
+        console.log(`🔍 Fraud scores:`, fraudScores ? Object.keys(fraudScores).join(', ') : 'none');
+        console.log(`📄 Document type: ${accountData?.document_type || 'not specified'}`);
 
         const { data: newAccount, error: accountError } = await supabaseAdmin
           .from('accounts')
@@ -658,13 +758,18 @@ router.post('/enrollment-jws',
             gender: accountData?.gender?.toLowerCase() || null,
             account_status: verificationStatus === 'approved' ? 'pending_review' : 'suspended',
             kyc_verification_status: accountData?.nfc_verified ? 'verified' : 'pending',
-            // aml_status: 'pending', // Removed temporarily - column doesn't exist yet in schema
             verification_channel: isWebSDK ? 'web' : 'mobile',
             verification_type: hasIdNumber ? 'document' : 'selfie_only',
+            // Document type from SDK
+            document_type: accountData?.document_type || null,
+            // Fraud detection scores
+            fraud_scores: fraudScores,
+            // SDK data storage
             sdk_analytics: analyticsEvents,
             sdk_source: source,
             sdk_verifications: verifications,
-            sdk_documents: documents
+            sdk_documents: documents,
+            sdk_trace: trace // Store original trace for complete analytics
           })
           .select()
           .single();

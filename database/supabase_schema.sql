@@ -87,6 +87,21 @@ CREATE TABLE accounts (
     tc_version VARCHAR(50),
     tc_accepted_at TIMESTAMP WITH TIME ZONE,
 
+    -- Document Type (from SDK)
+    document_type VARCHAR(100), -- UAE_ID, PASSPORT, DRIVING_LICENSE, etc.
+
+    -- Fraud Detection Scores (from SDK verification)
+    fraud_scores JSONB, -- { idPrintDetection: {score, enabled}, idScreenDetection: {score, enabled}, idPhotoTamperingDetection: {score, enabled}, dataConsistencyCheck: {...} }
+
+    -- SDK Trace Events (complete trace for analytics)
+    sdk_trace JSONB, -- Complete trace array from SDK with all properties
+
+    -- SDK Data (JSONB columns for full SDK data)
+    sdk_analytics JSONB,
+    sdk_source JSONB,
+    sdk_verifications JSONB,
+    sdk_documents JSONB,
+
     -- Metadata
     last_verification_time TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

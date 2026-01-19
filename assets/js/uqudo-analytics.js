@@ -163,8 +163,14 @@ function displaySessionHeader() {
   document.getElementById('device-id-display').textContent = truncateId(session.deviceIdentifier);
   document.getElementById('device-id').value = session.deviceIdentifier;
 
-  // Document Type
-  const docType = currentVerificationData.documentType || session.documentType || 'Unknown';
+  // Document Type - extract from START event if available
+  let docType = currentVerificationData.documentType || session.documentType || 'Unknown';
+  if (docType === 'Unknown' && currentEventsData && currentEventsData.length > 0) {
+    const startEvent = currentEventsData.find(e => (e.name || e.event) === 'START');
+    if (startEvent && startEvent.id && startEvent.id !== 'START') {
+      docType = startEvent.id;
+    }
+  }
   document.getElementById('document-type-badge').textContent = formatDocumentType(docType);
 
   // Outcome
@@ -173,11 +179,11 @@ function displaySessionHeader() {
   outcomeBadge.textContent = outcome;
   outcomeBadge.className = `badge badge-outcome-${outcome.toLowerCase()} mt-1`;
 
-  // Risk Assessment
-  const riskAssessment = calculateRiskAssessment();
+  // Risk Assessment - Calculate comprehensive risk score
+  const { riskScore, riskClass } = calculateComprehensiveRiskFromSession(session, currentVerificationData, currentEventsData);
   const riskBadge = document.getElementById('risk-badge');
-  riskBadge.textContent = riskAssessment;
-  riskBadge.className = `badge badge-risk-${riskAssessment.toLowerCase()} mt-1`;
+  riskBadge.textContent = `${riskScore}/100`;
+  riskBadge.className = `badge badge-${riskClass} mt-1`;
 
   // Duration
   const duration = calculateSessionDuration(currentEventsData);
@@ -204,20 +210,52 @@ function determineOutcome(session, events) {
   return 'ABANDONED';
 }
 
-// Calculate session duration
+// Calculate session duration from trace events
 function calculateSessionDuration(events) {
   if (!events || events.length === 0) return 0;
 
-  // Sum all event durations for total time (matches dashboard logic)
-  // Events have duration in milliseconds
+  // Method 1: Sum all event durations if available
   let totalDuration = 0;
+  let hasDuration = false;
+
   events.forEach(event => {
-    const duration = event.duration || 0;
-    totalDuration += duration;
+    if (event.duration !== undefined && event.duration !== null) {
+      totalDuration += event.duration;
+      hasDuration = true;
+    }
   });
 
-  // Convert from milliseconds to seconds
-  return Math.round(totalDuration / 1000);
+  // If we have duration data, return it
+  if (hasDuration && totalDuration > 0) {
+    // Convert from milliseconds to seconds
+    return Math.round(totalDuration / 1000);
+  }
+
+  // Method 2: Calculate from timestamps if no duration field
+  // Find first and last event timestamps
+  let firstTimestamp = null;
+  let lastTimestamp = null;
+
+  events.forEach(event => {
+    if (event.timestamp) {
+      const ts = new Date(event.timestamp).getTime();
+      if (!isNaN(ts)) {
+        if (firstTimestamp === null || ts < firstTimestamp) {
+          firstTimestamp = ts;
+        }
+        if (lastTimestamp === null || ts > lastTimestamp) {
+          lastTimestamp = ts;
+        }
+      }
+    }
+  });
+
+  if (firstTimestamp !== null && lastTimestamp !== null) {
+    // Return duration in seconds
+    return Math.round((lastTimestamp - firstTimestamp) / 1000);
+  }
+
+  return 0;
 }
 
 // Build visual journey flow from trace events
@@ -264,12 +302,39 @@ function calculateComprehensiveRisk(session) {
   let details = [];
 
   try {
-    // Parse verifications
+    // Parse verifications - try multiple sources
+    let verifications = null;
+
+    // Priority 1: sdk_verifications column
     if (session.sdk_verifications) {
-      const verifications = typeof session.sdk_verifications === 'string'
+      verifications = typeof session.sdk_verifications === 'string'
         ? JSON.parse(session.sdk_verifications)
         : session.sdk_verifications;
 
+      // If sdk_verifications is an array, get the first element
+      if (Array.isArray(verifications) && verifications.length > 0) {
+        verifications = verifications[0];
+      }
+    }
+
+    // Priority 2: fraud_scores column (dedicated fraud detection scores)
+    if (!verifications && session.fraud_scores) {
+      verifications = typeof session.fraud_scores === 'string'
+        ? JSON.parse(session.fraud_scores)
+        : session.fraud_scores;
+    }
+
+    // Merge fraud_scores into verifications if both exist (fraud_scores has priority for scores)
+    if (verifications && session.fraud_scores) {
+      const fraudScores = typeof session.fraud_scores === 'string'
+        ? JSON.parse(session.fraud_scores)
+        : session.fraud_scores;
+
+      // Merge fraud_scores over verifications (fraud_scores takes priority)
+      verifications = { ...verifications, ...fraudScores };
+    }
+
+    if (verifications) {
       // Screen Detection Score (0-100, lower is better)
       if (verifications.idScreenDetection?.enabled && verifications.idScreenDetection?.score !== undefined) {
         const screenScore = 100 - verifications.idScreenDetection.score; // Invert: high detection = high risk
@@ -344,14 +409,27 @@ function calculateComprehensiveRisk(session) {
       }
     }
 
-    // Check for failure events in analytics
+    // Check for failure events in analytics - try multiple sources
+    let analyticsEvents = [];
+
+    // Priority 1: sdk_analytics column
     if (session.sdk_analytics) {
       const analytics = typeof session.sdk_analytics === 'string'
         ? JSON.parse(session.sdk_analytics)
         : session.sdk_analytics;
+      analyticsEvents = Array.isArray(analytics) ? analytics : analytics.events || [];
+    }
 
-      const events = Array.isArray(analytics) ? analytics : analytics.events || [];
-      const failureCount = events.filter(e =>
+    // Priority 2: sdk_trace column (complete raw trace from SDK)
+    if (analyticsEvents.length === 0 && session.sdk_trace) {
+      const trace = typeof session.sdk_trace === 'string'
+        ? JSON.parse(session.sdk_trace)
+        : session.sdk_trace;
+      analyticsEvents = Array.isArray(trace) ? trace : [];
+    }
+
+    if (analyticsEvents.length > 0) {
+      const failureCount = analyticsEvents.filter(e =>
         e.status === 'FAILURE' || e.status === 'failure' || e.status === 'FAILED'
       ).length;
 
@@ -383,6 +461,118 @@ function calculateComprehensiveRisk(session) {
     riskScore: finalScore,
     riskClass: riskClass,
     riskDetails: riskDetails
+  };
+}
+
+// Calculate comprehensive risk for session detail view (works with separate verification data and events)
+function calculateComprehensiveRiskFromSession(session, verifications, events) {
+  let totalScore = 0;
+  let scoreCount = 0;
+
+  try {
+    // Screen Detection Score (0-100, lower is better)
+    if (verifications.idScreenDetection?.enabled && verifications.idScreenDetection?.score !== undefined) {
+      const screenScore = 100 - verifications.idScreenDetection.score;
+      totalScore += screenScore;
+      scoreCount++;
+    }
+
+    // Print Detection Score (0-100, lower is better)
+    if (verifications.idPrintDetection?.enabled && verifications.idPrintDetection?.score !== undefined) {
+      const printScore = 100 - verifications.idPrintDetection.score;
+      totalScore += printScore;
+      scoreCount++;
+    }
+
+    // Photo Tampering Score (0-100, lower is better)
+    if (verifications.idPhotoTamperingDetection?.enabled && verifications.idPhotoTamperingDetection?.score !== undefined) {
+      const tamperScore = 100 - verifications.idPhotoTamperingDetection.score;
+      totalScore += tamperScore;
+      scoreCount++;
+    }
+
+    // Source Detection
+    if (verifications.sourceDetection?.enabled) {
+      let sourceScore = 100;
+      if (!verifications.sourceDetection.optimalResolution) {
+        sourceScore -= 20;
+      }
+      if (verifications.sourceDetection.allowNonPhysicalDocuments === false) {
+        sourceScore -= 10;
+      }
+      totalScore += sourceScore;
+      scoreCount++;
+    }
+
+    // Face Match Level (convert numeric score to level)
+    if (verifications.faceMatchLevel !== undefined) {
+      let faceScore;
+      if (typeof verifications.faceMatchLevel === 'number') {
+        faceScore = (verifications.faceMatchLevel / 5) * 100; // Convert 0-5 scale to 0-100
+      } else {
+        faceScore = verifications.faceMatchLevel === 'HIGH' ? 95 :
+                   verifications.faceMatchLevel === 'MEDIUM' ? 75 : 50;
+      }
+      totalScore += faceScore;
+      scoreCount++;
+    }
+
+    // Liveness Level
+    if (verifications.livenessLevel !== undefined) {
+      let livenessScore;
+      if (typeof verifications.livenessLevel === 'number') {
+        livenessScore = (verifications.livenessLevel / 5) * 100;
+      } else {
+        livenessScore = verifications.livenessLevel === 'HIGH' ? 95 :
+                       verifications.livenessLevel === 'MEDIUM' ? 75 : 50;
+      }
+      totalScore += livenessScore;
+      scoreCount++;
+    }
+
+    // Document Validity
+    if (verifications.documentValid !== undefined) {
+      const docScore = verifications.documentValid ? 100 : 0;
+      totalScore += docScore;
+      scoreCount++;
+    }
+
+    // MRZ Validity
+    if (verifications.mrzValid !== undefined) {
+      const mrzScore = verifications.mrzValid ? 100 : 0;
+      totalScore += mrzScore;
+      scoreCount++;
+    }
+
+    // Check for failure events
+    if (events && events.length > 0) {
+      const failureCount = events.filter(e =>
+        e.status === 'FAILURE' || e.status === 'failure' || e.status === 'FAILED' || e.status === 'failed'
+      ).length;
+
+      if (failureCount > 0) {
+        const failurePenalty = Math.min(failureCount * 15, 50);
+        totalScore = Math.max(0, totalScore - failurePenalty);
+      }
+    }
+  } catch (e) {
+    console.error('Error calculating session risk score:', e);
+  }
+
+  // Calculate final score
+  const finalScore = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 50;
+
+  // Determine risk class
+  let riskClass = 'success';
+  if (finalScore < 40) {
+    riskClass = 'danger';
+  } else if (finalScore < 70) {
+    riskClass = 'warning';
+  }
+
+  return {
+    riskScore: finalScore,
+    riskClass: riskClass
   };
 }
 
@@ -887,16 +1077,24 @@ function displayUXAnalysis() {
   if (frictionData.length === 0) {
     frictionTable.innerHTML = '<tr><td colspan="6" class="text-center">No friction data available</td></tr>';
   } else {
-    frictionTable.innerHTML = frictionData.map(step => `
-      <tr>
-        <td><span class="font-weight-bold">${step.name}</span></td>
-        <td><span class="font-weight-bold">${step.score}</span></td>
-        <td><span class="friction-${step.level.toLowerCase()}">${step.level}</span></td>
-        <td><small>${step.issues.join(', ') || 'None'}</small></td>
-        <td><small>${step.duration}s</small></td>
-        <td><small>${step.attempts}</small></td>
-      </tr>
-    `).join('');
+    frictionTable.innerHTML = frictionData.map(step => {
+      let issuesDisplay = step.issues.join(', ') || 'None';
+      // Add face match score if available
+      if (step.faceMatchScore !== null && step.faceMatchScore !== undefined) {
+        const matchLevel = Math.round(step.faceMatchScore * 5); // Convert 0-1 to 0-5 scale
+        issuesDisplay += ` | Match: ${matchLevel}/5 (${Math.round(step.faceMatchScore * 100)}%)`;
+      }
+      return `
+        <tr>
+          <td><span class="font-weight-bold">${step.name}</span></td>
+          <td><span class="font-weight-bold">${step.score}</span></td>
+          <td><span class="friction-${step.level.toLowerCase()}">${step.level}</span></td>
+          <td><small>${issuesDisplay}</small></td>
+          <td><small>${step.duration}s</small></td>
+          <td><small>${step.attempts}</small></td>
+        </tr>
+      `;
+    }).join('');
   }
 
   // Environment Issues
@@ -930,6 +1128,205 @@ function displayUXAnalysis() {
   `;
 
   document.getElementById('environment-issues').innerHTML = envHtml;
+
+  // SDK Events Display
+  displaySDKEvents(currentEventsData);
+}
+
+// Display SDK Events with visual timeline and performance journey
+function displaySDKEvents(events) {
+  if (!events || events.length === 0) {
+    document.getElementById('sdk-events-timeline').innerHTML = '<p class="text-muted">No SDK events available</p>';
+    document.getElementById('performance-journey').innerHTML = '<p class="text-muted">No journey data available</p>';
+    document.getElementById('sdk-events-list').innerHTML = '<p class="text-muted">No event details available</p>';
+    return;
+  }
+
+  // Update event count
+  document.getElementById('sdk-events-count').textContent = events.length;
+
+  // Calculate total duration
+  const totalDuration = calculateSessionDuration(events);
+  document.getElementById('sdk-total-duration').textContent = formatDuration(totalDuration);
+
+  // Calculate SDK duration (sum of all event durations)
+  let sdkDuration = 0;
+  events.forEach(e => {
+    if (e.duration) sdkDuration += e.duration;
+  });
+  document.getElementById('sdk-duration-display').textContent = formatMilliseconds(sdkDuration);
+
+  // Build visual timeline (bar chart style)
+  const timelineHtml = buildSDKEventsTimeline(events);
+  document.getElementById('sdk-events-timeline').innerHTML = timelineHtml;
+
+  // Build performance journey (circular nodes)
+  const journeyHtml = buildPerformanceJourney(events);
+  document.getElementById('performance-journey').innerHTML = journeyHtml;
+
+  // Build event list (accordion style)
+  const listHtml = buildSDKEventsList(events);
+  document.getElementById('sdk-events-list').innerHTML = listHtml;
+}
+
+// Build SDK Events Timeline (visual bar chart)
+function buildSDKEventsTimeline(events) {
+  if (!events || events.length === 0) return '<p class="text-muted">No events</p>';
+
+  // Find max duration for scaling
+  const maxDuration = Math.max(...events.map(e => e.duration || 1), 1);
+
+  let html = '<div class="sdk-events-visual">';
+
+  events.forEach((event, index) => {
+    const name = event.name || event.event || 'EVENT';
+    const type = event.type || event.category || 'journey';
+    const status = event.status || 'SUCCESS';
+    const duration = event.duration || 0;
+    const isFailure = status.toUpperCase() === 'FAILURE' || status.toUpperCase() === 'FAILED';
+
+    // Calculate bar height based on duration (min 40px, max 150px)
+    const minHeight = 40;
+    const maxHeight = 150;
+    const barHeight = Math.max(minHeight, Math.min(maxHeight, (duration / maxDuration) * maxHeight));
+
+    const durationDisplay = formatMilliseconds(duration);
+
+    html += `
+      <div class="sdk-event-block" title="${name} - ${type} - ${durationDisplay}">
+        <div class="sdk-event-bar ${isFailure ? 'failure' : ''}" style="height: ${barHeight}px;">
+          ${durationDisplay}
+        </div>
+        <div class="sdk-event-label">${name} - ${type.substring(0, 4).toUpperCase()}</div>
+        <div class="sdk-event-status">${isFailure ? '❌' : '✅'}</div>
+      </div>
+    `;
+  });
+
+  // Add total flow badge
+  const totalDuration = calculateSessionDuration(events);
+  html += `
+    <div class="d-flex flex-column align-items-center ms-4">
+      <div class="journey-total-badge">Total Flow: ${formatDuration(totalDuration)}</div>
+    </div>
+  `;
+
+  html += '</div>';
+  return html;
+}
+
+// Build Performance Journey (circular nodes with connectors)
+function buildPerformanceJourney(events) {
+  if (!events || events.length === 0) return '<p class="text-muted">No journey data</p>';
+
+  let html = '<div class="performance-journey-container">';
+
+  events.forEach((event, index) => {
+    const name = event.name || event.event || 'EVENT';
+    const type = event.type || event.category || 'journey';
+    const status = event.status || 'SUCCESS';
+    const duration = event.duration || 0;
+    const isFailure = status.toUpperCase() === 'FAILURE' || status.toUpperCase() === 'FAILED';
+
+    // Add connector if not first element
+    if (index > 0) {
+      html += '<div class="journey-connector"></div>';
+    }
+
+    html += `
+      <div class="journey-node">
+        <div class="journey-node-circle ${isFailure ? 'failure' : ''}" title="${name} - ${formatMilliseconds(duration)}">
+          ${isFailure ? '✗' : '✓'}
+        </div>
+        <div class="journey-node-label">${name} - ${type.substring(0, 3).toUpperCase()}...</div>
+        <div class="journey-node-duration">${formatMilliseconds(duration)}</div>
+      </div>
+    `;
+  });
+
+  // Add total badge
+  const totalDuration = calculateSessionDuration(events);
+  html += `
+    <div class="ms-4 d-flex align-items-center">
+      <div class="journey-total-badge">Total: ${formatDuration(totalDuration)}</div>
+    </div>
+  `;
+
+  html += '</div>';
+  return html;
+}
+
+// Build SDK Events List (accordion style with expandable details)
+function buildSDKEventsList(events) {
+  if (!events || events.length === 0) return '<p class="text-muted">No events</p>';
+
+  let html = '';
+
+  events.forEach((event, index) => {
+    const name = event.name || event.event || 'EVENT';
+    const type = event.type || event.category || 'journey';
+    const status = event.status || 'SUCCESS';
+    const duration = event.duration || 0;
+    const timestamp = event.timestamp ? new Date(event.timestamp).toLocaleTimeString() : '-';
+    const isFailure = status.toUpperCase() === 'FAILURE' || status.toUpperCase() === 'FAILED';
+    const page = event.page || event.metadata?.page || '-';
+    const documentType = event.documentType || event.metadata?.documentType || '-';
+    const statusCode = event.statusCode || event.metadata?.statusCode || '-';
+    const statusMessage = event.statusMessage || event.metadata?.statusMessage || '-';
+
+    html += `
+      <div class="sdk-event-item">
+        <div class="sdk-event-header" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">
+          <div class="d-flex align-items-center">
+            <span class="status-dot ${isFailure ? 'failure' : 'success'}"></span>
+            <strong>${name}</strong>
+            <span class="badge bg-secondary ms-2">${type}</span>
+          </div>
+          <div class="d-flex align-items-center">
+            <small class="text-muted me-3">${timestamp}</small>
+            <span class="badge ${isFailure ? 'bg-danger' : 'bg-success'}">${status}</span>
+            <span class="text-info ms-2 font-weight-bold">+${formatMilliseconds(duration)}</span>
+            <i class="material-symbols-rounded ms-2">expand_more</i>
+          </div>
+        </div>
+        <div class="sdk-event-details" style="display: none;">
+          <div class="row">
+            <div class="col-md-3">
+              <small class="text-muted">Page</small>
+              <p class="mb-0 font-weight-bold">${page}</p>
+            </div>
+            <div class="col-md-3">
+              <small class="text-muted">Document Type</small>
+              <p class="mb-0 font-weight-bold">${documentType}</p>
+            </div>
+            <div class="col-md-3">
+              <small class="text-muted">Status Code</small>
+              <p class="mb-0 font-weight-bold">${statusCode}</p>
+            </div>
+            <div class="col-md-3">
+              <small class="text-muted">Duration</small>
+              <p class="mb-0 font-weight-bold">${formatMilliseconds(duration)}</p>
+            </div>
+          </div>
+          ${statusMessage !== '-' ? `
+            <div class="mt-2">
+              <small class="text-muted">Status Message</small>
+              <p class="mb-0">${statusMessage}</p>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  });
+
+  return html;
+}
+
+// Format milliseconds to human readable
+function formatMilliseconds(ms) {
+  if (!ms || ms === 0) return '0ms';
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  return `${(ms / 1000).toFixed(2)}s`;
 }
 
 // Calculate flow metrics
@@ -980,18 +1377,35 @@ function buildConversionFunnel(events) {
 
 // Calculate friction scores
 function calculateFrictionScores(events) {
-  const steps = ['SCAN', 'READ', 'FACE'];
+  const steps = ['SCAN', 'READ', 'FACE', 'FACE_MATCH'];
   const results = [];
 
   steps.forEach(stepName => {
-    const stepEvents = events.filter(e => e.page === stepName);
+    // Handle both old format (e.page) and new format (e.name)
+    const stepEvents = events.filter(e =>
+      e.page === stepName || (e.name || e.event) === stepName
+    );
     if (stepEvents.length === 0) return;
 
-    const attempts = stepEvents.filter(e => e.status === 'START').length;
-    const issues = stepEvents.filter(e => e.status === 'FAILURE').map(e => e.statusCode);
-    const startEvent = stepEvents.find(e => e.status === 'START');
-    const endEvent = stepEvents.find(e => e.status === 'SUCCESS');
-    const duration = startEvent && endEvent ? Math.floor((new Date(endEvent.timestamp) - new Date(startEvent.timestamp)) / 1000) : 0;
+    const attempts = stepEvents.filter(e => e.status === 'START' || e.status === 'start').length || 1;
+    const issues = stepEvents.filter(e =>
+      e.status === 'FAILURE' || e.status === 'failure' || e.status === 'FAILED' || e.status === 'failed'
+    ).map(e => e.statusCode || 'Failed');
+
+    // Calculate duration from event durations
+    let duration = 0;
+    stepEvents.forEach(e => {
+      duration += (e.duration || 0) / 1000; // Convert ms to seconds
+    });
+
+    // Extract face match score if this is FACE_MATCH step
+    let faceMatchScore = null;
+    if (stepName === 'FACE_MATCH') {
+      const faceEvent = stepEvents.find(e => e.details?.score !== undefined);
+      if (faceEvent) {
+        faceMatchScore = faceEvent.details.score;
+      }
+    }
 
     const attemptPenalty = (attempts - 1) * 20;
     const durationPenalty = Math.max(0, (duration / 30 - 1)) * 30; // 30s benchmark
@@ -1005,8 +1419,9 @@ function calculateFrictionScores(events) {
       score,
       level,
       issues: [...new Set(issues)],
-      duration,
-      attempts
+      duration: Math.round(duration),
+      attempts,
+      faceMatchScore
     });
   });
 
@@ -1054,7 +1469,7 @@ async function loadSessionsList(page = 1) {
     });
 
     if (!response.success) {
-      document.getElementById('sessions-table-body').innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error loading sessions</td></tr>';
+      document.getElementById('sessions-table-body').innerHTML = '<tr><td colspan="7" class="text-center text-danger">Error loading sessions</td></tr>';
       return;
     }
 
@@ -1075,7 +1490,7 @@ async function loadSessionsList(page = 1) {
 
   } catch (error) {
     console.error('Error loading sessions:', error);
-    document.getElementById('sessions-table-body').innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error loading sessions</td></tr>';
+    document.getElementById('sessions-table-body').innerHTML = '<tr><td colspan="7" class="text-center text-danger">Error loading sessions</td></tr>';
   }
 }
 
@@ -1247,7 +1662,7 @@ function buildSessionsTable(sessions) {
   const tableBody = document.getElementById('sessions-table-body');
 
   if (sessions.length === 0) {
-    tableBody.innerHTML = '<tr><td colspan="8" class="text-center">No sessions found</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="7" class="text-center">No sessions found</td></tr>';
     document.getElementById('empty-state').style.display = 'block';
     document.getElementById('sessions-list-view').style.display = 'none';
     return;
@@ -1273,7 +1688,13 @@ function buildSessionsTable(sessions) {
       } catch (e) {}
     }
 
-    // Extract document type and trace events
+    // Use document_type column first (from database)
+    if (session.document_type) {
+      documentType = session.document_type;
+    }
+
+    // Extract trace events from multiple sources
+    // Priority 1: sdk_analytics
     if (session.sdk_analytics) {
       try {
         const analytics = typeof session.sdk_analytics === 'string' ? JSON.parse(session.sdk_analytics) : session.sdk_analytics;
@@ -1284,26 +1705,49 @@ function buildSessionsTable(sessions) {
         } else if (analytics.events && Array.isArray(analytics.events)) {
           events = analytics.events;
         }
+      } catch (e) {
+        console.error('Error parsing sdk_analytics:', e);
+      }
+    }
 
-        // Calculate duration from events
-        if (events.length > 0) {
-          duration = calculateSessionDuration(events);
+    // Priority 2: sdk_trace (raw trace from SDK)
+    if (events.length === 0 && session.sdk_trace) {
+      try {
+        const trace = typeof session.sdk_trace === 'string' ? JSON.parse(session.sdk_trace) : session.sdk_trace;
+        events = Array.isArray(trace) ? trace : [];
+      } catch (e) {
+        console.error('Error parsing sdk_trace:', e);
+      }
+    }
 
-          // Extract document type from events metadata
+    // Calculate duration from events
+    if (events.length > 0) {
+      duration = calculateSessionDuration(events);
+
+      // Extract document type from events if not already set
+      if (documentType === 'Unknown') {
+        // Try START event's id field
+        const startEvent = events.find(e => (e.name || e.event) === 'START');
+        if (startEvent && startEvent.id && startEvent.id !== 'START') {
+          documentType = startEvent.id; // e.g., "GENERIC_ID", "UAE_ID", etc.
+        } else {
+          // Fallback to metadata or documentType property
           const eventWithDoc = events.find(e => e.metadata?.documentType || e.documentType);
           if (eventWithDoc) {
             documentType = eventWithDoc.metadata?.documentType || eventWithDoc.documentType || 'Unknown';
           }
         }
-      } catch (e) {
-        console.error('Error parsing sdk_analytics:', e);
       }
     }
 
     // Also check sdk_verifications for document type
     if (documentType === 'Unknown' && session.sdk_verifications) {
       try {
-        const verifications = typeof session.sdk_verifications === 'string' ? JSON.parse(session.sdk_verifications) : session.sdk_verifications;
+        let verifications = typeof session.sdk_verifications === 'string' ? JSON.parse(session.sdk_verifications) : session.sdk_verifications;
+        // Handle array format
+        if (Array.isArray(verifications) && verifications.length > 0) {
+          verifications = verifications[0];
+        }
         if (verifications.documentType) {
           documentType = verifications.documentType;
         }
@@ -1313,19 +1757,16 @@ function buildSessionsTable(sessions) {
     // Calculate comprehensive risk score from all verification scores
     const { riskScore, riskClass, riskDetails } = calculateComprehensiveRisk(session);
 
-    // Build journey flow visualization
-    const journeyFlow = buildJourneyFlow(events);
+    // Get full session ID (JTI from SDK source or account ID)
+    const fullSessionId = sdkSource.jti || sdkSource.sessionId || session.id;
 
     return `
       <tr>
         <td>
-          <div class="d-flex flex-column justify-content-center">
-            <h6 class="mb-0 text-sm font-weight-bold">${sessionId}</h6>
+          <div class="d-flex flex-column justify-content-center px-2">
+            <h6 class="mb-0 text-xs font-weight-bold text-monospace" style="font-family: monospace; word-break: break-all;">${fullSessionId}</h6>
             <p class="text-xs text-secondary mb-0">${session.first_name || ''} ${session.last_name || ''}</p>
           </div>
-        </td>
-        <td style="min-width: 280px;">
-          ${journeyFlow}
         </td>
         <td>
           <span class="badge badge-sm bg-gradient-primary">${formatDocumentType(documentType)}</span>
@@ -1346,8 +1787,9 @@ function buildSessionsTable(sessions) {
           <p class="text-xs mb-0">${formatDate(new Date(session.created_at))}</p>
         </td>
         <td class="align-middle">
-          <button class="btn btn-link text-info text-gradient px-2 mb-0" onclick="openSessionModal('${session.id}')">
+          <button class="btn btn-link text-info text-gradient px-2 mb-0" onclick="viewFullSessionDetail('${session.id}')" title="View Full Details">
             <i class="material-symbols-rounded text-sm">visibility</i>
+            View
           </button>
         </td>
       </tr>
@@ -1400,22 +1842,51 @@ async function openSessionModal(accountId) {
     if (session.sdk_verifications) {
       try {
         verifications = typeof session.sdk_verifications === 'string' ? JSON.parse(session.sdk_verifications) : session.sdk_verifications;
-      } catch (e) {}
+        // If sdk_verifications is an array, get the first element
+        if (Array.isArray(verifications) && verifications.length > 0) {
+          verifications = verifications[0];
+        }
+      } catch (e) {
+        console.error('Error parsing sdk_verifications:', e);
+      }
+    }
+
+    // Also try fraud_scores column as fallback or merge
+    if (session.fraud_scores) {
+      try {
+        const fraudScores = typeof session.fraud_scores === 'string' ? JSON.parse(session.fraud_scores) : session.fraud_scores;
+        verifications = { ...verifications, ...fraudScores };
+      } catch (e) {
+        console.error('Error parsing fraud_scores:', e);
+      }
+    }
+
+    // Calculate duration from trace events
+    let events = [];
+    // Priority 1: sdk_analytics
+    if (sdkAnalytics) {
+      events = Array.isArray(sdkAnalytics) ? sdkAnalytics : sdkAnalytics.events || [];
+    }
+    // Priority 2: sdk_trace (raw trace from SDK)
+    if (events.length === 0 && session.sdk_trace) {
+      try {
+        const trace = typeof session.sdk_trace === 'string' ? JSON.parse(session.sdk_trace) : session.sdk_trace;
+        events = Array.isArray(trace) ? trace : [];
+      } catch (e) {
+        console.error('Error parsing sdk_trace:', e);
+      }
     }
 
     // Populate modal data
     document.getElementById('modal-session-id').textContent = session.id;
     document.getElementById('modal-account-name').textContent = `${session.first_name || ''} ${session.last_name || ''}`;
     document.getElementById('modal-email').textContent = session.email || 'N/A';
-    document.getElementById('modal-doc-type').textContent = formatDocumentType(verifications.documentType || 'Unknown');
+    document.getElementById('modal-doc-type').textContent = formatDocumentType(session.document_type || verifications.documentType || 'Unknown');
     document.getElementById('modal-status').innerHTML = `<span class="badge bg-${session.verification_status === 'APPROVED' ? 'success' : session.verification_status === 'REJECTED' ? 'danger' : 'warning'}">${session.verification_status || 'PENDING'}</span>`;
     document.getElementById('modal-platform').textContent = sdkSource.devicePlatform || 'Unknown';
 
-    // Calculate duration
-    let duration = 0;
-    if (sdkAnalytics.events) {
-      duration = calculateSessionDuration(sdkAnalytics.events);
-    }
+    // Calculate duration from trace events
+    const duration = calculateSessionDuration(events);
     document.getElementById('modal-duration').textContent = formatDuration(duration);
     document.getElementById('modal-created').textContent = formatDate(new Date(session.created_at));
 
@@ -1564,48 +2035,77 @@ function createRadarChart(verifications) {
   };
 
   if (verifications) {
-    // Face Match Level (0-5 scale, convert to 0-100)
+    console.log('Creating radar chart with verifications:', verifications);
+
+    // Face Match Level - try multiple sources
+    // 1. faceMatchLevel (direct property, 0-5 scale)
     if (verifications.faceMatchLevel !== undefined) {
       scores['Face Match'] = (verifications.faceMatchLevel / 5) * 100;
     }
+    // 2. biometric.matchLevel (from SDK verification, 0-5 scale)
+    else if (verifications.biometric?.matchLevel !== undefined) {
+      scores['Face Match'] = (verifications.biometric.matchLevel / 5) * 100;
+    }
 
-    // Liveness Level (0-5 scale, convert to 0-100)
+    // Liveness Level - try multiple sources
+    // 1. livenessLevel (direct property, 0-5 scale)
     if (verifications.livenessLevel !== undefined) {
       scores['Liveness'] = (verifications.livenessLevel / 5) * 100;
+    }
+    // 2. liveness.live (boolean from SDK)
+    else if (verifications.liveness?.live !== undefined) {
+      scores['Liveness'] = verifications.liveness.live ? 100 : 0;
     }
 
     // Boolean checks (convert to 0 or 100)
     if (verifications.mrzValid !== undefined) {
       scores['MRZ Valid'] = verifications.mrzValid ? 100 : 0;
+    } else if (verifications.mrzChecksum?.valid !== undefined) {
+      scores['MRZ Valid'] = verifications.mrzChecksum.valid ? 100 : 0;
     }
 
     if (verifications.documentValid !== undefined) {
       scores['Document Valid'] = verifications.documentValid ? 100 : 0;
     }
 
+    // Data Consistency - check multiple sources
     if (verifications.dataConsistency !== undefined) {
       scores['Data Consistency'] = verifications.dataConsistency ? 100 : 0;
+    } else if (verifications.dataConsistencyCheck?.enabled) {
+      // Check if all fields match
+      const fields = verifications.dataConsistencyCheck.fields || [];
+      const allMatch = fields.length === 0 || fields.every(f => f.match === 'MATCH');
+      scores['Data Consistency'] = allMatch ? 100 : 0;
     }
 
-    // Fraud Detection Scores (0-100, inverted so lower = better)
-    // Higher fraud scores mean more suspicious, so we invert them
+    // Fraud Detection Scores (0-100, inverted so lower fraud score = higher trust score)
+    // Higher fraud scores mean more suspicious, so we invert them for the radar chart
+    // This shows "trust" where 100 = fully trusted, 0 = highly suspicious
     if (verifications.idScreenDetection?.enabled && verifications.idScreenDetection.score !== undefined) {
-      scores['Screen Detection'] = 100 - verifications.idScreenDetection.score;
+      const fraudScore = verifications.idScreenDetection.score;
+      scores['Screen Detection'] = Math.max(0, 100 - fraudScore);
+      console.log(`Screen Detection: fraud=${fraudScore}, trust=${scores['Screen Detection']}`);
     }
 
     if (verifications.idPrintDetection?.enabled && verifications.idPrintDetection.score !== undefined) {
-      scores['Print Detection'] = 100 - verifications.idPrintDetection.score;
+      const fraudScore = verifications.idPrintDetection.score;
+      scores['Print Detection'] = Math.max(0, 100 - fraudScore);
+      console.log(`Print Detection: fraud=${fraudScore}, trust=${scores['Print Detection']}`);
     }
 
     if (verifications.idPhotoTamperingDetection?.enabled && verifications.idPhotoTamperingDetection.score !== undefined) {
-      scores['Photo Tampering'] = 100 - verifications.idPhotoTamperingDetection.score;
+      const fraudScore = verifications.idPhotoTamperingDetection.score;
+      scores['Photo Tampering'] = Math.max(0, 100 - fraudScore);
+      console.log(`Photo Tampering: fraud=${fraudScore}, trust=${scores['Photo Tampering']}`);
     }
 
     // Overall quality score (average of all non-zero scores)
     const values = Object.values(scores).filter(v => v > 0);
     if (values.length > 0) {
-      scores['Overall Quality'] = values.reduce((a, b) => a + b, 0) / values.length;
+      scores['Overall Quality'] = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
     }
+
+    console.log('Final radar chart scores:', scores);
   }
 
   const labels = Object.keys(scores);
@@ -1656,15 +2156,21 @@ function createRadarChart(verifications) {
 }
 
 // View full session detail (navigate to full view)
-function viewFullSessionDetail() {
-  if (window.currentModalSessionId) {
-    // Close modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('sessionDetailModal'));
-    if (modal) {
-      modal.hide();
+// Can be called with accountId directly or from modal (uses window.currentModalSessionId)
+function viewFullSessionDetail(accountId) {
+  const sessionId = accountId || window.currentModalSessionId;
+
+  if (sessionId) {
+    // Close modal if open
+    const modalElement = document.getElementById('sessionDetailModal');
+    if (modalElement) {
+      const modal = bootstrap.Modal.getInstance(modalElement);
+      if (modal) {
+        modal.hide();
+      }
     }
     // Load full session view
-    loadAccountAsSession(window.currentModalSessionId);
+    loadAccountAsSession(sessionId);
   }
 }
 
@@ -1708,8 +2214,38 @@ async function loadAccountAsSession(accountId) {
     if (account.sdk_verifications) {
       try {
         verifications = typeof account.sdk_verifications === 'string' ? JSON.parse(account.sdk_verifications) : account.sdk_verifications;
+        // If sdk_verifications is an array, get the first element
+        if (Array.isArray(verifications) && verifications.length > 0) {
+          verifications = verifications[0];
+        }
       } catch (e) {
         console.error('Error parsing sdk_verifications:', e);
+      }
+    }
+
+    // Also try fraud_scores column as fallback or merge
+    if (account.fraud_scores) {
+      try {
+        const fraudScores = typeof account.fraud_scores === 'string' ? JSON.parse(account.fraud_scores) : account.fraud_scores;
+        verifications = { ...verifications, ...fraudScores };
+      } catch (e) {
+        console.error('Error parsing fraud_scores:', e);
+      }
+    }
+
+    // Parse events - try multiple sources
+    let events = [];
+    // Priority 1: sdk_analytics
+    if (sdkAnalytics) {
+      events = Array.isArray(sdkAnalytics) ? sdkAnalytics : sdkAnalytics.events || [];
+    }
+    // Priority 2: sdk_trace (raw trace from SDK)
+    if (events.length === 0 && account.sdk_trace) {
+      try {
+        const trace = typeof account.sdk_trace === 'string' ? JSON.parse(account.sdk_trace) : account.sdk_trace;
+        events = Array.isArray(trace) ? trace : [];
+      } catch (e) {
+        console.error('Error parsing sdk_trace:', e);
       }
     }
 
@@ -1724,11 +2260,17 @@ async function loadAccountAsSession(accountId) {
       timestamp: account.created_at,
       outcome: account.verification_status || 'PENDING',
       status: account.verification_status || 'PENDING',
-      verification_status: account.verification_status
+      verification_status: account.verification_status,
+      document_type: account.document_type
     };
 
-    currentVerificationData = verifications;
-    currentEventsData = sdkAnalytics.events || [];
+    // Build verification data structure that displayVerificationSummary expects
+    // It expects { verifications: [{ ... }] } format
+    currentVerificationData = {
+      documentType: account.document_type || verifications.documentType,
+      verifications: [verifications]
+    };
+    currentEventsData = events;
     currentDeviceHistory = null; // Would need separate device history lookup
 
     hideLoading();
@@ -1752,10 +2294,13 @@ async function loadAccountAsSession(accountId) {
   }
 }
 
-// Refresh sessions list
-document.getElementById('refresh-sessions-btn').addEventListener('click', () => {
-  loadSessionsList(currentPage);
-});
+// Refresh sessions list (optional - if button exists)
+const refreshBtn = document.getElementById('refresh-sessions-btn');
+if (refreshBtn) {
+  refreshBtn.addEventListener('click', () => {
+    loadSessionsList(currentPage);
+  });
+}
 
 // Setup auto-refresh (every 30 seconds)
 function startAutoRefresh() {

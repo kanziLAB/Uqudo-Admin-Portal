@@ -1061,12 +1061,27 @@
             faceImageSection.style.display = 'none';
           }
 
-          // Personal Information
-          document.getElementById('detail-name').textContent = `${account.first_name} ${account.last_name}`;
+          // Personal Information - extract full name from multiple sources
+          let fullName = '';
+          if (account.first_name || account.last_name) {
+            fullName = `${account.first_name || ''} ${account.last_name || ''}`.trim();
+          }
+          // Fallback: try to get name from SDK documents if stored there
+          if (!fullName && account.sdk_documents && account.sdk_documents.length > 0) {
+            const doc = account.sdk_documents[0];
+            if (doc.reading?.data?.fullName) {
+              fullName = doc.reading.data.fullName;
+            } else if (doc.scan?.front?.fullName) {
+              fullName = doc.scan.front.fullName;
+            }
+          }
+          document.getElementById('detail-name').textContent = fullName || '-';
           document.getElementById('detail-dob').textContent = formatDate(account.date_of_birth, { dateStyle: 'medium' }) || '-';
           document.getElementById('detail-nationality').textContent = account.nationality || '-';
-          document.getElementById('detail-document-type').textContent = snakeToTitle(account.document_type || '-');
-          document.getElementById('detail-document-number').textContent = account.document_number || '-';
+          // Document type: prefer document_type column, fallback to id_type
+          document.getElementById('detail-document-type').textContent = snakeToTitle(account.document_type || account.id_type || '-');
+          // Document number: use id_number from the accounts table
+          document.getElementById('detail-document-number').textContent = account.id_number || '-';
 
           // Contact Information
           document.getElementById('detail-email').textContent = account.email || '-';
