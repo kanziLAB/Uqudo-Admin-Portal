@@ -1309,7 +1309,7 @@ function buildSDKEventsTimeline(events) {
           ${durationDisplay}
         </div>
         <div class="sdk-event-label">${name} - ${type.substring(0, 4).toUpperCase()}</div>
-        <div class="sdk-event-status">${isFailure ? '❌' : '✅'}</div>
+        <div class="sdk-event-status"><span class="status-dot ${isFailure ? 'failure' : 'success'}"></span></div>
       </div>
     `;
   });

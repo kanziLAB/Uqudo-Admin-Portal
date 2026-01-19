@@ -45,7 +45,7 @@
     }
 
     .session-header-card .session-label {
-      color: #000000;
+      color: #ffffff;
       font-size: 0.75rem;
       font-weight: 600;
       text-transform: uppercase;
@@ -53,7 +53,7 @@
     }
 
     .session-header-card .session-value {
-      color: #000000;
+      color: #ffffff;
       font-weight: 700;
       font-size: 0.875rem;
       word-break: break-all;
@@ -62,7 +62,7 @@
 
     .session-header-card .copy-button {
       background: rgba(255, 255, 255, 0.2);
-      color: #000000;
+      color: #ffffff;
       border: none;
     }
 
@@ -87,92 +87,8 @@
     }
 
     .session-header-card h5 {
-      color: #000000;
+      color: #ffffff;
       font-weight: 700;
-    }
-
-    /* Conversion Funnel Horizontal */
-    .conversion-funnel-horizontal {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1.5rem 0;
-      position: relative;
-      margin-top: 1.5rem;
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: 0.75rem;
-      padding: 1.5rem;
-    }
-
-    .funnel-step {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      z-index: 2;
-      flex: 1;
-    }
-
-    .funnel-circle {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #ffffff;
-      border: 3px solid #4caf50;
-      box-shadow: 0 0 0 8px rgba(76, 175, 80, 0.15);
-      position: relative;
-    }
-
-    .funnel-circle i {
-      color: #4caf50;
-      font-size: 24px;
-    }
-
-    .funnel-circle.pending {
-      border-color: #90caf9;
-      box-shadow: 0 0 0 8px rgba(144, 202, 249, 0.15);
-    }
-
-    .funnel-circle.pending i {
-      color: #90caf9;
-    }
-
-    .funnel-circle.failed {
-      border-color: #f44336;
-      box-shadow: 0 0 0 8px rgba(244, 67, 54, 0.15);
-    }
-
-    .funnel-circle.failed i {
-      color: #f44336;
-    }
-
-    .funnel-label {
-      margin-top: 0.75rem;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: #344767;
-      text-align: center;
-      text-transform: uppercase;
-    }
-
-    .funnel-connector {
-      flex: 0.5;
-      height: 3px;
-      background: linear-gradient(90deg, #4caf50, #4caf50);
-      position: relative;
-      margin: 0 -10px;
-      z-index: 1;
-      margin-bottom: 30px;
-    }
-
-    .funnel-connector.pending {
-      background: linear-gradient(90deg, #4caf50, #90caf9);
-    }
-
-    .funnel-connector.incomplete {
-      background: #e0e0e0;
     }
 
     /* Nav Tabs - Uqudo Blue Theme */
@@ -475,6 +391,16 @@
     .sdk-event-header .status-dot.success { background: #4caf50; }
     .sdk-event-header .status-dot.failure { background: #f44336; }
 
+    /* SDK Event Status Dots (general) */
+    .sdk-event-status .status-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .sdk-event-status .status-dot.success { background: #4caf50; }
+    .sdk-event-status .status-dot.failure { background: #f44336; }
+
     .sdk-event-details {
       padding: 16px;
       background: white;
@@ -659,36 +585,6 @@
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-        <!-- Conversion Funnel -->
-        <div class="conversion-funnel-horizontal" id="session-funnel">
-          <div class="funnel-step">
-            <div class="funnel-circle" id="funnel-scan">
-              <i class="material-symbols-rounded">check</i>
-            </div>
-            <span class="funnel-label">VIEW - SCAN</span>
-          </div>
-          <div class="funnel-connector" id="connector-1"></div>
-          <div class="funnel-step">
-            <div class="funnel-circle" id="funnel-start">
-              <i class="material-symbols-rounded">check</i>
-            </div>
-            <span class="funnel-label">START - SCAN</span>
-          </div>
-          <div class="funnel-connector" id="connector-2"></div>
-          <div class="funnel-step">
-            <div class="funnel-circle" id="funnel-complete">
-              <i class="material-symbols-rounded">check</i>
-            </div>
-            <span class="funnel-label">COMPLETE</span>
-          </div>
-          <div class="funnel-connector" id="connector-3"></div>
-          <div class="funnel-step">
-            <div class="funnel-circle" id="funnel-face">
-              <i class="material-symbols-rounded">check</i>
-            </div>
-            <span class="funnel-label">VIEW - FACE</span>
           </div>
         </div>
       </div>
