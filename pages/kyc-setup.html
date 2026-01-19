@@ -554,6 +554,275 @@
         </div>
       </div>
 
+      <!-- Analytics Configuration -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header pb-0">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="mb-0">
+                    <i class="material-symbols-rounded text-info me-1" style="vertical-align: middle;">analytics</i>
+                    Uqudo Analytics Configuration
+                  </h6>
+                  <p class="text-sm text-secondary mb-0 mt-1">Configure benchmarks and thresholds for SDK analytics dashboard</p>
+                </div>
+                <button class="btn btn-sm bg-gradient-info" onclick="saveAnalyticsConfig()">
+                  <i class="material-symbols-rounded text-sm">save</i> Save Configuration
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <!-- UX Benchmarks Section -->
+              <h6 class="text-uppercase text-xs font-weight-bolder text-secondary mt-3 mb-3">
+                <i class="material-symbols-rounded text-sm me-1">timer</i> UX Duration Benchmarks (seconds)
+              </h6>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Document Scan Benchmark</div>
+                  <div class="setting-description">Expected time for document scanning step</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="5" max="120" value="30" id="analytics-scan-benchmark" oninput="updateAnalyticsValue('scan-benchmark', this.value, 's')">
+                  <span class="threshold-value" id="analytics-scan-benchmark-value">30s</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">NFC Reading Benchmark</div>
+                  <div class="setting-description">Expected time for NFC chip reading step</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="3" max="60" value="15" id="analytics-nfc-benchmark" oninput="updateAnalyticsValue('nfc-benchmark', this.value, 's')">
+                  <span class="threshold-value" id="analytics-nfc-benchmark-value">15s</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Face Verification Benchmark</div>
+                  <div class="setting-description">Expected time for face verification step</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="5" max="90" value="20" id="analytics-face-benchmark" oninput="updateAnalyticsValue('face-benchmark', this.value, 's')">
+                  <span class="threshold-value" id="analytics-face-benchmark-value">20s</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Background Check Benchmark</div>
+                  <div class="setting-description">Expected time for background check step</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="1" max="30" value="5" id="analytics-bgc-benchmark" oninput="updateAnalyticsValue('bgc-benchmark', this.value, 's')">
+                  <span class="threshold-value" id="analytics-bgc-benchmark-value">5s</span>
+                </div>
+              </div>
+
+              <!-- Risk Score Thresholds Section -->
+              <h6 class="text-uppercase text-xs font-weight-bolder text-secondary mt-4 mb-3">
+                <i class="material-symbols-rounded text-sm me-1">security</i> Analytics Risk Score Thresholds
+              </h6>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">
+                    <span class="risk-level-indicator risk-low"></span> Low Risk (APPROVE)
+                  </div>
+                  <div class="setting-description">Sessions with total risk score below this are auto-approved</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="0" max="200" value="50" id="analytics-risk-low" oninput="updateAnalyticsValue('risk-low', this.value, '')">
+                  <span class="threshold-value" id="analytics-risk-low-value">0-50</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">
+                    <span class="risk-level-indicator risk-medium"></span> Medium Risk (REVIEW)
+                  </div>
+                  <div class="setting-description">Sessions between low and this threshold require review</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="50" max="300" value="100" id="analytics-risk-medium" oninput="updateAnalyticsValue('risk-medium', this.value, '')">
+                  <span class="threshold-value" id="analytics-risk-medium-value">50-100</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">
+                    <span class="risk-level-indicator risk-high"></span> High Risk (REVIEW)
+                  </div>
+                  <div class="setting-description">Sessions between medium and this threshold require careful review</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="100" max="400" value="200" id="analytics-risk-high" oninput="updateAnalyticsValue('risk-high', this.value, '')">
+                  <span class="threshold-value" id="analytics-risk-high-value">100-200</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">
+                    <span class="badge bg-danger" style="width: 12px; height: 12px; padding: 0; border-radius: 50%; display: inline-block; margin-right: 0.5rem;"></span> Critical Risk (REJECT)
+                  </div>
+                  <div class="setting-description">Sessions above high threshold are flagged for rejection</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <span class="text-sm text-muted">Auto-calculated</span>
+                  <span class="threshold-value" id="analytics-risk-critical-value">200+</span>
+                </div>
+              </div>
+
+              <!-- Friction Score Thresholds Section -->
+              <h6 class="text-uppercase text-xs font-weight-bolder text-secondary mt-4 mb-3">
+                <i class="material-symbols-rounded text-sm me-1">speed</i> Friction Score Thresholds
+              </h6>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Low Friction Threshold</div>
+                  <div class="setting-description">Friction score below this indicates smooth user experience</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="10" max="50" value="30" id="analytics-friction-low" oninput="updateAnalyticsValue('friction-low', this.value, '')">
+                  <span class="threshold-value" id="analytics-friction-low-value">0-30</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Medium Friction Threshold</div>
+                  <div class="setting-description">Friction score between low and this indicates moderate issues</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="40" max="100" value="70" id="analytics-friction-medium" oninput="updateAnalyticsValue('friction-medium', this.value, '')">
+                  <span class="threshold-value" id="analytics-friction-medium-value">30-70</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">High Friction</div>
+                  <div class="setting-description">Friction score above medium indicates significant UX issues</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <span class="text-sm text-muted">Auto-calculated</span>
+                  <span class="threshold-value" id="analytics-friction-high-value">70+</span>
+                </div>
+              </div>
+
+              <!-- Device Risk Thresholds Section -->
+              <h6 class="text-uppercase text-xs font-weight-bolder text-secondary mt-4 mb-3">
+                <i class="material-symbols-rounded text-sm me-1">devices</i> Device Risk Indicators
+              </h6>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Multiple Attempts Threshold</div>
+                  <div class="setting-description">Flag device if total sessions exceed this number</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="1" max="10" value="2" id="analytics-device-attempts" oninput="updateAnalyticsValue('device-attempts', this.value, ' sessions')">
+                  <span class="threshold-value" id="analytics-device-attempts-value">2 sessions</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Low Success Rate Threshold</div>
+                  <div class="setting-description">Flag device if success rate falls below this percentage</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="10" max="80" value="50" id="analytics-device-success-rate" oninput="updateAnalyticsValue('device-success-rate', this.value, '%')">
+                  <span class="threshold-value" id="analytics-device-success-rate-value">50%</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Rapid Retry Window (minutes)</div>
+                  <div class="setting-description">Flag device if multiple sessions within this time window</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="5" max="120" value="60" id="analytics-device-rapid-window" oninput="updateAnalyticsValue('device-rapid-window', this.value, ' min')">
+                  <span class="threshold-value" id="analytics-device-rapid-window-value">60 min</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Historical Fraud Flags Threshold</div>
+                  <div class="setting-description">Add risk points per this many historical fraud flags</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="1" max="20" value="5" id="analytics-device-fraud-flags" oninput="updateAnalyticsValue('device-fraud-flags', this.value, ' flags')">
+                  <span class="threshold-value" id="analytics-device-fraud-flags-value">5 flags</span>
+                </div>
+              </div>
+
+              <!-- Portfolio Dashboard Settings -->
+              <h6 class="text-uppercase text-xs font-weight-bolder text-secondary mt-4 mb-3">
+                <i class="material-symbols-rounded text-sm me-1">dashboard</i> Portfolio Dashboard Defaults
+              </h6>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Default Date Range</div>
+                  <div class="setting-description">Default time period for analytics dashboard</div>
+                </div>
+                <div class="setting-control">
+                  <select class="form-select form-select-sm" id="analytics-default-date-range" style="width: 150px;">
+                    <option value="7">Last 7 days</option>
+                    <option value="30" selected>Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                    <option value="all">All time</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Completion Rate Target</div>
+                  <div class="setting-description">Target completion rate for KPI comparison</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="50" max="100" value="85" id="analytics-completion-target" oninput="updateAnalyticsValue('completion-target', this.value, '%')">
+                  <span class="threshold-value" id="analytics-completion-target-value">85%</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Abandonment Rate Target</div>
+                  <div class="setting-description">Target maximum abandonment rate</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="1" max="30" value="10" id="analytics-abandonment-target" oninput="updateAnalyticsValue('abandonment-target', this.value, '%')">
+                  <span class="threshold-value" id="analytics-abandonment-target-value">10%</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Review Rate Target</div>
+                  <div class="setting-description">Target maximum review rate for sessions</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="5" max="50" value="20" id="analytics-review-target" oninput="updateAnalyticsValue('review-target', this.value, '%')">
+                  <span class="threshold-value" id="analytics-review-target-value">20%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Supported Countries -->
       <div class="row mb-4">
         <div class="col-12">
@@ -828,6 +1097,86 @@
       } catch (error) {
         console.error('Failed to save SDK thresholds:', error);
         showError('Failed to save SDK thresholds');
+      }
+    }
+
+    // Update Analytics configuration value display
+    function updateAnalyticsValue(type, value, suffix) {
+      const valueElement = document.getElementById(`analytics-${type}-value`);
+
+      // Handle range displays with auto-calculated values
+      if (type === 'risk-low') {
+        valueElement.textContent = `0-${value}`;
+        // Update medium range start
+        const mediumValue = document.getElementById('analytics-risk-medium').value;
+        document.getElementById('analytics-risk-medium-value').textContent = `${value}-${mediumValue}`;
+      } else if (type === 'risk-medium') {
+        const lowValue = document.getElementById('analytics-risk-low').value;
+        valueElement.textContent = `${lowValue}-${value}`;
+        // Update high range
+        const highValue = document.getElementById('analytics-risk-high').value;
+        document.getElementById('analytics-risk-high-value').textContent = `${value}-${highValue}`;
+      } else if (type === 'risk-high') {
+        const mediumValue = document.getElementById('analytics-risk-medium').value;
+        valueElement.textContent = `${mediumValue}-${value}`;
+        document.getElementById('analytics-risk-critical-value').textContent = `${value}+`;
+      } else if (type === 'friction-low') {
+        valueElement.textContent = `0-${value}`;
+        const mediumValue = document.getElementById('analytics-friction-medium').value;
+        document.getElementById('analytics-friction-medium-value').textContent = `${value}-${mediumValue}`;
+      } else if (type === 'friction-medium') {
+        const lowValue = document.getElementById('analytics-friction-low').value;
+        valueElement.textContent = `${lowValue}-${value}`;
+        document.getElementById('analytics-friction-high-value').textContent = `${value}+`;
+      } else {
+        valueElement.textContent = `${value}${suffix}`;
+      }
+    }
+
+    // Save Analytics configuration
+    async function saveAnalyticsConfig() {
+      const config = {
+        analytics_config: {
+          ux_benchmarks: {
+            document_scan: parseInt(document.getElementById('analytics-scan-benchmark').value),
+            nfc_reading: parseInt(document.getElementById('analytics-nfc-benchmark').value),
+            face_verification: parseInt(document.getElementById('analytics-face-benchmark').value),
+            background_check: parseInt(document.getElementById('analytics-bgc-benchmark').value)
+          },
+          risk_thresholds: {
+            low: parseInt(document.getElementById('analytics-risk-low').value),
+            medium: parseInt(document.getElementById('analytics-risk-medium').value),
+            high: parseInt(document.getElementById('analytics-risk-high').value)
+          },
+          friction_thresholds: {
+            low: parseInt(document.getElementById('analytics-friction-low').value),
+            medium: parseInt(document.getElementById('analytics-friction-medium').value)
+          },
+          device_risk: {
+            multiple_attempts_threshold: parseInt(document.getElementById('analytics-device-attempts').value),
+            low_success_rate_threshold: parseInt(document.getElementById('analytics-device-success-rate').value),
+            rapid_retry_window_minutes: parseInt(document.getElementById('analytics-device-rapid-window').value),
+            fraud_flags_threshold: parseInt(document.getElementById('analytics-device-fraud-flags').value)
+          },
+          portfolio_defaults: {
+            default_date_range: document.getElementById('analytics-default-date-range').value,
+            completion_rate_target: parseInt(document.getElementById('analytics-completion-target').value),
+            abandonment_rate_target: parseInt(document.getElementById('analytics-abandonment-target').value),
+            review_rate_target: parseInt(document.getElementById('analytics-review-target').value)
+          }
+        }
+      };
+
+      try {
+        const response = await api.updateKYCSetup(config);
+        if (response.success) {
+          showSuccess('Analytics configuration saved successfully');
+        } else {
+          showError(response.error || 'Failed to save analytics configuration');
+        }
+      } catch (error) {
+        console.error('Failed to save analytics configuration:', error);
+        showError('Failed to save analytics configuration');
       }
     }
 

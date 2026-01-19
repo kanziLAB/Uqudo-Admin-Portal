@@ -654,11 +654,11 @@ function calculateComprehensiveRiskFromSession(session, verifications, events) {
   const finalScore = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 50;
 
   // Determine risk class
-  let riskClass = 'success';
+  let riskClass = 'risk-approve';
   if (finalScore < 40) {
-    riskClass = 'danger';
+    riskClass = 'risk-reject';
   } else if (finalScore < 70) {
-    riskClass = 'warning';
+    riskClass = 'risk-review';
   }
 
   return {
