@@ -35,14 +35,40 @@
   <link href="../assets/css/uqudo-blue-theme.css" rel="stylesheet" />
 
   <style>
+    /* Uqudo Blue Theme for Session View */
     .session-header-card {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(195deg, #1e88e5 0%, #1565c0 100%);
       color: white;
       padding: 2rem;
       border-radius: 1rem;
       margin-bottom: 1.5rem;
     }
 
+    /* Nav Tabs - Uqudo Blue Theme */
+    .nav-tabs .nav-link {
+      color: #344767;
+      border: none;
+      padding: 0.75rem 1.25rem;
+      font-weight: 500;
+    }
+
+    .nav-tabs .nav-link.active {
+      color: #1e88e5;
+      background: transparent;
+      border-bottom: 3px solid #1e88e5;
+    }
+
+    .nav-tabs .nav-link:hover:not(.active) {
+      color: #1565c0;
+      border-bottom: 3px solid #90caf9;
+    }
+
+    /* Card Headers - Uqudo Blue */
+    .tabs-container .card-header h6 {
+      color: #1e88e5;
+    }
+
+    /* Outcome Badges */
     .badge-outcome-success { background-color: #4caf50; }
     .badge-outcome-failed { background-color: #f44336; }
     .badge-outcome-abandoned { background-color: #ff9800; }
@@ -88,7 +114,7 @@
     .badge-risk-reject { background-color: #f44336; }
 
     .score-card {
-      border-left: 4px solid #667eea;
+      border-left: 4px solid #1e88e5;
       padding: 1rem;
       background: #f8f9fa;
       border-radius: 0.5rem;
@@ -593,11 +619,11 @@
           <div class="col-md-6 mb-4">
             <div class="card">
               <div class="card-header pb-0">
-                <h6>Session Trends</h6>
-                <p class="text-sm">Line chart showing session activity over time</p>
+                <h6>Average Duration (Last 24 Hours)</h6>
+                <p class="text-sm">Hourly average session duration</p>
               </div>
               <div class="card-body">
-                <canvas id="sessionLineChart" height="200"></canvas>
+                <canvas id="avgDurationChart" height="200"></canvas>
               </div>
             </div>
           </div>
@@ -625,8 +651,8 @@
                         <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Document Type</th>
                         <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Total Duration</th>
                         <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Risk Score</th>
-                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Platform</th>
-                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Submitted</th>
+                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">SDK Version</th>
+                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Timestamp</th>
                         <th class="text-secondary opacity-7">Actions</th>
                       </tr>
                     </thead>
@@ -663,9 +689,9 @@
         <!-- Nav Tabs -->
         <ul class="nav nav-tabs mb-4" id="analyticsTabs" role="tablist">
           <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="verification-tab" data-bs-toggle="tab" data-bs-target="#verification" type="button" role="tab">
-              <i class="material-symbols-rounded me-1">verified</i>
-              Verification Summary
+            <button class="nav-link active" id="ux-tab" data-bs-toggle="tab" data-bs-target="#ux" type="button" role="tab">
+              <i class="material-symbols-rounded me-1">trending_up</i>
+              UX Analysis
             </button>
           </li>
           <li class="nav-item" role="presentation">
@@ -681,9 +707,9 @@
             </button>
           </li>
           <li class="nav-item" role="presentation">
-            <button class="nav-link" id="ux-tab" data-bs-toggle="tab" data-bs-target="#ux" type="button" role="tab">
-              <i class="material-symbols-rounded me-1">trending_up</i>
-              UX Analysis
+            <button class="nav-link" id="verification-tab" data-bs-toggle="tab" data-bs-target="#verification" type="button" role="tab">
+              <i class="material-symbols-rounded me-1">verified</i>
+              Verification Summary
             </button>
           </li>
         </ul>
@@ -691,7 +717,7 @@
         <!-- Tab Content -->
         <div class="tab-content" id="analyticsTabContent">
           <!-- Tab 1: Verification Summary -->
-          <div class="tab-pane fade show active" id="verification" role="tabpanel">
+          <div class="tab-pane fade" id="verification" role="tabpanel">
             <div class="row">
               <div class="col-12">
                 <div class="card">
@@ -909,7 +935,23 @@
           </div>
 
           <!-- Tab 4: UX Analysis -->
-          <div class="tab-pane fade" id="ux" role="tabpanel">
+          <div class="tab-pane fade show active" id="ux" role="tabpanel">
+            <!-- Environment Issues at Top -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <div class="card">
+                  <div class="card-header pb-0">
+                    <h6><i class="material-symbols-rounded me-1" style="vertical-align: middle;">error_outline</i> Environment Issues</h6>
+                  </div>
+                  <div class="card-body">
+                    <div class="row" id="environment-issues">
+                      <p class="text-muted">Loading environment issues...</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="row">
               <div class="col-md-6">
                 <div class="card">
@@ -1049,20 +1091,6 @@
               </div>
             </div>
 
-            <div class="row mt-4">
-              <div class="col-12">
-                <div class="card">
-                  <div class="card-header pb-0">
-                    <h6>Environment Issues</h6>
-                  </div>
-                  <div class="card-body">
-                    <div class="row" id="environment-issues">
-                      <p class="text-muted">Loading environment issues...</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

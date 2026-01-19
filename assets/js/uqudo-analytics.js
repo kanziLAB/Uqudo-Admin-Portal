@@ -1816,30 +1816,68 @@ function updateCharts(sessions) {
     });
   }
 
-  // Session Line Chart - group by date
-  const sessionsByDate = {};
-  sessions.forEach(session => {
-    const date = new Date(session.created_at).toLocaleDateString();
-    sessionsByDate[date] = (sessionsByDate[date] || 0) + 1;
+  // Average Duration Chart - group by hour for last 24 hours
+  const now = new Date();
+  const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+  // Filter sessions from last 24 hours
+  const recentSessions = sessions.filter(session => {
+    const sessionTime = new Date(session.created_at);
+    return sessionTime >= last24Hours;
   });
 
-  const dates = Object.keys(sessionsByDate).sort((a, b) => new Date(a) - new Date(b));
-  const counts = dates.map(date => sessionsByDate[date]);
+  // Group by hour and calculate average duration
+  const hourlyDurations = {};
+  recentSessions.forEach(session => {
+    const sessionTime = new Date(session.created_at);
+    const hourKey = sessionTime.toLocaleTimeString('en-US', { hour: '2-digit', hour12: false }) + ':00';
+
+    if (!hourlyDurations[hourKey]) {
+      hourlyDurations[hourKey] = { total: 0, count: 0 };
+    }
+
+    // Calculate duration from sdk_analytics
+    if (session.sdk_analytics) {
+      try {
+        const analytics = typeof session.sdk_analytics === 'string' ? JSON.parse(session.sdk_analytics) : session.sdk_analytics;
+        const events = Array.isArray(analytics) ? analytics : analytics.events || [];
+        if (events.length > 0) {
+          const duration = calculateSessionDuration(events);
+          if (duration > 0) {
+            hourlyDurations[hourKey].total += duration;
+            hourlyDurations[hourKey].count++;
+          }
+        }
+      } catch (e) {}
+    }
+  });
+
+  // Generate all 24 hours labels
+  const hours = [];
+  for (let i = 23; i >= 0; i--) {
+    const hour = new Date(now.getTime() - i * 60 * 60 * 1000);
+    hours.push(hour.toLocaleTimeString('en-US', { hour: '2-digit', hour12: false }) + ':00');
+  }
+
+  const avgDurations = hours.map(hour => {
+    const data = hourlyDurations[hour];
+    return data && data.count > 0 ? Math.round(data.total / data.count) : 0;
+  });
 
   // Destroy existing chart if it exists
   if (sessionLineChart) {
     sessionLineChart.destroy();
   }
 
-  const lineCtx = document.getElementById('sessionLineChart');
+  const lineCtx = document.getElementById('avgDurationChart');
   if (lineCtx) {
     sessionLineChart = new Chart(lineCtx, {
       type: 'line',
       data: {
-        labels: dates,
+        labels: hours,
         datasets: [{
-          label: 'Sessions',
-          data: counts,
+          label: 'Avg Duration (seconds)',
+          data: avgDurations,
           borderColor: 'rgba(26, 115, 232, 1)',
           backgroundColor: 'rgba(26, 115, 232, 0.1)',
           tension: 0.4,
@@ -1852,13 +1890,27 @@ function updateCharts(sessions) {
         plugins: {
           legend: {
             display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return `Avg: ${context.raw}s`;
+              }
+            }
           }
         },
         scales: {
           y: {
             beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Seconds'
+            }
+          },
+          x: {
             ticks: {
-              stepSize: 1
+              maxRotation: 45,
+              minRotation: 45
             }
           }
         }
@@ -1974,6 +2026,39 @@ function buildSessionsTable(sessions) {
     // Get full session ID (JTI from SDK source or account ID)
     const fullSessionId = sdkSource.jti || sdkSource.sessionId || session.id;
 
+    // Get SDK version info with icon (like accounts page)
+    const sdkType = sdkSource.sdkType?.toLowerCase() || '';
+    const sdkVersion = sdkSource.sdkVersion || '';
+    let sdkIcon = 'verified_user';
+    let sdkColor = 'info';
+    let sdkLabel = sdkVersion ? `SDK v${sdkVersion}` : 'SDK';
+
+    if (sdkType.includes('mobile') || sdkType.includes('android') || sdkType.includes('ios')) {
+      sdkIcon = 'phone_iphone';
+      sdkColor = 'success';
+      sdkLabel = `Mobile ${sdkVersion ? 'v' + sdkVersion : ''}`.trim();
+    } else if (sdkType.includes('web') || sdkType.includes('browser')) {
+      sdkIcon = 'language';
+      sdkColor = 'info';
+      sdkLabel = `Web ${sdkVersion ? 'v' + sdkVersion : ''}`.trim();
+    } else if (!sdkSource.sdkType) {
+      sdkIcon = 'edit';
+      sdkColor = 'secondary';
+      sdkLabel = 'Manual';
+    }
+
+    // Format timestamp with date and time
+    const timestamp = new Date(session.created_at);
+    const formattedTimestamp = timestamp.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+
     return `
       <tr>
         <td>
@@ -1995,10 +2080,13 @@ function buildSessionsTable(sessions) {
           <span class="badge badge-sm bg-${riskClass}" data-bs-toggle="tooltip" data-bs-placement="top" title="${riskDetails}">${riskScore}/100</span>
         </td>
         <td>
-          <span class="badge badge-sm bg-info">${platform}</span>
+          <div class="d-flex align-items-center">
+            <i class="material-symbols-rounded text-${sdkColor} me-1" style="font-size: 18px;">${sdkIcon}</i>
+            <span class="text-xs">${sdkLabel}</span>
+          </div>
         </td>
         <td>
-          <p class="text-xs mb-0">${formatDate(new Date(session.created_at))}</p>
+          <p class="text-xs mb-0 font-weight-bold">${formattedTimestamp}</p>
         </td>
         <td class="align-middle">
           <button class="btn btn-link text-info text-gradient px-2 mb-0" onclick="viewFullSessionDetail('${session.id}')" title="View Full Details">
