@@ -42,7 +42,46 @@ router.get('/kyc-setup', asyncHandler(async (req, res) => {
     auto_approve_threshold: 95,
     auto_reject_threshold: 30,
     require_liveness_check: true,
-    require_device_attestation: false
+    require_device_attestation: false,
+    sdk_verification_thresholds: {
+      face_match: 80,
+      liveness: 70,
+      document_quality: 60,
+      face_quality: 70,
+      ocr_confidence: 80,
+      nfc_reading: 90,
+      passive_authentication: 85,
+      background_check_risk: 70
+    },
+    analytics_config: {
+      ux_benchmarks: {
+        document_scan: 30,
+        nfc_reading: 15,
+        face_verification: 20,
+        background_check: 5
+      },
+      risk_thresholds: {
+        low: 50,
+        medium: 100,
+        high: 200
+      },
+      friction_thresholds: {
+        low: 30,
+        medium: 70
+      },
+      device_risk: {
+        multiple_attempts_threshold: 2,
+        low_success_rate_threshold: 50,
+        rapid_retry_window_minutes: 60,
+        fraud_flags_threshold: 5
+      },
+      portfolio_defaults: {
+        default_date_range: '30',
+        completion_rate_target: 85,
+        abandonment_rate_target: 10,
+        review_rate_target: 20
+      }
+    }
   };
 
   res.json({
@@ -71,7 +110,10 @@ router.put('/kyc-setup',
     body('auto_approve_threshold').optional().isInt({ min: 0, max: 100 }),
     body('auto_reject_threshold').optional().isInt({ min: 0, max: 100 }),
     body('require_liveness_check').optional().isBoolean(),
-    body('require_device_attestation').optional().isBoolean()
+    body('require_device_attestation').optional().isBoolean(),
+    body('analytics_config').optional().isObject(),
+    body('sdk_risk_thresholds').optional().isObject(),
+    body('sdk_verification_thresholds').optional().isObject()
   ],
   asyncHandler(async (req, res) => {
     const errors = validationResult(req);
