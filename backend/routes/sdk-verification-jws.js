@@ -461,7 +461,30 @@ router.post('/enrollment-jws',
       });
     }
 
-    const { source, documents, verifications, backgroundCheck, trace } = data;
+    // Log ALL keys in data payload to discover mobile SDK structure
+    console.log('🔑 Data payload keys:', Object.keys(data));
+    console.log('📦 Full data payload (truncated):', JSON.stringify(data, null, 2).substring(0, 5000));
+
+    // Mobile SDK might use different field names for trace
+    // Common alternatives: trace, analytics, events, journey, audit, log
+    const { source, documents, verifications, backgroundCheck } = data;
+
+    // Try multiple possible trace field names
+    let trace = data.trace || data.analytics || data.events || data.journey || data.audit || data.log || null;
+
+    // If source has analytics/trace, use that
+    if (!trace && source?.analytics) {
+      trace = source.analytics;
+      console.log('📊 Found trace in source.analytics');
+    }
+    if (!trace && source?.trace) {
+      trace = source.trace;
+      console.log('📊 Found trace in source.trace');
+    }
+    if (!trace && source?.events) {
+      trace = source.events;
+      console.log('📊 Found trace in source.events');
+    }
 
     console.log('📥 Received SDK verification request:', {
       sdkType: source?.sdkType,
@@ -470,7 +493,9 @@ router.post('/enrollment-jws',
       hasBackgroundCheck: !!backgroundCheck,
       backgroundCheckMatch: backgroundCheck?.match,
       hasTraceEvents: !!trace,
-      traceEventsCount: trace?.length || 0
+      traceEventsCount: trace?.length || 0,
+      traceFieldFound: trace ? 'yes' : 'no - trace is null/undefined',
+      allDataKeys: Object.keys(data)
     });
 
     // Step 2: Extract account information from documents (scan OR reading)
