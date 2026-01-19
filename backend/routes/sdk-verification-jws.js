@@ -140,6 +140,60 @@ function extractFraudScores(verifications) {
   return Object.keys(fraudScores).length > 0 ? fraudScores : null;
 }
 
+// Helper to store trace events in dedicated table for real-time analytics
+async function storeTraceEvents(trace, accountId, tenantId, source) {
+  if (!trace || trace.length === 0) {
+    console.log('📭 No trace events to store in sdk_trace_events table');
+    return;
+  }
+
+  const sessionId = source?.sessionId || source?.jti || 'unknown';
+  const deviceIdentifier = source?.deviceIdentifier || null;
+  const jti = source?.jti || null;
+  const sdkType = source?.sdkType || 'unknown';
+  const sdkVersion = source?.sdkVersion || null;
+  const devicePlatform = source?.devicePlatform || null;
+  const deviceModel = source?.deviceModel || null;
+
+  const traceRecords = trace.map(event => ({
+    tenant_id: tenantId,
+    account_id: accountId,
+    session_id: event.sessionId || sessionId,
+    device_identifier: event.deviceIdentifier || deviceIdentifier,
+    jti: jti,
+    event_name: event.event || event.name || 'UNKNOWN',
+    event_type: event.category || event.type || event.page || null,
+    event_status: event.status || 'SUCCESS',
+    status_code: event.statusCode || null,
+    status_message: event.statusMessage || null,
+    page: event.page || null,
+    document_type: event.documentType || null,
+    event_timestamp: event.timestamp || new Date().toISOString(),
+    duration_ms: event.duration || 0,
+    sdk_type: sdkType,
+    sdk_version: sdkVersion,
+    device_platform: devicePlatform,
+    device_model: deviceModel,
+    raw_event: event
+  }));
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('sdk_trace_events')
+      .insert(traceRecords);
+
+    if (error) {
+      console.error('❌ Error storing trace events:', error.message);
+      // Don't throw - this is not critical, the trace is also stored in accounts table
+    } else {
+      console.log(`✅ Stored ${traceRecords.length} trace events in sdk_trace_events table`);
+    }
+  } catch (err) {
+    console.error('❌ Exception storing trace events:', err.message);
+    // Don't throw - continue with the rest of the flow
+  }
+}
+
 // Helper to build analytics events from SDK data
 function buildAnalyticsEvents(source, verifications, documents, verificationStatus) {
   const events = [];
@@ -862,6 +916,9 @@ router.post('/enrollment-jws',
           action: 'SDK_ENROLLMENT_PROCESSED',
           description: `SDK enrollment processed. Verification status: ${verificationStatus}. NFC verified: ${accountData?.nfc_verified || false}`
         });
+
+        // Store trace events in dedicated table for real-time analytics
+        await storeTraceEvents(trace, accountId, tenantId, source);
       }
     } catch (error) {
       console.error('Account creation failed:', error);
