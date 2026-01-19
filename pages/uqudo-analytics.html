@@ -818,12 +818,18 @@
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <div class="row">
-            <!-- Radar Chart -->
-            <div class="col-md-6">
+          <!-- Radar Chart at Top -->
+          <div class="row mb-4">
+            <div class="col-12">
               <h6 class="mb-3">Verification Scores</h6>
-              <canvas id="verificationRadarChart" height="300"></canvas>
+              <div style="height: 400px;">
+                <canvas id="verificationRadarChart"></canvas>
+              </div>
             </div>
+          </div>
+
+          <!-- Session Data and Verification Details Below -->
+          <div class="row">
             <!-- Session Data Table -->
             <div class="col-md-6">
               <h6 class="mb-3">Session Information</h6>
@@ -865,10 +871,11 @@
                   </tbody>
                 </table>
               </div>
-              <div class="mt-4">
-                <h6 class="mb-3">Verification Details</h6>
-                <div id="modal-verification-details"></div>
-              </div>
+            </div>
+            <!-- Verification Details -->
+            <div class="col-md-6">
+              <h6 class="mb-3">Verification Details</h6>
+              <div id="modal-verification-details"></div>
             </div>
           </div>
         </div>

@@ -208,11 +208,16 @@ function determineOutcome(session, events) {
 function calculateSessionDuration(events) {
   if (!events || events.length === 0) return 0;
 
-  const sortedEvents = events.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-  const firstEvent = new Date(sortedEvents[0].timestamp);
-  const lastEvent = new Date(sortedEvents[sortedEvents.length - 1].timestamp);
+  // Sum all event durations for total time (matches dashboard logic)
+  // Events have duration in milliseconds
+  let totalDuration = 0;
+  events.forEach(event => {
+    const duration = event.duration || 0;
+    totalDuration += duration;
+  });
 
-  return Math.floor((lastEvent - firstEvent) / 1000); // seconds
+  // Convert from milliseconds to seconds
+  return Math.round(totalDuration / 1000);
 }
 
 // Format duration in MM:SS
@@ -1372,19 +1377,26 @@ function createRadarChart(verifications) {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false,
+      maintainAspectRatio: true,
       scales: {
         r: {
           beginAtZero: true,
           max: 100,
           ticks: {
-            stepSize: 20
+            stepSize: 20,
+            backdropColor: 'transparent'
+          },
+          pointLabels: {
+            font: {
+              size: 12
+            }
           }
         }
       },
       plugins: {
         legend: {
-          display: false
+          display: true,
+          position: 'top'
         }
       }
     }
