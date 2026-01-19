@@ -481,6 +481,34 @@ class ApiClient {
   async getWorkflowAuditTrail(params = {}) {
     return this.get('/workflow/audit-trail', params);
   }
+
+  // ========================================
+  // ANALYTICS - SESSION ANALYTICS
+  // ========================================
+
+  async getSessionById(sessionId) {
+    return this.get(`/analytics/sessions/${sessionId}`);
+  }
+
+  async getDeviceHistory(deviceIdentifier) {
+    return this.get(`/analytics/devices/${deviceIdentifier}`);
+  }
+
+  async getSessionEvents(sessionId) {
+    return this.get(`/analytics/sessions/${sessionId}/events`);
+  }
+
+  async getSessionVerification(sessionId) {
+    return this.get(`/analytics/sessions/${sessionId}/verification`);
+  }
+
+  async searchSessions(params = {}) {
+    return this.get('/analytics/sessions', params);
+  }
+
+  async getAnalyticsSummary(params = {}) {
+    return this.get('/analytics/summary', params);
+  }
 }
 
 // Create global API client instance
