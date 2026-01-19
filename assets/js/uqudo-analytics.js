@@ -32,15 +32,15 @@ function getSeverity(statusCode) {
   return SEVERITY_MAP[statusCode] || 'LOW';
 }
 
-// Search for session
+// Search for session (now uses account ID)
 document.getElementById('search-session-btn').addEventListener('click', async () => {
   const sessionId = document.getElementById('session-search-input').value.trim();
   if (!sessionId) {
-    showError('Please enter a Session ID');
+    showError('Please enter a Session ID / Account ID');
     return;
   }
 
-  await loadSessionData(sessionId);
+  await loadAccountAsSession(sessionId);
 });
 
 // Allow Enter key to search
@@ -804,6 +804,295 @@ function formatTime(date) {
   return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
+// ========================================
+// SESSIONS LIST FUNCTIONALITY
+// ========================================
+
+let sessionsListData = [];
+let currentPage = 1;
+let autoRefreshInterval = null;
+
+// Load sessions list
+async function loadSessionsList(page = 1) {
+  try {
+    currentPage = page;
+
+    // Fetch accounts data (which contain SDK results)
+    const response = await api.getAccounts({
+      page: page,
+      limit: 20,
+      sort: 'created_at',
+      order: 'desc'
+    });
+
+    if (!response.success) {
+      document.getElementById('sessions-table-body').innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error loading sessions</td></tr>';
+      return;
+    }
+
+    sessionsListData = response.data;
+
+    // Update summary cards
+    updateSummaryCards(sessionsListData);
+
+    // Build table
+    buildSessionsTable(sessionsListData);
+
+    // Update pagination
+    if (response.pagination) {
+      const paginationHtml = buildPagination(response.pagination, loadSessionsList);
+      document.getElementById('sessions-pagination-container').innerHTML = paginationHtml;
+      attachPaginationListeners('sessions-pagination-container', loadSessionsList);
+    }
+
+  } catch (error) {
+    console.error('Error loading sessions:', error);
+    document.getElementById('sessions-table-body').innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error loading sessions</td></tr>';
+  }
+}
+
+// Update summary cards
+function updateSummaryCards(sessions) {
+  const total = sessions.length;
+  const successful = sessions.filter(s => s.verification_status === 'APPROVED' || s.status === 'approved').length;
+  const successRate = total > 0 ? Math.round((successful / total) * 100) : 0;
+
+  // Calculate average duration from sdk_analytics
+  let totalDuration = 0;
+  let durationsCount = 0;
+
+  sessions.forEach(session => {
+    if (session.sdk_analytics) {
+      try {
+        const analytics = typeof session.sdk_analytics === 'string' ? JSON.parse(session.sdk_analytics) : session.sdk_analytics;
+        if (analytics.events && analytics.events.length > 0) {
+          const duration = calculateSessionDuration(analytics.events);
+          if (duration > 0) {
+            totalDuration += duration;
+            durationsCount++;
+          }
+        }
+      } catch (e) {
+        // Skip invalid analytics
+      }
+    }
+  });
+
+  const avgDuration = durationsCount > 0 ? Math.round(totalDuration / durationsCount) : 0;
+
+  // Count active sessions (created in last 5 minutes)
+  const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+  const activeSessions = sessions.filter(s => {
+    const created = new Date(s.created_at).getTime();
+    return created > fiveMinutesAgo && !s.verification_status;
+  }).length;
+
+  document.getElementById('total-sessions-count').textContent = total;
+  document.getElementById('success-rate').textContent = `${successRate}%`;
+  document.getElementById('avg-duration').textContent = formatDuration(avgDuration);
+  document.getElementById('active-sessions').textContent = activeSessions;
+}
+
+// Build sessions table
+function buildSessionsTable(sessions) {
+  const tableBody = document.getElementById('sessions-table-body');
+
+  if (sessions.length === 0) {
+    tableBody.innerHTML = '<tr><td colspan="8" class="text-center">No sessions found</td></tr>';
+    document.getElementById('empty-state').style.display = 'block';
+    document.getElementById('sessions-list-view').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('sessions-list-view').style.display = 'block';
+
+  tableBody.innerHTML = sessions.map(session => {
+    // Parse SDK data
+    let sdkSource = {};
+    let documentType = 'Unknown';
+    let duration = 0;
+    let platform = 'Unknown';
+
+    if (session.sdk_source) {
+      try {
+        sdkSource = typeof session.sdk_source === 'string' ? JSON.parse(session.sdk_source) : session.sdk_source;
+        platform = sdkSource.devicePlatform || 'Unknown';
+      } catch (e) {}
+    }
+
+    if (session.sdk_analytics) {
+      try {
+        const analytics = typeof session.sdk_analytics === 'string' ? JSON.parse(session.sdk_analytics) : session.sdk_analytics;
+        if (analytics.documents && analytics.documents[0]) {
+          documentType = analytics.documents[0].documentType || 'Unknown';
+        }
+        if (analytics.events) {
+          duration = calculateSessionDuration(analytics.events);
+        }
+      } catch (e) {}
+    }
+
+    // Determine status
+    const status = session.verification_status || session.status || 'PENDING';
+    const statusClass = status === 'APPROVED' || status === 'approved' ? 'success' : status === 'REJECTED' || status === 'rejected' ? 'danger' : 'warning';
+
+    // Calculate basic risk (simplified for list view)
+    const riskScore = session.verification_status === 'APPROVED' ? 'LOW' : session.verification_status === 'REJECTED' ? 'HIGH' : 'MEDIUM';
+    const riskClass = riskScore === 'LOW' ? 'success' : riskScore === 'HIGH' ? 'danger' : 'warning';
+
+    return `
+      <tr>
+        <td>
+          <div class="d-flex flex-column justify-content-center">
+            <h6 class="mb-0 text-sm">${session.first_name || ''} ${session.last_name || ''}</h6>
+            <p class="text-xs text-secondary mb-0">${session.email || 'N/A'}</p>
+          </div>
+        </td>
+        <td>
+          <span class="badge badge-sm bg-secondary">${formatDocumentType(documentType)}</span>
+        </td>
+        <td>
+          <span class="badge badge-sm bg-${statusClass}">${status}</span>
+        </td>
+        <td>
+          <span class="badge badge-sm bg-${riskClass}">${riskScore}</span>
+        </td>
+        <td>
+          <p class="text-xs mb-0">${formatDuration(duration)}</p>
+        </td>
+        <td>
+          <span class="badge badge-sm bg-info">${platform}</span>
+        </td>
+        <td>
+          <p class="text-xs mb-0">${formatDate(new Date(session.created_at))}</p>
+        </td>
+        <td class="align-middle">
+          <button class="btn btn-link text-info text-gradient px-2 mb-0" onclick="viewSessionDetail('${session.id}')">
+            <i class="material-symbols-rounded text-sm">visibility</i>
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// View session detail
+function viewSessionDetail(accountId) {
+  // Navigate to detail view with account data
+  loadAccountAsSession(accountId);
+}
+
+// Load account data as session
+async function loadAccountAsSession(accountId) {
+  try {
+    showLoading();
+
+    // Fetch account details
+    const response = await api.getAccountById(accountId);
+
+    if (!response.success) {
+      hideLoading();
+      showError('Session not found');
+      return;
+    }
+
+    const account = response.data;
+
+    // Parse SDK data
+    let sdkAnalytics = {};
+    let sdkSource = {};
+    let verifications = {};
+
+    if (account.sdk_analytics) {
+      try {
+        sdkAnalytics = typeof account.sdk_analytics === 'string' ? JSON.parse(account.sdk_analytics) : account.sdk_analytics;
+      } catch (e) {
+        console.error('Error parsing sdk_analytics:', e);
+      }
+    }
+
+    if (account.sdk_source) {
+      try {
+        sdkSource = typeof account.sdk_source === 'string' ? JSON.parse(account.sdk_source) : account.sdk_source;
+      } catch (e) {
+        console.error('Error parsing sdk_source:', e);
+      }
+    }
+
+    if (account.sdk_verifications) {
+      try {
+        verifications = typeof account.sdk_verifications === 'string' ? JSON.parse(account.sdk_verifications) : account.sdk_verifications;
+      } catch (e) {
+        console.error('Error parsing sdk_verifications:', e);
+      }
+    }
+
+    // Build session data object
+    currentSessionData = {
+      sessionId: account.id,
+      id: account.id,
+      deviceIdentifier: sdkSource.deviceIdentifier || account.id,
+      platform: sdkSource.devicePlatform || 'Unknown',
+      devicePlatform: sdkSource.devicePlatform || 'Unknown',
+      created_at: account.created_at,
+      timestamp: account.created_at,
+      outcome: account.verification_status || 'PENDING',
+      status: account.verification_status || 'PENDING',
+      verification_status: account.verification_status
+    };
+
+    currentVerificationData = verifications;
+    currentEventsData = sdkAnalytics.events || [];
+    currentDeviceHistory = null; // Would need separate device history lookup
+
+    hideLoading();
+
+    // Display session data
+    displaySessionHeader();
+    displayVerificationSummary();
+    displayFraudFlags();
+    displayDeviceHistory();
+    displayUXAnalysis();
+
+    // Hide list, show detail
+    document.getElementById('sessions-list-view').style.display = 'none';
+    document.getElementById('session-header').style.display = 'block';
+    document.getElementById('tabs-container').style.display = 'block';
+
+  } catch (error) {
+    hideLoading();
+    console.error('Error loading session:', error);
+    showError('Error loading session data');
+  }
+}
+
+// Refresh sessions list
+document.getElementById('refresh-sessions-btn').addEventListener('click', () => {
+  loadSessionsList(currentPage);
+});
+
+// Setup auto-refresh (every 30 seconds)
+function startAutoRefresh() {
+  if (autoRefreshInterval) {
+    clearInterval(autoRefreshInterval);
+  }
+
+  autoRefreshInterval = setInterval(() => {
+    // Only refresh if in list view
+    if (document.getElementById('sessions-list-view').style.display !== 'none') {
+      loadSessionsList(currentPage);
+
+      // Blink indicator
+      const indicator = document.getElementById('auto-refresh-indicator');
+      indicator.style.opacity = '0.3';
+      setTimeout(() => {
+        indicator.style.opacity = '1';
+      }, 300);
+    }
+  }, 30000); // 30 seconds
+}
+
 // Initialize page
 document.addEventListener('DOMContentLoaded', () => {
   // Check for session ID in URL
@@ -812,6 +1101,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (sessionId) {
     document.getElementById('session-search-input').value = sessionId;
-    loadSessionData(sessionId);
+    loadAccountAsSession(sessionId);
+  } else {
+    // Load sessions list by default
+    loadSessionsList(1);
+    startAutoRefresh();
   }
 });
