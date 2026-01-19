@@ -11,6 +11,43 @@ const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 
+// Helper function to normalize trace events from Web SDK format to expected format
+function normalizeTraceEvents(trace) {
+  if (!trace || trace.length === 0) return [];
+
+  const normalized = [];
+  let prevTimestamp = null;
+
+  trace.forEach((event, index) => {
+    const currentTimestamp = new Date(event.timestamp);
+
+    // Calculate duration from previous event
+    let duration = 0;
+    if (prevTimestamp) {
+      duration = currentTimestamp - prevTimestamp;
+    }
+
+    // Transform Web SDK format to expected format
+    normalized.push({
+      name: event.event || event.name,           // Web SDK uses "event", Mobile uses "name"
+      type: event.category || event.type || 'journey',
+      status: event.status || 'SUCCESS',
+      duration: duration,                        // Calculated duration in milliseconds
+      timestamp: event.timestamp,
+      metadata: {
+        page: event.page,
+        documentType: event.documentType,
+        deviceIdentifier: event.deviceIdentifier,
+        sessionId: event.sessionId
+      }
+    });
+
+    prevTimestamp = currentTimestamp;
+  });
+
+  return normalized;
+}
+
 // Helper to build analytics events from SDK data
 function buildAnalyticsEvents(source, verifications, documents, verificationStatus) {
   const events = [];
@@ -414,12 +451,19 @@ router.post('/enrollment-jws',
       }
     }
 
-    // If no documents at all (selfie-only flow), create minimal account data
+    // If no documents at all (selfie-only flow), try to extract info from trace events
     if (!accountData) {
+      // Try to extract document type from trace events if available
+      let documentType = null;
+      if (trace && trace.length > 0) {
+        const traceWithDoc = trace.find(t => t.documentType);
+        documentType = traceWithDoc?.documentType || null;
+      }
+
       accountData = {
         full_name: '',
         id_number: '',
-        document_type: null,
+        document_type: documentType,
         nfc_verified: false,
         passive_authentication: false
       };
@@ -567,10 +611,10 @@ router.post('/enrollment-jws',
         // Update existing account with latest SDK analytics data
         // Use real trace events if available, otherwise build synthetic events
         const analyticsEvents = trace && trace.length > 0
-          ? trace
+          ? normalizeTraceEvents(trace)
           : buildAnalyticsEvents(source, verifications, documents, verificationStatus);
 
-        console.log(`📊 Storing ${analyticsEvents.length} analytics events (${trace && trace.length > 0 ? 'real trace events' : 'synthetic events'})`);
+        console.log(`📊 Storing ${analyticsEvents.length} analytics events (${trace && trace.length > 0 ? 'real trace events (normalized)' : 'synthetic events'})`);
 
         await supabaseAdmin
           .from('accounts')
@@ -591,10 +635,10 @@ router.post('/enrollment-jws',
 
         // Use real trace events if available, otherwise build synthetic events
         const analyticsEvents = trace && trace.length > 0
-          ? trace
+          ? normalizeTraceEvents(trace)
           : buildAnalyticsEvents(source, verifications, documents, verificationStatus);
 
-        console.log(`📊 Creating account with ${analyticsEvents.length} analytics events (${trace && trace.length > 0 ? 'real trace events' : 'synthetic events'})`);
+        console.log(`📊 Creating account with ${analyticsEvents.length} analytics events (${trace && trace.length > 0 ? 'real trace events (normalized)' : 'synthetic events'})`);
         console.log(`📱 SDK Type: ${sdkType}, Is Web: ${isWebSDK}, Has ID Number: ${hasIdNumber}`);
         console.log(`🆕 About to create account with user_id: SDK_${uniqueId}`);
 
