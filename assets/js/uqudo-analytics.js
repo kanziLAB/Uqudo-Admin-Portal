@@ -1041,7 +1041,9 @@ function displayDeviceHistory() {
 function displayUXAnalysis() {
   // Session Flow Metrics
   const flowMetrics = calculateFlowMetrics(currentEventsData);
-  const flowHtml = `
+
+  // Build flow metrics HTML - only show metrics for steps that are present in the trace
+  let flowHtml = `
     <div class="mb-3">
       <small class="text-muted">Total Duration</small>
       <h6>${formatDuration(flowMetrics.totalDuration)}</h6>
@@ -1050,24 +1052,42 @@ function displayUXAnalysis() {
       <small class="text-muted">Time to First Interaction</small>
       <h6>${flowMetrics.timeToFirstInteraction}s</h6>
     </div>
+  `;
+
+  // Only show Document Scan Time if scanning events are present
+  if (flowMetrics.hasScanning) {
+    flowHtml += `
     <div class="mb-3">
       <small class="text-muted">Document Scan Time</small>
       <h6>${flowMetrics.scanTime}s</h6>
     </div>
+    `;
+  }
+
+  // Only show NFC Reading Time if reading events are present
+  if (flowMetrics.hasReading) {
+    flowHtml += `
     <div class="mb-3">
       <small class="text-muted">NFC Reading Time</small>
       <h6>${flowMetrics.readTime}s</h6>
     </div>
+    `;
+  }
+
+  // Only show Face Verification Time if facial events are present
+  if (flowMetrics.hasFacial) {
+    flowHtml += `
     <div class="mb-3">
       <small class="text-muted">Face Verification Time</small>
       <h6>${flowMetrics.faceTime}s</h6>
     </div>
-  `;
+    `;
+  }
 
   document.getElementById('session-flow-metrics').innerHTML = flowHtml;
 
-  // Conversion Funnel
-  const funnel = buildConversionFunnel(currentEventsData);
+  // Conversion Funnel - pass flow metrics to know which steps are present
+  const funnel = buildConversionFunnel(currentEventsData, flowMetrics);
   document.getElementById('conversion-funnel').innerHTML = funnel;
 
   // Friction Analysis
@@ -1273,6 +1293,8 @@ function buildSDKEventsList(events) {
     const documentType = event.documentType || event.metadata?.documentType || '-';
     const statusCode = event.statusCode || event.metadata?.statusCode || '-';
     const statusMessage = event.statusMessage || event.metadata?.statusMessage || '-';
+    const sessionId = event.sessionId || event.metadata?.sessionId || '-';
+    const deviceIdentifier = event.deviceIdentifier || event.metadata?.deviceIdentifier || '-';
 
     html += `
       <div class="sdk-event-item">
@@ -1292,7 +1314,7 @@ function buildSDKEventsList(events) {
         <div class="sdk-event-details" style="display: none;">
           <div class="row">
             <div class="col-md-3">
-              <small class="text-muted">Page</small>
+              <small class="text-muted">Page/Category</small>
               <p class="mb-0 font-weight-bold">${page}</p>
             </div>
             <div class="col-md-3">
@@ -1306,6 +1328,16 @@ function buildSDKEventsList(events) {
             <div class="col-md-3">
               <small class="text-muted">Duration</small>
               <p class="mb-0 font-weight-bold">${formatMilliseconds(duration)}</p>
+            </div>
+          </div>
+          <div class="row mt-2">
+            <div class="col-md-6">
+              <small class="text-muted">Session ID</small>
+              <p class="mb-0 font-weight-bold text-truncate" title="${sessionId}">${sessionId}</p>
+            </div>
+            <div class="col-md-6">
+              <small class="text-muted">Device Identifier</small>
+              <p class="mb-0 font-weight-bold text-truncate" title="${deviceIdentifier}">${deviceIdentifier}</p>
             </div>
           </div>
           ${statusMessage !== '-' ? `
@@ -1329,45 +1361,186 @@ function formatMilliseconds(ms) {
   return `${(ms / 1000).toFixed(2)}s`;
 }
 
-// Calculate flow metrics
+// Calculate flow metrics - handles both Web SDK and Mobile SDK trace formats
 function calculateFlowMetrics(events) {
-  const sortedEvents = events.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  if (!events || events.length === 0) {
+    return {
+      totalDuration: 0,
+      timeToFirstInteraction: 0,
+      scanTime: 0,
+      readTime: 0,
+      faceTime: 0,
+      hasScanning: false,
+      hasReading: false,
+      hasFacial: false
+    };
+  }
 
-  const initEvent = sortedEvents.find(e => e.page === 'INIT');
-  const firstUserEvent = sortedEvents.find(e => e.page !== 'INIT');
-  const scanStart = sortedEvents.find(e => e.page === 'SCAN' && e.status === 'START');
-  const scanComplete = sortedEvents.find(e => e.page === 'SCAN' && e.status === 'SUCCESS');
-  const readStart = sortedEvents.find(e => e.page === 'READ' && e.status === 'START');
-  const readComplete = sortedEvents.find(e => e.page === 'READ' && e.status === 'SUCCESS');
-  const faceStart = sortedEvents.find(e => e.page === 'FACE' && e.status === 'START');
-  const faceComplete = sortedEvents.find(e => e.page === 'FACE' && e.status === 'SUCCESS');
+  const sortedEvents = [...events].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+  // Helper to find events - handles both Web SDK (event, category) and Mobile SDK (name, type, page) formats
+  const findEvent = (nameOrEvent, categoryOrPage, status) => {
+    return sortedEvents.find(e => {
+      const eventName = (e.name || e.event || '').toUpperCase();
+      const eventCategory = (e.category || e.type || e.page || '').toUpperCase();
+      const eventStatus = (e.status || '').toUpperCase();
+
+      const nameMatch = eventName === nameOrEvent.toUpperCase() ||
+                        eventName.includes(nameOrEvent.toUpperCase());
+      const categoryMatch = !categoryOrPage ||
+                           eventCategory === categoryOrPage.toUpperCase() ||
+                           eventCategory.includes(categoryOrPage.toUpperCase());
+      const statusMatch = !status || eventStatus === status.toUpperCase();
+
+      return nameMatch && categoryMatch && statusMatch;
+    });
+  };
+
+  // Find step events - Web SDK uses: VIEW, START, COMPLETE, FINISH with categories like SCAN, ENROLLMENT
+  const viewEvent = findEvent('VIEW', null, null);
+  const startEvent = findEvent('START', null, null);
+  const completeEvent = findEvent('COMPLETE', null, null);
+  const finishEvent = findEvent('FINISH', null, null);
+
+  // Check which steps are present in the trace
+  const hasScanEvents = sortedEvents.some(e => {
+    const cat = (e.category || e.type || e.page || '').toUpperCase();
+    return cat === 'SCAN' || cat.includes('SCAN');
+  });
+
+  const hasReadEvents = sortedEvents.some(e => {
+    const cat = (e.category || e.type || e.page || '').toUpperCase();
+    return cat === 'READ' || cat === 'NFC' || cat.includes('READ');
+  });
+
+  const hasFaceEvents = sortedEvents.some(e => {
+    const cat = (e.category || e.type || e.page || '').toUpperCase();
+    const name = (e.name || e.event || '').toUpperCase();
+    return cat === 'FACE' || cat === 'FACIAL' || cat === 'BIOMETRIC' ||
+           name.includes('FACE') || name.includes('LIVENESS');
+  });
+
+  // Calculate durations using event timestamps or duration field
+  let scanTime = 0;
+  let readTime = 0;
+  let faceTime = 0;
+
+  // Method 1: Sum durations from events with matching categories
+  sortedEvents.forEach(e => {
+    const cat = (e.category || e.type || e.page || '').toUpperCase();
+    const duration = e.duration || 0;
+
+    if (cat === 'SCAN' || cat.includes('SCAN')) {
+      scanTime += duration;
+    } else if (cat === 'READ' || cat === 'NFC' || cat.includes('READ')) {
+      readTime += duration;
+    } else if (cat === 'FACE' || cat === 'FACIAL' || cat === 'BIOMETRIC') {
+      faceTime += duration;
+    }
+  });
+
+  // Convert to seconds
+  scanTime = Math.round(scanTime / 1000);
+  readTime = Math.round(readTime / 1000);
+  faceTime = Math.round(faceTime / 1000);
+
+  // Calculate time to first interaction
+  let timeToFirstInteraction = 0;
+  if (viewEvent && startEvent) {
+    timeToFirstInteraction = Math.floor((new Date(startEvent.timestamp) - new Date(viewEvent.timestamp)) / 1000);
+  } else if (sortedEvents.length >= 2) {
+    timeToFirstInteraction = Math.floor((new Date(sortedEvents[1].timestamp) - new Date(sortedEvents[0].timestamp)) / 1000);
+  }
 
   return {
     totalDuration: calculateSessionDuration(events),
-    timeToFirstInteraction: initEvent && firstUserEvent ? Math.floor((new Date(firstUserEvent.timestamp) - new Date(initEvent.timestamp)) / 1000) : 0,
-    scanTime: scanStart && scanComplete ? Math.floor((new Date(scanComplete.timestamp) - new Date(scanStart.timestamp)) / 1000) : 0,
-    readTime: readStart && readComplete ? Math.floor((new Date(readComplete.timestamp) - new Date(readStart.timestamp)) / 1000) : 0,
-    faceTime: faceStart && faceComplete ? Math.floor((new Date(faceComplete.timestamp) - new Date(faceStart.timestamp)) / 1000) : 0
+    timeToFirstInteraction: Math.max(0, timeToFirstInteraction),
+    scanTime: scanTime,
+    readTime: readTime,
+    faceTime: faceTime,
+    hasScanning: hasScanEvents,
+    hasReading: hasReadEvents,
+    hasFacial: hasFaceEvents
   };
 }
 
-// Build conversion funnel
-function buildConversionFunnel(events) {
-  const steps = ['INIT', 'SCAN', 'READ', 'FACE', 'FINISH'];
+// Build conversion funnel - dynamically shows only steps present in trace
+function buildConversionFunnel(events, flowMetrics = null) {
+  // Build dynamic steps list based on what's present in the trace
+  let steps = ['START'];
+
+  // Helper to check if step is present - handles both Web SDK and Mobile SDK formats
+  const isStepPresent = (stepName) => {
+    return events.some(e => {
+      const name = (e.name || e.event || '').toUpperCase();
+      const category = (e.category || e.type || e.page || '').toUpperCase();
+      const page = (e.page || '').toUpperCase();
+
+      return name.includes(stepName) || category === stepName || page === stepName ||
+             category.includes(stepName) || page.includes(stepName);
+    });
+  };
+
+  // Check for scanning step
+  if (flowMetrics?.hasScanning || isStepPresent('SCAN')) {
+    steps.push('SCAN');
+  }
+
+  // Check for reading/NFC step
+  if (flowMetrics?.hasReading || isStepPresent('READ') || isStepPresent('NFC')) {
+    steps.push('READ');
+  }
+
+  // Check for face/facial step - only add if present
+  if (flowMetrics?.hasFacial || isStepPresent('FACE') || isStepPresent('FACIAL') || isStepPresent('LIVENESS')) {
+    steps.push('FACE');
+  }
+
+  // Always add FINISH/COMPLETE
+  steps.push('FINISH');
+
   let html = '';
 
   steps.forEach((step, index) => {
-    const hasSuccess = events.some(e => e.page === step && e.status === 'SUCCESS');
-    const hasFail = events.some(e => e.page === step && e.status === 'FAILURE');
+    // Check for success/failure - handle multiple naming conventions
+    const hasSuccess = events.some(e => {
+      const name = (e.name || e.event || '').toUpperCase();
+      const category = (e.category || e.type || e.page || '').toUpperCase();
+      const page = (e.page || '').toUpperCase();
+      const status = (e.status || '').toUpperCase();
+
+      const matchesStep = name.includes(step) || category === step || page === step ||
+                          category.includes(step) || page.includes(step) ||
+                          (step === 'START' && (name === 'START' || name === 'VIEW')) ||
+                          (step === 'FINISH' && (name === 'FINISH' || name === 'COMPLETE'));
+
+      return matchesStep && (status === 'SUCCESS' || status === 'COMPLETED');
+    });
+
+    const hasFail = events.some(e => {
+      const name = (e.name || e.event || '').toUpperCase();
+      const category = (e.category || e.type || e.page || '').toUpperCase();
+      const page = (e.page || '').toUpperCase();
+      const status = (e.status || '').toUpperCase();
+
+      const matchesStep = name.includes(step) || category === step || page === step ||
+                          category.includes(step) || page.includes(step);
+
+      return matchesStep && (status === 'FAILURE' || status === 'FAILED' || status === 'ERROR');
+    });
+
     const status = hasSuccess ? 'completed' : hasFail ? 'failed' : 'pending';
     const icon = status === 'completed' ? 'check' : status === 'failed' ? 'close' : 'remove';
+
+    // Use more user-friendly display names
+    const displayName = step === 'READ' ? 'NFC' : step;
 
     html += `
       <div class="progress-step">
         <div class="progress-step-icon progress-step-${status}">
           <i class="material-symbols-rounded" style="font-size: 14px;">${icon}</i>
         </div>
-        <span>${step}</span>
+        <span>${displayName}</span>
       </div>
     `;
   });
@@ -1375,22 +1548,44 @@ function buildConversionFunnel(events) {
   return html;
 }
 
-// Calculate friction scores
+// Calculate friction scores - handles both Web SDK and Mobile SDK formats
 function calculateFrictionScores(events) {
-  const steps = ['SCAN', 'READ', 'FACE', 'FACE_MATCH'];
+  // Define step patterns - each step can match multiple naming conventions
+  const stepPatterns = [
+    { name: 'SCAN', patterns: ['SCAN', 'SCANNING', 'DOCUMENT_SCAN'] },
+    { name: 'READ', patterns: ['READ', 'NFC', 'NFC_READ', 'NFC_READING', 'READING'] },
+    { name: 'FACE', patterns: ['FACE', 'FACIAL', 'LIVENESS', 'FACE_MATCH', 'BIOMETRIC'] }
+  ];
+
   const results = [];
 
-  steps.forEach(stepName => {
-    // Handle both old format (e.page) and new format (e.name)
-    const stepEvents = events.filter(e =>
-      e.page === stepName || (e.name || e.event) === stepName
-    );
+  stepPatterns.forEach(({ name: stepName, patterns }) => {
+    // Filter events that match any of the patterns - handles Web SDK (event, category) and Mobile SDK (name, page)
+    const stepEvents = events.filter(e => {
+      const eventName = (e.name || e.event || '').toUpperCase();
+      const category = (e.category || e.type || '').toUpperCase();
+      const page = (e.page || '').toUpperCase();
+
+      return patterns.some(pattern =>
+        eventName.includes(pattern) || category === pattern || page === pattern ||
+        category.includes(pattern) || page.includes(pattern)
+      );
+    });
+
+    // Skip if no events found for this step
     if (stepEvents.length === 0) return;
 
-    const attempts = stepEvents.filter(e => e.status === 'START' || e.status === 'start').length || 1;
-    const issues = stepEvents.filter(e =>
-      e.status === 'FAILURE' || e.status === 'failure' || e.status === 'FAILED' || e.status === 'failed'
-    ).map(e => e.statusCode || 'Failed');
+    // Count attempts - look for START events or any events in the category
+    const attempts = stepEvents.filter(e => {
+      const status = (e.status || '').toUpperCase();
+      return status === 'START' || status === 'STARTED';
+    }).length || 1;
+
+    // Collect issues from failure events
+    const issues = stepEvents.filter(e => {
+      const status = (e.status || '').toUpperCase();
+      return status === 'FAILURE' || status === 'FAILED' || status === 'ERROR';
+    }).map(e => e.statusCode || e.statusMessage || 'Failed');
 
     // Calculate duration from event durations
     let duration = 0;
@@ -1398,12 +1593,16 @@ function calculateFrictionScores(events) {
       duration += (e.duration || 0) / 1000; // Convert ms to seconds
     });
 
-    // Extract face match score if this is FACE_MATCH step
+    // Extract face match score if this is FACE step
     let faceMatchScore = null;
-    if (stepName === 'FACE_MATCH') {
-      const faceEvent = stepEvents.find(e => e.details?.score !== undefined);
+    if (stepName === 'FACE') {
+      const faceEvent = stepEvents.find(e =>
+        e.details?.score !== undefined ||
+        e.faceMatchScore !== undefined ||
+        e.livenessScore !== undefined
+      );
       if (faceEvent) {
-        faceMatchScore = faceEvent.details.score;
+        faceMatchScore = faceEvent.details?.score ?? faceEvent.faceMatchScore ?? faceEvent.livenessScore;
       }
     }
 
@@ -1414,8 +1613,11 @@ function calculateFrictionScores(events) {
     const score = Math.round(attemptPenalty + durationPenalty + issuePenalty);
     const level = score > 70 ? 'HIGH' : score > 30 ? 'MEDIUM' : 'LOW';
 
+    // Use user-friendly display names
+    const displayName = stepName === 'READ' ? 'NFC Read' : stepName === 'FACE' ? 'Face Verification' : 'Document Scan';
+
     results.push({
-      name: stepName,
+      name: displayName,
       score,
       level,
       issues: [...new Set(issues)],
@@ -1428,14 +1630,21 @@ function calculateFrictionScores(events) {
   return results;
 }
 
-// Calculate environment issues
+// Calculate environment issues - handles both statusCode and statusMessage
 function calculateEnvironmentIssues(events) {
+  // Helper to check if event matches any of the patterns
+  const matchesPattern = (e, patterns) => {
+    const code = (e.statusCode || '').toUpperCase();
+    const message = (e.statusMessage || '').toUpperCase();
+    return patterns.some(p => code.includes(p) || message.includes(p));
+  };
+
   return {
-    dark: events.filter(e => e.statusCode && e.statusCode.includes('DARK_ENVIRONMENT')).length,
-    blur: events.filter(e => e.statusCode && e.statusCode.includes('BLUR_DETECTED')).length,
-    glare: events.filter(e => e.statusCode && e.statusCode.includes('GLARE_DETECTED')).length,
-    position: events.filter(e => e.statusCode && e.statusCode.includes('INCORRECT_POSITION')).length,
-    distance: events.filter(e => e.statusCode && e.statusCode.includes('INCORRECT_DISTANCE')).length
+    dark: events.filter(e => matchesPattern(e, ['DARK', 'LOW_LIGHT', 'LIGHTING'])).length,
+    blur: events.filter(e => matchesPattern(e, ['BLUR', 'BLURRY', 'OUT_OF_FOCUS'])).length,
+    glare: events.filter(e => matchesPattern(e, ['GLARE', 'REFLECTION', 'BRIGHT'])).length,
+    position: events.filter(e => matchesPattern(e, ['POSITION', 'ALIGN', 'CENTER', 'TILT'])).length,
+    distance: events.filter(e => matchesPattern(e, ['DISTANCE', 'TOO_FAR', 'TOO_CLOSE', 'ZOOM'])).length
   };
 }
 
