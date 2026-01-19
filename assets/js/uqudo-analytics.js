@@ -192,13 +192,101 @@ function displaySessionHeader() {
   const duration = calculateSessionDuration(currentEventsData);
   document.getElementById('duration-display').textContent = formatDuration(duration);
 
-  // Platform
+  // Platform with icon
   const platform = session.platform || session.devicePlatform || 'Unknown';
-  document.getElementById('platform-badge').textContent = platform;
+  const platformLower = platform.toLowerCase();
+  const platformIcon = document.getElementById('platform-icon');
+  const platformBadge = document.getElementById('platform-badge');
+
+  if (platformLower.includes('android') || platformLower.includes('mobile') || platformLower.includes('ios')) {
+    platformIcon.textContent = 'phone_iphone';
+    platformIcon.style.color = '#4caf50';
+  } else if (platformLower.includes('web') || platformLower.includes('browser')) {
+    platformIcon.textContent = 'language';
+    platformIcon.style.color = '#1e88e5';
+  } else {
+    platformIcon.textContent = 'devices';
+    platformIcon.style.color = '#67748e';
+  }
+  platformBadge.textContent = platform;
 
   // Timestamp
   const timestamp = new Date(session.created_at || session.timestamp);
   document.getElementById('timestamp-display').textContent = formatDateTime(timestamp);
+
+  // Update Conversion Funnel based on events
+  updateConversionFunnel(currentEventsData);
+}
+
+// Update the conversion funnel visualization based on trace events
+function updateConversionFunnel(events) {
+  if (!events || events.length === 0) return;
+
+  // Map events to funnel steps
+  const funnelSteps = {
+    'funnel-scan': false,
+    'funnel-start': false,
+    'funnel-complete': false,
+    'funnel-face': false
+  };
+
+  const connectorStatus = {
+    'connector-1': 'incomplete',
+    'connector-2': 'incomplete',
+    'connector-3': 'incomplete'
+  };
+
+  // Check which steps are completed based on events
+  events.forEach(event => {
+    const name = (event.name || event.event || '').toUpperCase();
+    const type = (event.type || event.page || '').toUpperCase();
+    const status = (event.status || '').toUpperCase();
+
+    // SCAN VIEW
+    if (name === 'SCAN' && type === 'VIEW') {
+      funnelSteps['funnel-scan'] = true;
+    }
+    // SCAN START
+    if (name === 'SCAN' && type === 'START') {
+      funnelSteps['funnel-start'] = true;
+      connectorStatus['connector-1'] = 'complete';
+    }
+    // SCAN COMPLETE
+    if (name === 'SCAN' && type === 'COMPLETE') {
+      funnelSteps['funnel-complete'] = true;
+      connectorStatus['connector-2'] = 'complete';
+    }
+    // FACE VIEW
+    if (name === 'FACE' && type === 'VIEW') {
+      funnelSteps['funnel-face'] = true;
+      connectorStatus['connector-3'] = 'complete';
+    }
+  });
+
+  // Update funnel circles
+  Object.keys(funnelSteps).forEach(stepId => {
+    const circle = document.getElementById(stepId);
+    if (circle) {
+      if (funnelSteps[stepId]) {
+        circle.classList.remove('pending', 'failed');
+        circle.querySelector('i').textContent = 'check';
+      } else {
+        circle.classList.add('pending');
+        circle.querySelector('i').textContent = 'hourglass_empty';
+      }
+    }
+  });
+
+  // Update connectors
+  Object.keys(connectorStatus).forEach(connectorId => {
+    const connector = document.getElementById(connectorId);
+    if (connector) {
+      connector.classList.remove('pending', 'incomplete');
+      if (connectorStatus[connectorId] !== 'complete') {
+        connector.classList.add('incomplete');
+      }
+    }
+  });
 }
 
 // Determine session outcome

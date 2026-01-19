@@ -37,53 +37,142 @@
   <style>
     /* Uqudo Blue Theme for Session View */
     .session-header-card {
-      background: #ffffff;
+      background: linear-gradient(195deg, #1e88e5 0%, #1565c0 100%);
       color: #344767;
       padding: 2rem;
       border-radius: 1rem;
       margin-bottom: 1.5rem;
-      border: 1px solid #e9ecef;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     }
 
     .session-header-card .session-label {
-      color: #67748e;
+      color: #000000;
       font-size: 0.75rem;
-      font-weight: 500;
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
     .session-header-card .session-value {
-      color: #344767;
-      font-weight: 600;
+      color: #000000;
+      font-weight: 700;
       font-size: 0.875rem;
       word-break: break-all;
       font-family: monospace;
     }
 
     .session-header-card .copy-button {
-      background: #f0f2f5;
-      color: #1e88e5;
-      border: 1px solid #e9ecef;
+      background: rgba(255, 255, 255, 0.2);
+      color: #000000;
+      border: none;
     }
 
     .session-header-card .copy-button:hover {
-      background: #e3f2fd;
+      background: rgba(255, 255, 255, 0.4);
     }
 
     .session-header-card .info-box {
-      background: #f8f9fa;
-      border: 1px solid #e9ecef;
+      background: rgba(255, 255, 255, 0.95);
+      border: none;
     }
 
     .session-header-card .info-box .info-label {
-      color: #67748e;
+      color: #344767;
       font-size: 0.7rem;
+      font-weight: 500;
+    }
+
+    .session-header-card .info-box .info-value {
+      color: #000000;
+      font-weight: 600;
     }
 
     .session-header-card h5 {
-      color: #1e88e5;
+      color: #000000;
+      font-weight: 700;
+    }
+
+    /* Conversion Funnel Horizontal */
+    .conversion-funnel-horizontal {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem 0;
+      position: relative;
+      margin-top: 1.5rem;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+    }
+
+    .funnel-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 2;
+      flex: 1;
+    }
+
+    .funnel-circle {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      border: 3px solid #4caf50;
+      box-shadow: 0 0 0 8px rgba(76, 175, 80, 0.15);
+      position: relative;
+    }
+
+    .funnel-circle i {
+      color: #4caf50;
+      font-size: 24px;
+    }
+
+    .funnel-circle.pending {
+      border-color: #90caf9;
+      box-shadow: 0 0 0 8px rgba(144, 202, 249, 0.15);
+    }
+
+    .funnel-circle.pending i {
+      color: #90caf9;
+    }
+
+    .funnel-circle.failed {
+      border-color: #f44336;
+      box-shadow: 0 0 0 8px rgba(244, 67, 54, 0.15);
+    }
+
+    .funnel-circle.failed i {
+      color: #f44336;
+    }
+
+    .funnel-label {
+      margin-top: 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #344767;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .funnel-connector {
+      flex: 0.5;
+      height: 3px;
+      background: linear-gradient(90deg, #4caf50, #4caf50);
+      position: relative;
+      margin: 0 -10px;
+      z-index: 1;
+      margin-bottom: 30px;
+    }
+
+    .funnel-connector.pending {
+      background: linear-gradient(90deg, #4caf50, #90caf9);
+    }
+
+    .funnel-connector.incomplete {
+      background: #e0e0e0;
     }
 
     /* Nav Tabs - Uqudo Blue Theme */
@@ -551,22 +640,55 @@
               <div class="col-6">
                 <div class="text-center p-2 info-box rounded">
                   <small class="info-label d-block">Duration</small>
-                  <span class="mt-1 d-block font-weight-bold text-dark" id="duration-display">-</span>
+                  <span class="mt-1 d-block font-weight-bold info-value" id="duration-display">-</span>
                 </div>
               </div>
               <div class="col-6">
                 <div class="text-center p-2 info-box rounded">
                   <small class="info-label d-block">Platform</small>
-                  <span class="badge bg-gradient-info mt-1" id="platform-badge">-</span>
+                  <div class="d-flex align-items-center justify-content-center mt-1">
+                    <i class="material-symbols-rounded me-1" id="platform-icon" style="font-size: 18px; color: #1e88e5;">phone_iphone</i>
+                    <span class="info-value" id="platform-badge">-</span>
+                  </div>
                 </div>
               </div>
               <div class="col-6">
                 <div class="text-center p-2 info-box rounded">
                   <small class="info-label d-block">Timestamp</small>
-                  <span class="mt-1 d-block text-dark" style="font-size: 0.75rem;" id="timestamp-display">-</span>
+                  <span class="mt-1 d-block info-value" style="font-size: 0.75rem;" id="timestamp-display">-</span>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+        <!-- Conversion Funnel -->
+        <div class="conversion-funnel-horizontal" id="session-funnel">
+          <div class="funnel-step">
+            <div class="funnel-circle" id="funnel-scan">
+              <i class="material-symbols-rounded">check</i>
+            </div>
+            <span class="funnel-label">VIEW - SCAN</span>
+          </div>
+          <div class="funnel-connector" id="connector-1"></div>
+          <div class="funnel-step">
+            <div class="funnel-circle" id="funnel-start">
+              <i class="material-symbols-rounded">check</i>
+            </div>
+            <span class="funnel-label">START - SCAN</span>
+          </div>
+          <div class="funnel-connector" id="connector-2"></div>
+          <div class="funnel-step">
+            <div class="funnel-circle" id="funnel-complete">
+              <i class="material-symbols-rounded">check</i>
+            </div>
+            <span class="funnel-label">COMPLETE</span>
+          </div>
+          <div class="funnel-connector" id="connector-3"></div>
+          <div class="funnel-step">
+            <div class="funnel-circle" id="funnel-face">
+              <i class="material-symbols-rounded">check</i>
+            </div>
+            <span class="funnel-label">VIEW - FACE</span>
           </div>
         </div>
       </div>
