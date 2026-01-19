@@ -137,7 +137,7 @@
   <script>
     // Check if already logged in
     if (localStorage.getItem('auth_token')) {
-      window.location.href = "uqudo-dashboard.html";
+      window.location.href = "uqudo-dashboard";
     }
 
     // Handle form submission
@@ -177,7 +177,7 @@
 
           // Redirect to dashboard after short delay
           setTimeout(() => {
-            window.location.href = "uqudo-dashboard.html";
+            window.location.href = "uqudo-dashboard";
           }, 1000);
         } else {
           throw new Error(response.error || 'Login failed');

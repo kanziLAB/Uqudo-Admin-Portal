@@ -1354,7 +1354,8 @@
     function logout() {
       localStorage.removeItem('uqudo_token');
       localStorage.removeItem('uqudo_user');
-      window.location.href = 'uqudo-sign-in.html';
+      localStorage.removeItem('auth_token');
+      window.location.href = 'uqudo-sign-in';
     }
   </script>
 
