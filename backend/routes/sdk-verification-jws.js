@@ -479,7 +479,12 @@ router.post('/enrollment-jws',
       });
     }
 
-    const { token } = req.body;
+    const { token, traceEvents: externalTraceEvents } = req.body;
+
+    // Log if external trace events are provided (from Web SDK via separate field)
+    if (externalTraceEvents && externalTraceEvents.length > 0) {
+      console.log(`📊 Received ${externalTraceEvents.length} external trace events from request body`);
+    }
 
     // Step 1: Decode JWS token without verification (to inspect structure)
     // In production, you should verify the signature with Uqudo's public key
@@ -523,7 +528,7 @@ router.post('/enrollment-jws',
     // Common alternatives: trace, analytics, events, journey, audit, log
     const { source, documents, verifications, backgroundCheck } = data;
 
-    // Try multiple possible trace field names
+    // Try multiple possible trace field names from JWS token
     let trace = data.trace || data.analytics || data.events || data.journey || data.audit || data.log || null;
 
     // If source has analytics/trace, use that
@@ -540,6 +545,13 @@ router.post('/enrollment-jws',
       console.log('📊 Found trace in source.events');
     }
 
+    // Use external trace events from request body if JWS token doesn't have trace
+    // This supports Web SDK which captures trace via onTrace callback separately
+    if (!trace && externalTraceEvents && externalTraceEvents.length > 0) {
+      trace = externalTraceEvents;
+      console.log(`📊 Using ${trace.length} external trace events from request body (Web SDK onTrace callback)`);
+    }
+
     console.log('📥 Received SDK verification request:', {
       sdkType: source?.sdkType,
       sdkVersion: source?.sdkVersion,
@@ -548,7 +560,7 @@ router.post('/enrollment-jws',
       backgroundCheckMatch: backgroundCheck?.match,
       hasTraceEvents: !!trace,
       traceEventsCount: trace?.length || 0,
-      traceFieldFound: trace ? 'yes' : 'no - trace is null/undefined',
+      traceSource: trace ? (externalTraceEvents?.length > 0 ? 'external (request body)' : 'JWS token') : 'none',
       allDataKeys: Object.keys(data)
     });
 
