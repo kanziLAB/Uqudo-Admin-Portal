@@ -1008,6 +1008,42 @@
                         <p class="text-muted">Loading event details...</p>
                       </div>
                     </div>
+
+                    <!-- Raw Data Section -->
+                    <div class="mt-4">
+                      <h6 class="mb-3 d-flex align-items-center">
+                        <i class="material-symbols-rounded me-2">data_object</i>
+                        Raw Captured Data
+                        <button class="btn btn-sm btn-outline-secondary ms-3" onclick="toggleRawData()">
+                          <i class="material-symbols-rounded" style="font-size: 14px;">visibility</i> Toggle
+                        </button>
+                        <button class="btn btn-sm btn-outline-info ms-2" onclick="copyRawData()">
+                          <i class="material-symbols-rounded" style="font-size: 14px;">content_copy</i> Copy
+                        </button>
+                      </h6>
+                      <div id="raw-data-container" style="display: none;">
+                        <div class="mb-3">
+                          <label class="form-label fw-bold">sdk_analytics (processed events)</label>
+                          <pre id="raw-sdk-analytics" class="bg-dark text-light p-3 rounded" style="max-height: 300px; overflow-y: auto; font-size: 11px;"></pre>
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label fw-bold">sdk_trace (original trace from SDK)</label>
+                          <pre id="raw-sdk-trace" class="bg-dark text-light p-3 rounded" style="max-height: 300px; overflow-y: auto; font-size: 11px;"></pre>
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label fw-bold">sdk_source</label>
+                          <pre id="raw-sdk-source" class="bg-dark text-light p-3 rounded" style="max-height: 200px; overflow-y: auto; font-size: 11px;"></pre>
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label fw-bold">sdk_verifications</label>
+                          <pre id="raw-sdk-verifications" class="bg-dark text-light p-3 rounded" style="max-height: 200px; overflow-y: auto; font-size: 11px;"></pre>
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label fw-bold">fraud_scores</label>
+                          <pre id="raw-fraud-scores" class="bg-dark text-light p-3 rounded" style="max-height: 200px; overflow-y: auto; font-size: 11px;"></pre>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

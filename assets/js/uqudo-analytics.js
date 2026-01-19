@@ -5,6 +5,7 @@ let currentSessionData = null;
 let currentVerificationData = null;
 let currentEventsData = [];
 let currentDeviceHistory = null;
+let currentRawData = null; // Store raw data for debugging
 
 // Severity Mapping for Fraud Flags
 const SEVERITY_MAP = {
@@ -2497,6 +2498,15 @@ async function loadAccountAsSession(accountId) {
     currentEventsData = events;
     currentDeviceHistory = null; // Would need separate device history lookup
 
+    // Store raw data for debugging
+    currentRawData = {
+      sdk_analytics: account.sdk_analytics,
+      sdk_trace: account.sdk_trace,
+      sdk_source: account.sdk_source,
+      sdk_verifications: account.sdk_verifications,
+      fraud_scores: account.fraud_scores
+    };
+
     hideLoading();
 
     // Display session data
@@ -2505,6 +2515,7 @@ async function loadAccountAsSession(accountId) {
     displayFraudFlags();
     displayDeviceHistory();
     displayUXAnalysis();
+    displayRawData(); // Display raw captured data
 
     // Hide list, show detail
     document.getElementById('sessions-list-view').style.display = 'none';
@@ -2545,6 +2556,99 @@ function startAutoRefresh() {
       }, 300);
     }
   }, 30000); // 30 seconds
+}
+
+// Display raw captured data for debugging
+function displayRawData() {
+  if (!currentRawData) {
+    console.log('📭 No raw data available');
+    return;
+  }
+
+  console.log('📦 Raw Data:', currentRawData);
+
+  // Parse and format each field
+  const formatJson = (data) => {
+    if (!data) return 'null';
+    try {
+      const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+      return JSON.stringify(parsed, null, 2);
+    } catch (e) {
+      return String(data);
+    }
+  };
+
+  // sdk_analytics
+  const analyticsEl = document.getElementById('raw-sdk-analytics');
+  if (analyticsEl) {
+    analyticsEl.textContent = formatJson(currentRawData.sdk_analytics);
+  }
+
+  // sdk_trace (original from SDK)
+  const traceEl = document.getElementById('raw-sdk-trace');
+  if (traceEl) {
+    traceEl.textContent = formatJson(currentRawData.sdk_trace);
+  }
+
+  // sdk_source
+  const sourceEl = document.getElementById('raw-sdk-source');
+  if (sourceEl) {
+    sourceEl.textContent = formatJson(currentRawData.sdk_source);
+  }
+
+  // sdk_verifications
+  const verificationsEl = document.getElementById('raw-sdk-verifications');
+  if (verificationsEl) {
+    verificationsEl.textContent = formatJson(currentRawData.sdk_verifications);
+  }
+
+  // fraud_scores
+  const fraudEl = document.getElementById('raw-fraud-scores');
+  if (fraudEl) {
+    fraudEl.textContent = formatJson(currentRawData.fraud_scores);
+  }
+}
+
+// Toggle raw data visibility
+function toggleRawData() {
+  const container = document.getElementById('raw-data-container');
+  if (container) {
+    container.style.display = container.style.display === 'none' ? 'block' : 'none';
+  }
+}
+
+// Copy raw data to clipboard
+function copyRawData() {
+  if (!currentRawData) {
+    showError('No raw data available');
+    return;
+  }
+
+  const formatJson = (data) => {
+    if (!data) return null;
+    try {
+      return typeof data === 'string' ? JSON.parse(data) : data;
+    } catch (e) {
+      return data;
+    }
+  };
+
+  const formattedData = {
+    sdk_analytics: formatJson(currentRawData.sdk_analytics),
+    sdk_trace: formatJson(currentRawData.sdk_trace),
+    sdk_source: formatJson(currentRawData.sdk_source),
+    sdk_verifications: formatJson(currentRawData.sdk_verifications),
+    fraud_scores: formatJson(currentRawData.fraud_scores)
+  };
+
+  navigator.clipboard.writeText(JSON.stringify(formattedData, null, 2))
+    .then(() => {
+      alert('Raw data copied to clipboard!');
+    })
+    .catch(err => {
+      console.error('Failed to copy:', err);
+      showError('Failed to copy raw data');
+    });
 }
 
 // Initialize page
