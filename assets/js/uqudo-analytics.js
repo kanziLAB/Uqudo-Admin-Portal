@@ -220,6 +220,172 @@ function calculateSessionDuration(events) {
   return Math.round(totalDuration / 1000);
 }
 
+// Build visual journey flow from trace events
+function buildJourneyFlow(events) {
+  if (!events || events.length === 0) {
+    return '<span class="text-xs text-secondary">No trace data</span>';
+  }
+
+  // Build journey with badges and arrows
+  const journeyHTML = events.map((event, index) => {
+    const eventName = event.name || event.event || event.type || 'UNKNOWN';
+    const duration = event.duration || 0;
+    const status = event.status || 'SUCCESS';
+
+    // Color based on status
+    let badgeColor = 'success';
+    if (status === 'FAILURE' || status === 'failure' || status === 'FAILED') {
+      badgeColor = 'danger';
+    } else if (status === 'PENDING' || status === 'pending') {
+      badgeColor = 'warning';
+    }
+
+    // Format duration
+    const durationText = duration > 0 ? ` (${(duration / 1000).toFixed(1)}s)` : '';
+
+    const badge = `<span class="badge badge-sm bg-${badgeColor}">${eventName}${durationText}</span>`;
+    const arrow = index < events.length - 1 ? '<i class="material-symbols-rounded text-secondary mx-1" style="font-size: 12px;">arrow_forward</i>' : '';
+
+    return badge + arrow;
+  }).join('');
+
+  return `
+    <div class="d-flex align-items-center flex-wrap" style="gap: 4px;">
+      ${journeyHTML}
+      <span class="badge badge-sm bg-gradient-info ms-2">${events.length} events</span>
+    </div>
+  `;
+}
+
+// Calculate comprehensive risk score from all verification scores
+function calculateComprehensiveRisk(session) {
+  let totalScore = 0;
+  let scoreCount = 0;
+  let details = [];
+
+  try {
+    // Parse verifications
+    if (session.sdk_verifications) {
+      const verifications = typeof session.sdk_verifications === 'string'
+        ? JSON.parse(session.sdk_verifications)
+        : session.sdk_verifications;
+
+      // Screen Detection Score (0-100, lower is better)
+      if (verifications.idScreenDetection?.enabled && verifications.idScreenDetection?.score !== undefined) {
+        const screenScore = 100 - verifications.idScreenDetection.score; // Invert: high detection = high risk
+        totalScore += screenScore;
+        scoreCount++;
+        details.push(`Screen: ${verifications.idScreenDetection.score}/100`);
+      }
+
+      // Print Detection Score (0-100, lower is better)
+      if (verifications.idPrintDetection?.enabled && verifications.idPrintDetection?.score !== undefined) {
+        const printScore = 100 - verifications.idPrintDetection.score; // Invert
+        totalScore += printScore;
+        scoreCount++;
+        details.push(`Print: ${verifications.idPrintDetection.score}/100`);
+      }
+
+      // Photo Tampering Score (0-100, lower is better)
+      if (verifications.idPhotoTamperingDetection?.enabled && verifications.idPhotoTamperingDetection?.score !== undefined) {
+        const tamperScore = 100 - verifications.idPhotoTamperingDetection.score; // Invert
+        totalScore += tamperScore;
+        scoreCount++;
+        details.push(`Tampering: ${verifications.idPhotoTamperingDetection.score}/100`);
+      }
+
+      // Source Detection
+      if (verifications.sourceDetection?.enabled) {
+        let sourceScore = 100; // Start with perfect
+        if (!verifications.sourceDetection.optimalResolution) {
+          sourceScore -= 20; // Penalty for non-optimal resolution
+        }
+        if (verifications.sourceDetection.allowNonPhysicalDocuments === false) {
+          // If non-physical docs not allowed, this increases risk
+          sourceScore -= 10;
+        }
+        totalScore += sourceScore;
+        scoreCount++;
+        details.push(`Source: ${verifications.sourceDetection.optimalResolution ? 'Optimal' : 'Sub-optimal'}`);
+      }
+
+      // Face Match Level
+      if (verifications.faceMatchLevel) {
+        const faceScore = verifications.faceMatchLevel === 'HIGH' ? 95 :
+                         verifications.faceMatchLevel === 'MEDIUM' ? 75 : 50;
+        totalScore += faceScore;
+        scoreCount++;
+        details.push(`Face: ${verifications.faceMatchLevel}`);
+      }
+
+      // Liveness Level
+      if (verifications.livenessLevel) {
+        const livenessScore = verifications.livenessLevel === 'HIGH' ? 95 :
+                             verifications.livenessLevel === 'MEDIUM' ? 75 : 50;
+        totalScore += livenessScore;
+        scoreCount++;
+        details.push(`Liveness: ${verifications.livenessLevel}`);
+      }
+
+      // Document Validity
+      if (verifications.documentValid !== undefined) {
+        const docScore = verifications.documentValid ? 100 : 0;
+        totalScore += docScore;
+        scoreCount++;
+        details.push(`Doc: ${verifications.documentValid ? 'Valid' : 'Invalid'}`);
+      }
+
+      // MRZ Validity
+      if (verifications.mrzValid !== undefined) {
+        const mrzScore = verifications.mrzValid ? 100 : 0;
+        totalScore += mrzScore;
+        scoreCount++;
+        details.push(`MRZ: ${verifications.mrzValid ? 'Valid' : 'Invalid'}`);
+      }
+    }
+
+    // Check for failure events in analytics
+    if (session.sdk_analytics) {
+      const analytics = typeof session.sdk_analytics === 'string'
+        ? JSON.parse(session.sdk_analytics)
+        : session.sdk_analytics;
+
+      const events = Array.isArray(analytics) ? analytics : analytics.events || [];
+      const failureCount = events.filter(e =>
+        e.status === 'FAILURE' || e.status === 'failure' || e.status === 'FAILED'
+      ).length;
+
+      if (failureCount > 0) {
+        const failurePenalty = Math.min(failureCount * 15, 50); // Max 50 point penalty
+        totalScore = Math.max(0, totalScore - failurePenalty);
+        details.push(`Failures: ${failureCount}`);
+      }
+    }
+
+  } catch (e) {
+    console.error('Error calculating risk score:', e);
+  }
+
+  // Calculate final score
+  const finalScore = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 50; // Default to medium risk
+
+  // Determine risk class
+  let riskClass = 'success'; // Green for low risk (high score)
+  if (finalScore < 40) {
+    riskClass = 'danger'; // Red for high risk
+  } else if (finalScore < 70) {
+    riskClass = 'warning'; // Orange for medium risk
+  }
+
+  const riskDetails = details.length > 0 ? details.join(' | ') : 'No verification data';
+
+  return {
+    riskScore: finalScore,
+    riskClass: riskClass,
+    riskDetails: riskDetails
+  };
+}
+
 // Format duration in MM:SS
 function formatDuration(seconds) {
   const mins = Math.floor(seconds / 60);
@@ -1076,7 +1242,7 @@ function updateCharts(sessions) {
   }
 }
 
-// Build sessions table
+// Build sessions table with journey visualization
 function buildSessionsTable(sessions) {
   const tableBody = document.getElementById('sessions-table-body');
 
@@ -1096,24 +1262,42 @@ function buildSessionsTable(sessions) {
     let documentType = 'Unknown';
     let duration = 0;
     let platform = 'Unknown';
+    let sessionId = 'N/A';
+    let events = [];
 
     if (session.sdk_source) {
       try {
         sdkSource = typeof session.sdk_source === 'string' ? JSON.parse(session.sdk_source) : session.sdk_source;
         platform = sdkSource.devicePlatform || 'Unknown';
+        sessionId = sdkSource.sessionId || session.id.substring(0, 8);
       } catch (e) {}
     }
 
+    // Extract document type and trace events
     if (session.sdk_analytics) {
       try {
         const analytics = typeof session.sdk_analytics === 'string' ? JSON.parse(session.sdk_analytics) : session.sdk_analytics;
-        if (analytics.documents && analytics.documents[0]) {
-          documentType = analytics.documents[0].documentType || 'Unknown';
+
+        // Get events array (handle both formats)
+        if (Array.isArray(analytics)) {
+          events = analytics;
+        } else if (analytics.events && Array.isArray(analytics.events)) {
+          events = analytics.events;
         }
-        if (analytics.events) {
-          duration = calculateSessionDuration(analytics.events);
+
+        // Calculate duration from events
+        if (events.length > 0) {
+          duration = calculateSessionDuration(events);
+
+          // Extract document type from events metadata
+          const eventWithDoc = events.find(e => e.metadata?.documentType || e.documentType);
+          if (eventWithDoc) {
+            documentType = eventWithDoc.metadata?.documentType || eventWithDoc.documentType || 'Unknown';
+          }
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error('Error parsing sdk_analytics:', e);
+      }
     }
 
     // Also check sdk_verifications for document type
@@ -1126,57 +1310,34 @@ function buildSessionsTable(sessions) {
       } catch (e) {}
     }
 
-    // Determine status
-    const status = session.verification_status || session.status || 'PENDING';
-    const statusClass = status === 'APPROVED' || status === 'approved' ? 'success' : status === 'REJECTED' || status === 'rejected' ? 'danger' : 'warning';
+    // Calculate comprehensive risk score from all verification scores
+    const { riskScore, riskClass, riskDetails } = calculateComprehensiveRisk(session);
 
-    // Calculate basic risk with reasoning
-    let riskScore = 'MEDIUM';
-    let riskReason = 'Pending verification';
-
-    if (session.verification_status === 'APPROVED' || session.verification_status === 'approved') {
-      riskScore = 'LOW';
-      riskReason = 'Successfully verified with no flags';
-    } else if (session.verification_status === 'REJECTED' || session.verification_status === 'rejected') {
-      riskScore = 'HIGH';
-      riskReason = 'Verification rejected';
-    } else {
-      // Check for fraud indicators
-      if (session.sdk_analytics) {
-        try {
-          const analytics = typeof session.sdk_analytics === 'string' ? JSON.parse(session.sdk_analytics) : session.sdk_analytics;
-          if (analytics.events) {
-            const failureEvents = analytics.events.filter(e => e.status === 'FAILURE');
-            if (failureEvents.length > 2) {
-              riskScore = 'HIGH';
-              riskReason = `Multiple failures detected (${failureEvents.length} events)`;
-            }
-          }
-        } catch (e) {}
-      }
-    }
-
-    const riskClass = riskScore === 'LOW' ? 'success' : riskScore === 'HIGH' ? 'danger' : 'warning';
+    // Build journey flow visualization
+    const journeyFlow = buildJourneyFlow(events);
 
     return `
       <tr>
         <td>
           <div class="d-flex flex-column justify-content-center">
-            <h6 class="mb-0 text-sm">${session.first_name || ''} ${session.last_name || ''}</h6>
-            <p class="text-xs text-secondary mb-0">${session.email || 'N/A'}</p>
+            <h6 class="mb-0 text-sm font-weight-bold">${sessionId}</h6>
+            <p class="text-xs text-secondary mb-0">${session.first_name || ''} ${session.last_name || ''}</p>
+          </div>
+        </td>
+        <td style="min-width: 280px;">
+          ${journeyFlow}
+        </td>
+        <td>
+          <span class="badge badge-sm bg-gradient-primary">${formatDocumentType(documentType)}</span>
+        </td>
+        <td>
+          <div class="d-flex align-items-center">
+            <i class="material-symbols-rounded text-info me-1" style="font-size: 18px;">schedule</i>
+            <span class="text-sm font-weight-bold">${formatDuration(duration)}</span>
           </div>
         </td>
         <td>
-          <span class="badge badge-sm bg-secondary">${formatDocumentType(documentType)}</span>
-        </td>
-        <td>
-          <span class="badge badge-sm bg-${statusClass}">${status}</span>
-        </td>
-        <td>
-          <span class="badge badge-sm bg-${riskClass}" data-bs-toggle="tooltip" data-bs-placement="top" title="${riskReason}">${riskScore}</span>
-        </td>
-        <td>
-          <p class="text-xs mb-0">${formatDuration(duration)}</p>
+          <span class="badge badge-sm bg-${riskClass}" data-bs-toggle="tooltip" data-bs-placement="top" title="${riskDetails}">${riskScore}/100</span>
         </td>
         <td>
           <span class="badge badge-sm bg-info">${platform}</span>
@@ -1288,6 +1449,33 @@ async function openSessionModal(accountId) {
 
       verificationHtml += '</div>';
 
+      // Add source detection info
+      if (verifications.sourceDetection?.enabled) {
+        verificationHtml += '<hr class="my-3"><h6 class="mb-2">Source Detection</h6><div class="row">';
+
+        const optimal = verifications.sourceDetection.optimalResolution;
+        const allowNonPhysical = verifications.sourceDetection.allowNonPhysicalDocuments;
+        const selectedRes = verifications.sourceDetection.selectedResolution;
+        const optimalRes = verifications.sourceDetection.optimalResolution;
+
+        verificationHtml += `
+          <div class="col-6 mb-2">
+            <small class="text-muted">Resolution Quality</small>
+            <p class="mb-0 font-weight-bold ${optimal ? 'text-success' : 'text-warning'}">${optimal ? '✓ Optimal' : '⚠️ Sub-optimal'}</p>
+          </div>
+          <div class="col-6 mb-2">
+            <small class="text-muted">Selected Resolution</small>
+            <p class="mb-0">${selectedRes || 'N/A'}</p>
+          </div>
+          <div class="col-6 mb-2">
+            <small class="text-muted">Physical Document</small>
+            <p class="mb-0 font-weight-bold ${allowNonPhysical ? 'text-warning' : 'text-success'}">${allowNonPhysical ? '⚠️ Allowed' : '✓ Required'}</p>
+          </div>
+        `;
+
+        verificationHtml += '</div>';
+      }
+
       // Add fraud detection scores if available
       const hasFraudScores = verifications.idScreenDetection || verifications.idPrintDetection || verifications.idPhotoTamperingDetection;
       if (hasFraudScores) {
@@ -1298,30 +1486,33 @@ async function openSessionModal(accountId) {
           const colorClass = score > 50 ? 'text-danger' : score > 30 ? 'text-warning' : 'text-success';
           verificationHtml += `
             <div class="col-6 mb-2">
-              <small class="text-muted">Screen Detection</small>
+              <small class="text-muted">🖥️ Screen Detection</small>
               <p class="mb-0 font-weight-bold ${colorClass}">${score}/100 ${score > 50 ? '⚠️' : '✓'}</p>
+              <small class="text-xs text-muted">${score > 50 ? 'High risk: Document may be on screen' : 'Low risk: Physical document'}</small>
             </div>
           `;
         }
 
         if (verifications.idPrintDetection?.enabled) {
           const score = verifications.idPrintDetection.score;
-          const colorClass = score > 50 ? 'text-danger' : 'text-success';
+          const colorClass = score > 50 ? 'text-danger' : score > 30 ? 'text-warning' : 'text-success';
           verificationHtml += `
             <div class="col-6 mb-2">
-              <small class="text-muted">Print Detection</small>
+              <small class="text-muted">🖨️ Print Detection</small>
               <p class="mb-0 font-weight-bold ${colorClass}">${score}/100 ${score > 50 ? '⚠️' : '✓'}</p>
+              <small class="text-xs text-muted">${score > 50 ? 'High risk: Printed copy detected' : 'Low risk: Original document'}</small>
             </div>
           `;
         }
 
         if (verifications.idPhotoTamperingDetection?.enabled) {
           const score = verifications.idPhotoTamperingDetection.score;
-          const colorClass = score > 70 ? 'text-danger' : 'text-success';
+          const colorClass = score > 70 ? 'text-danger' : score > 40 ? 'text-warning' : 'text-success';
           verificationHtml += `
             <div class="col-6 mb-2">
-              <small class="text-muted">Photo Tampering</small>
+              <small class="text-muted">📸 Photo Tampering</small>
               <p class="mb-0 font-weight-bold ${colorClass}">${score}/100 ${score > 70 ? '⚠️' : '✓'}</p>
+              <small class="text-xs text-muted">${score > 70 ? 'High risk: Photo may be tampered' : 'Low risk: Original photo'}</small>
             </div>
           `;
         }
