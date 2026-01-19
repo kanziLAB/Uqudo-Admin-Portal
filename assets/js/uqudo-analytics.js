@@ -32,15 +32,15 @@ function getSeverity(statusCode) {
   return SEVERITY_MAP[statusCode] || 'LOW';
 }
 
-// Search for session (now uses account ID)
+// Search for session (supports both Account ID and JTI)
 document.getElementById('search-session-btn').addEventListener('click', async () => {
-  const sessionId = document.getElementById('session-search-input').value.trim();
-  if (!sessionId) {
-    showError('Please enter a Session ID / Account ID');
+  const searchValue = document.getElementById('session-search-input').value.trim();
+  if (!searchValue) {
+    showError('Please enter a Session ID (JTI) or Account ID');
     return;
   }
 
-  await loadAccountAsSession(sessionId);
+  await searchSession(searchValue);
 });
 
 // Allow Enter key to search
@@ -49,6 +49,60 @@ document.getElementById('session-search-input').addEventListener('keypress', (e)
     document.getElementById('search-session-btn').click();
   }
 });
+
+// Search session by Account ID or JTI
+async function searchSession(searchValue) {
+  try {
+    showLoading();
+
+    // First try as account ID (direct lookup)
+    let response = await api.getAccountById(searchValue);
+
+    // If not found by account ID, search by JTI in sdk_source
+    if (!response.success) {
+      // Fetch all accounts and search for JTI
+      const accountsResponse = await api.getAccounts({ limit: 100 });
+      if (accountsResponse.success && accountsResponse.data) {
+        const matchingAccount = accountsResponse.data.find(account => {
+          if (account.sdk_source) {
+            try {
+              const sdkSource = typeof account.sdk_source === 'string' ?
+                JSON.parse(account.sdk_source) : account.sdk_source;
+              return sdkSource.jti === searchValue || sdkSource.sessionId === searchValue;
+            } catch (e) {
+              return false;
+            }
+          }
+          return false;
+        });
+
+        if (matchingAccount) {
+          response = { success: true, data: matchingAccount };
+        } else {
+          hideLoading();
+          showError('No session found with this ID or JTI');
+          return;
+        }
+      }
+    }
+
+    hideLoading();
+
+    if (response.success && response.data) {
+      // Filter the list to show only this session
+      sessionsListData = [response.data];
+      updateSummaryCards(sessionsListData);
+      buildSessionsTable(sessionsListData);
+
+      // Update search placeholder
+      document.getElementById('session-search-input').placeholder = 'Search by JTI or Account ID';
+    }
+  } catch (error) {
+    hideLoading();
+    console.error('Error searching session:', error);
+    showError('Error searching for session');
+  }
+}
 
 // Load session data
 async function loadSessionData(sessionId) {
@@ -811,6 +865,9 @@ function formatTime(date) {
 let sessionsListData = [];
 let currentPage = 1;
 let autoRefreshInterval = null;
+let statusBarChart = null;
+let sessionLineChart = null;
+let radarChart = null;
 
 // Load sessions list
 async function loadSessionsList(page = 1) {
@@ -891,6 +948,127 @@ function updateSummaryCards(sessions) {
   document.getElementById('success-rate').textContent = `${successRate}%`;
   document.getElementById('avg-duration').textContent = formatDuration(avgDuration);
   document.getElementById('active-sessions').textContent = activeSessions;
+
+  // Update charts
+  updateCharts(sessions);
+}
+
+// Update charts with session data
+function updateCharts(sessions) {
+  // Status Bar Chart
+  const statusCounts = {
+    'APPROVED': 0,
+    'REJECTED': 0,
+    'PENDING': 0
+  };
+
+  sessions.forEach(session => {
+    const status = (session.verification_status || session.status || 'PENDING').toUpperCase();
+    if (status.includes('APPROVED') || status === 'APPROVED') {
+      statusCounts.APPROVED++;
+    } else if (status.includes('REJECTED') || status === 'REJECTED') {
+      statusCounts.REJECTED++;
+    } else {
+      statusCounts.PENDING++;
+    }
+  });
+
+  // Destroy existing chart if it exists
+  if (statusBarChart) {
+    statusBarChart.destroy();
+  }
+
+  const barCtx = document.getElementById('statusBarChart');
+  if (barCtx) {
+    statusBarChart = new Chart(barCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Approved', 'Rejected', 'Pending'],
+        datasets: [{
+          label: 'Sessions',
+          data: [statusCounts.APPROVED, statusCounts.REJECTED, statusCounts.PENDING],
+          backgroundColor: [
+            'rgba(75, 192, 192, 0.8)',
+            'rgba(255, 99, 132, 0.8)',
+            'rgba(255, 206, 86, 0.8)'
+          ],
+          borderColor: [
+            'rgba(75, 192, 192, 1)',
+            'rgba(255, 99, 132, 1)',
+            'rgba(255, 206, 86, 1)'
+          ],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Session Line Chart - group by date
+  const sessionsByDate = {};
+  sessions.forEach(session => {
+    const date = new Date(session.created_at).toLocaleDateString();
+    sessionsByDate[date] = (sessionsByDate[date] || 0) + 1;
+  });
+
+  const dates = Object.keys(sessionsByDate).sort((a, b) => new Date(a) - new Date(b));
+  const counts = dates.map(date => sessionsByDate[date]);
+
+  // Destroy existing chart if it exists
+  if (sessionLineChart) {
+    sessionLineChart.destroy();
+  }
+
+  const lineCtx = document.getElementById('sessionLineChart');
+  if (lineCtx) {
+    sessionLineChart = new Chart(lineCtx, {
+      type: 'line',
+      data: {
+        labels: dates,
+        datasets: [{
+          label: 'Sessions',
+          data: counts,
+          borderColor: 'rgba(26, 115, 232, 1)',
+          backgroundColor: 'rgba(26, 115, 232, 0.1)',
+          tension: 0.4,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        }
+      }
+    });
+  }
 }
 
 // Build sessions table
@@ -933,12 +1111,46 @@ function buildSessionsTable(sessions) {
       } catch (e) {}
     }
 
+    // Also check sdk_verifications for document type
+    if (documentType === 'Unknown' && session.sdk_verifications) {
+      try {
+        const verifications = typeof session.sdk_verifications === 'string' ? JSON.parse(session.sdk_verifications) : session.sdk_verifications;
+        if (verifications.documentType) {
+          documentType = verifications.documentType;
+        }
+      } catch (e) {}
+    }
+
     // Determine status
     const status = session.verification_status || session.status || 'PENDING';
     const statusClass = status === 'APPROVED' || status === 'approved' ? 'success' : status === 'REJECTED' || status === 'rejected' ? 'danger' : 'warning';
 
-    // Calculate basic risk (simplified for list view)
-    const riskScore = session.verification_status === 'APPROVED' ? 'LOW' : session.verification_status === 'REJECTED' ? 'HIGH' : 'MEDIUM';
+    // Calculate basic risk with reasoning
+    let riskScore = 'MEDIUM';
+    let riskReason = 'Pending verification';
+
+    if (session.verification_status === 'APPROVED' || session.verification_status === 'approved') {
+      riskScore = 'LOW';
+      riskReason = 'Successfully verified with no flags';
+    } else if (session.verification_status === 'REJECTED' || session.verification_status === 'rejected') {
+      riskScore = 'HIGH';
+      riskReason = 'Verification rejected';
+    } else {
+      // Check for fraud indicators
+      if (session.sdk_analytics) {
+        try {
+          const analytics = typeof session.sdk_analytics === 'string' ? JSON.parse(session.sdk_analytics) : session.sdk_analytics;
+          if (analytics.events) {
+            const failureEvents = analytics.events.filter(e => e.status === 'FAILURE');
+            if (failureEvents.length > 2) {
+              riskScore = 'HIGH';
+              riskReason = `Multiple failures detected (${failureEvents.length} events)`;
+            }
+          }
+        } catch (e) {}
+      }
+    }
+
     const riskClass = riskScore === 'LOW' ? 'success' : riskScore === 'HIGH' ? 'danger' : 'warning';
 
     return `
@@ -956,7 +1168,7 @@ function buildSessionsTable(sessions) {
           <span class="badge badge-sm bg-${statusClass}">${status}</span>
         </td>
         <td>
-          <span class="badge badge-sm bg-${riskClass}">${riskScore}</span>
+          <span class="badge badge-sm bg-${riskClass}" data-bs-toggle="tooltip" data-bs-placement="top" title="${riskReason}">${riskScore}</span>
         </td>
         <td>
           <p class="text-xs mb-0">${formatDuration(duration)}</p>
@@ -968,19 +1180,228 @@ function buildSessionsTable(sessions) {
           <p class="text-xs mb-0">${formatDate(new Date(session.created_at))}</p>
         </td>
         <td class="align-middle">
-          <button class="btn btn-link text-info text-gradient px-2 mb-0" onclick="viewSessionDetail('${session.id}')">
+          <button class="btn btn-link text-info text-gradient px-2 mb-0" onclick="openSessionModal('${session.id}')">
             <i class="material-symbols-rounded text-sm">visibility</i>
           </button>
         </td>
       </tr>
     `;
   }).join('');
+
+  // Initialize Bootstrap tooltips
+  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+  });
 }
 
-// View session detail
+// View session detail (keeps existing functionality)
 function viewSessionDetail(accountId) {
   // Navigate to detail view with account data
   loadAccountAsSession(accountId);
+}
+
+// Open session modal with radar chart
+async function openSessionModal(accountId) {
+  try {
+    // Fetch account details
+    const response = await api.getAccountById(accountId);
+
+    if (!response.success) {
+      showError('Session not found');
+      return;
+    }
+
+    const session = response.data;
+
+    // Parse SDK data
+    let sdkAnalytics = {};
+    let sdkSource = {};
+    let verifications = {};
+
+    if (session.sdk_analytics) {
+      try {
+        sdkAnalytics = typeof session.sdk_analytics === 'string' ? JSON.parse(session.sdk_analytics) : session.sdk_analytics;
+      } catch (e) {}
+    }
+
+    if (session.sdk_source) {
+      try {
+        sdkSource = typeof session.sdk_source === 'string' ? JSON.parse(session.sdk_source) : session.sdk_source;
+      } catch (e) {}
+    }
+
+    if (session.sdk_verifications) {
+      try {
+        verifications = typeof session.sdk_verifications === 'string' ? JSON.parse(session.sdk_verifications) : session.sdk_verifications;
+      } catch (e) {}
+    }
+
+    // Populate modal data
+    document.getElementById('modal-session-id').textContent = session.id;
+    document.getElementById('modal-account-name').textContent = `${session.first_name || ''} ${session.last_name || ''}`;
+    document.getElementById('modal-email').textContent = session.email || 'N/A';
+    document.getElementById('modal-doc-type').textContent = formatDocumentType(verifications.documentType || 'Unknown');
+    document.getElementById('modal-status').innerHTML = `<span class="badge bg-${session.verification_status === 'APPROVED' ? 'success' : session.verification_status === 'REJECTED' ? 'danger' : 'warning'}">${session.verification_status || 'PENDING'}</span>`;
+    document.getElementById('modal-platform').textContent = sdkSource.devicePlatform || 'Unknown';
+
+    // Calculate duration
+    let duration = 0;
+    if (sdkAnalytics.events) {
+      duration = calculateSessionDuration(sdkAnalytics.events);
+    }
+    document.getElementById('modal-duration').textContent = formatDuration(duration);
+    document.getElementById('modal-created').textContent = formatDate(new Date(session.created_at));
+
+    // Build verification details
+    let verificationHtml = '';
+    if (verifications && Object.keys(verifications).length > 0) {
+      verificationHtml = '<div class="row">';
+      const verificationFields = {
+        'faceMatchLevel': 'Face Match Level',
+        'mrzValid': 'MRZ Valid',
+        'documentValid': 'Document Valid',
+        'livenessLevel': 'Liveness Level',
+        'dataConsistency': 'Data Consistency'
+      };
+
+      for (const [key, label] of Object.entries(verificationFields)) {
+        if (verifications[key] !== undefined) {
+          const value = verifications[key];
+          const displayValue = typeof value === 'boolean' ? (value ? '✓ Yes' : '✗ No') : value;
+          const colorClass = typeof value === 'boolean' ? (value ? 'text-success' : 'text-danger') : '';
+          verificationHtml += `
+            <div class="col-6 mb-2">
+              <small class="text-muted">${label}</small>
+              <p class="mb-0 font-weight-bold ${colorClass}">${displayValue}</p>
+            </div>
+          `;
+        }
+      }
+      verificationHtml += '</div>';
+    } else {
+      verificationHtml = '<p class="text-muted">No verification data available</p>';
+    }
+    document.getElementById('modal-verification-details').innerHTML = verificationHtml;
+
+    // Create radar chart
+    createRadarChart(verifications);
+
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('sessionDetailModal'));
+    modal.show();
+
+    // Store session ID for "View Full Details" button
+    window.currentModalSessionId = session.id;
+
+  } catch (error) {
+    console.error('Error opening session modal:', error);
+    showError('Error loading session data');
+  }
+}
+
+// Create radar chart for verification scores
+function createRadarChart(verifications) {
+  // Destroy existing chart
+  if (radarChart) {
+    radarChart.destroy();
+  }
+
+  const canvas = document.getElementById('verificationRadarChart');
+  if (!canvas) return;
+
+  // Extract scores from verifications
+  const scores = {
+    'Face Match': 0,
+    'Liveness': 0,
+    'MRZ Valid': 0,
+    'Document Valid': 0,
+    'Data Consistency': 0,
+    'Overall Quality': 0
+  };
+
+  if (verifications) {
+    // Face Match Level (0-5 scale, convert to 0-100)
+    if (verifications.faceMatchLevel !== undefined) {
+      scores['Face Match'] = (verifications.faceMatchLevel / 5) * 100;
+    }
+
+    // Liveness Level (0-5 scale, convert to 0-100)
+    if (verifications.livenessLevel !== undefined) {
+      scores['Liveness'] = (verifications.livenessLevel / 5) * 100;
+    }
+
+    // Boolean checks (convert to 0 or 100)
+    if (verifications.mrzValid !== undefined) {
+      scores['MRZ Valid'] = verifications.mrzValid ? 100 : 0;
+    }
+
+    if (verifications.documentValid !== undefined) {
+      scores['Document Valid'] = verifications.documentValid ? 100 : 0;
+    }
+
+    if (verifications.dataConsistency !== undefined) {
+      scores['Data Consistency'] = verifications.dataConsistency ? 100 : 0;
+    }
+
+    // Overall quality score (average of all)
+    const values = Object.values(scores).filter(v => v > 0);
+    if (values.length > 0) {
+      scores['Overall Quality'] = values.reduce((a, b) => a + b, 0) / values.length;
+    }
+  }
+
+  const labels = Object.keys(scores);
+  const data = Object.values(scores);
+
+  radarChart = new Chart(canvas, {
+    type: 'radar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Verification Scores',
+        data: data,
+        backgroundColor: 'rgba(26, 115, 232, 0.2)',
+        borderColor: 'rgba(26, 115, 232, 1)',
+        borderWidth: 2,
+        pointBackgroundColor: 'rgba(26, 115, 232, 1)',
+        pointBorderColor: '#fff',
+        pointHoverBackgroundColor: '#fff',
+        pointHoverBorderColor: 'rgba(26, 115, 232, 1)'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        r: {
+          beginAtZero: true,
+          max: 100,
+          ticks: {
+            stepSize: 20
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          display: false
+        }
+      }
+    }
+  });
+}
+
+// View full session detail (navigate to full view)
+function viewFullSessionDetail() {
+  if (window.currentModalSessionId) {
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('sessionDetailModal'));
+    if (modal) {
+      modal.hide();
+    }
+    // Load full session view
+    loadAccountAsSession(window.currentModalSessionId);
+  }
 }
 
 // Load account data as session

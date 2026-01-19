@@ -219,7 +219,7 @@
         <div class="collapse navbar-collapse mt-sm-0 mt-2 me-md-0 me-sm-4" id="navbar">
           <div class="ms-md-auto pe-md-3 d-flex align-items-center">
             <div class="input-group input-group-outline">
-              <input type="text" class="form-control" placeholder="Search by Account ID" id="session-search-input">
+              <input type="text" class="form-control" placeholder="Search by JTI or Account ID" id="session-search-input">
             </div>
             <button class="btn btn-sm bg-gradient-info mb-0 ms-2" id="search-session-btn">
               <i class="material-symbols-rounded">search</i>
@@ -248,6 +248,7 @@
               <small class="opacity-8">Session ID</small>
               <div class="d-flex align-items-center">
                 <span class="me-2" id="session-id-display">-</span>
+                <input type="hidden" id="session-id" value="">
                 <button class="copy-button" onclick="copyToClipboard('session-id')">
                   <i class="material-symbols-rounded" style="font-size: 14px;">content_copy</i>
                 </button>
@@ -257,6 +258,7 @@
               <small class="opacity-8">Device ID</small>
               <div class="d-flex align-items-center">
                 <span class="me-2" id="device-id-display">-</span>
+                <input type="hidden" id="device-id" value="">
                 <button class="copy-button" onclick="copyToClipboard('device-id')">
                   <i class="material-symbols-rounded" style="font-size: 14px;">content_copy</i>
                 </button>
@@ -375,6 +377,32 @@
                     <i class="material-symbols-rounded opacity-10 text-white">play_circle</i>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Analytics Charts -->
+        <div class="row mb-4">
+          <div class="col-md-6 mb-4">
+            <div class="card">
+              <div class="card-header pb-0">
+                <h6>Verification Status Distribution</h6>
+                <p class="text-sm">Bar chart showing status breakdown</p>
+              </div>
+              <div class="card-body">
+                <canvas id="statusBarChart" height="200"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 mb-4">
+            <div class="card">
+              <div class="card-header pb-0">
+                <h6>Session Trends</h6>
+                <p class="text-sm">Line chart showing session activity over time</p>
+              </div>
+              <div class="card-body">
+                <canvas id="sessionLineChart" height="200"></canvas>
               </div>
             </div>
           </div>
@@ -781,6 +809,77 @@
     </footer>
   </main>
 
+  <!-- Session Detail Modal with Radar Chart -->
+  <div class="modal fade" id="sessionDetailModal" tabindex="-1" aria-labelledby="sessionDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header bg-gradient-info">
+          <h5 class="modal-title text-white" id="sessionDetailModalLabel">Session Verification Details</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <!-- Radar Chart -->
+            <div class="col-md-6">
+              <h6 class="mb-3">Verification Scores</h6>
+              <canvas id="verificationRadarChart" height="300"></canvas>
+            </div>
+            <!-- Session Data Table -->
+            <div class="col-md-6">
+              <h6 class="mb-3">Session Information</h6>
+              <div class="table-responsive">
+                <table class="table table-sm align-items-center mb-0">
+                  <tbody id="modal-session-data">
+                    <tr>
+                      <td class="text-sm font-weight-bold">Session ID</td>
+                      <td class="text-sm" id="modal-session-id">-</td>
+                    </tr>
+                    <tr>
+                      <td class="text-sm font-weight-bold">Account Name</td>
+                      <td class="text-sm" id="modal-account-name">-</td>
+                    </tr>
+                    <tr>
+                      <td class="text-sm font-weight-bold">Email</td>
+                      <td class="text-sm" id="modal-email">-</td>
+                    </tr>
+                    <tr>
+                      <td class="text-sm font-weight-bold">Document Type</td>
+                      <td class="text-sm" id="modal-doc-type">-</td>
+                    </tr>
+                    <tr>
+                      <td class="text-sm font-weight-bold">Verification Status</td>
+                      <td class="text-sm" id="modal-status">-</td>
+                    </tr>
+                    <tr>
+                      <td class="text-sm font-weight-bold">Platform</td>
+                      <td class="text-sm" id="modal-platform">-</td>
+                    </tr>
+                    <tr>
+                      <td class="text-sm font-weight-bold">Duration</td>
+                      <td class="text-sm" id="modal-duration">-</td>
+                    </tr>
+                    <tr>
+                      <td class="text-sm font-weight-bold">Created At</td>
+                      <td class="text-sm" id="modal-created">-</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="mt-4">
+                <h6 class="mb-3">Verification Details</h6>
+                <div id="modal-verification-details"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-info" onclick="viewFullSessionDetail()">View Full Details</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Core JS Files -->
   <script src="../assets/js/core/popper.min.js"></script>
   <script src="../assets/js/core/bootstrap.min.js"></script>
@@ -789,7 +888,7 @@
   <script src="../assets/js/material-dashboard.min.js?v=3.2.0"></script>
 
   <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <!-- API Client & Utils -->
   <script src="../assets/js/api-client.js"></script>
