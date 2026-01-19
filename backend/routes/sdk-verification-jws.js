@@ -11,8 +11,10 @@ const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 
-// Helper function to normalize trace events from Web SDK format to expected format
+// Helper function to normalize trace events from Web SDK and Mobile SDK formats
 // Preserves ALL trace properties as required by analytics
+// Web SDK trace: { deviceIdentifier, sessionId, category, event, status, page, statusCode, statusMessage, documentType, timestamp }
+// Mobile SDK trace: { name, type, status, duration, timestamp, page, details, id }
 function normalizeTraceEvents(trace) {
   if (!trace || trace.length === 0) return [];
 
@@ -20,25 +22,29 @@ function normalizeTraceEvents(trace) {
   let prevTimestamp = null;
 
   trace.forEach((event, index) => {
-    const currentTimestamp = new Date(event.timestamp);
+    // Get timestamp - Mobile SDK might use different format or not have it
+    const eventTimestamp = event.timestamp || event.time || new Date().toISOString();
+    const currentTimestamp = new Date(eventTimestamp);
 
-    // Calculate duration from previous event
-    let duration = 0;
-    if (prevTimestamp) {
+    // Calculate duration from previous event if not provided
+    let duration = event.duration || 0;
+    if (!duration && prevTimestamp && !isNaN(currentTimestamp.getTime())) {
       duration = currentTimestamp - prevTimestamp;
     }
 
-    // Transform Web SDK format to expected format while preserving ALL original properties
-    // Web SDK trace properties: deviceIdentifier, sessionId, category, event, status, page, statusCode, statusMessage, documentType, timestamp
-    normalized.push({
-      // Normalized properties
-      name: event.event || event.name,           // Web SDK uses "event", Mobile uses "name"
-      type: event.category || event.type || 'journey',
-      status: event.status || 'SUCCESS',
-      duration: duration,                        // Calculated duration in milliseconds
-      timestamp: event.timestamp,
+    // Detect SDK type by checking for Web SDK specific properties
+    const isWebSDK = event.hasOwnProperty('category') || event.hasOwnProperty('deviceIdentifier');
 
-      // Preserved original properties (required for analytics)
+    // Transform to unified format while preserving ALL original properties
+    normalized.push({
+      // Normalized properties - handle both SDK formats
+      name: event.event || event.name || event.id || 'UNKNOWN',  // Web SDK uses "event", Mobile uses "name" or "id"
+      type: event.category || event.type || event.page || 'journey',
+      status: event.status || 'SUCCESS',
+      duration: Math.max(0, duration),  // Ensure non-negative duration
+      timestamp: eventTimestamp,
+
+      // Preserved original properties (Web SDK)
       deviceIdentifier: event.deviceIdentifier,
       sessionId: event.sessionId,
       category: event.category,
@@ -48,6 +54,10 @@ function normalizeTraceEvents(trace) {
       statusMessage: event.statusMessage,
       documentType: event.documentType,
 
+      // Mobile SDK specific properties
+      id: event.id,
+      details: event.details,
+
       // Legacy metadata object for backward compatibility
       metadata: {
         page: event.page,
@@ -55,11 +65,15 @@ function normalizeTraceEvents(trace) {
         deviceIdentifier: event.deviceIdentifier,
         sessionId: event.sessionId,
         statusCode: event.statusCode,
-        statusMessage: event.statusMessage
+        statusMessage: event.statusMessage,
+        details: event.details,
+        id: event.id
       }
     });
 
-    prevTimestamp = currentTimestamp;
+    if (!isNaN(currentTimestamp.getTime())) {
+      prevTimestamp = currentTimestamp;
+    }
   });
 
   return normalized;

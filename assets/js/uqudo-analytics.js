@@ -1880,14 +1880,18 @@ function buildSessionsTable(sessions) {
   document.getElementById('empty-state').style.display = 'none';
   document.getElementById('sessions-list-view').style.display = 'block';
 
-  tableBody.innerHTML = sessions.map(session => {
-    // Parse SDK data
-    let sdkSource = {};
-    let documentType = 'Unknown';
-    let duration = 0;
-    let platform = 'Unknown';
-    let sessionId = 'N/A';
-    let events = [];
+  // Log sessions for debugging
+  console.log(`📊 Building table with ${sessions.length} sessions`);
+
+  tableBody.innerHTML = sessions.map((session, index) => {
+    try {
+      // Parse SDK data
+      let sdkSource = {};
+      let documentType = 'Unknown';
+      let duration = 0;
+      let platform = 'Unknown';
+      let sessionId = 'N/A';
+      let events = [];
 
     if (session.sdk_source) {
       try {
@@ -2003,6 +2007,17 @@ function buildSessionsTable(sessions) {
         </td>
       </tr>
     `;
+    } catch (error) {
+      console.error(`❌ Error building row for session ${session?.id || index}:`, error, session);
+      // Return a basic row with error indication
+      return `
+      <tr>
+        <td colspan="7" class="text-danger">
+          <small>Error loading session ${session?.id?.substring(0, 8) || index} - ${error.message}</small>
+        </td>
+      </tr>
+      `;
+    }
   }).join('');
 
   // Initialize Bootstrap tooltips
