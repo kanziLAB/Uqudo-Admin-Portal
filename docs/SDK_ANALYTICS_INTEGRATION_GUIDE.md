@@ -904,6 +904,5 @@ await sdk.enroll({
 ## Support
 
 For additional support:
-- Admin Portal Issues: https://github.com/anthropics/claude-code/issues
 - SDK Documentation: https://docs.uqudo.com
 - Contact: support@uqudo.com
