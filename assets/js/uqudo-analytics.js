@@ -1262,6 +1262,8 @@ async function openSessionModal(accountId) {
     let verificationHtml = '';
     if (verifications && Object.keys(verifications).length > 0) {
       verificationHtml = '<div class="row">';
+
+      // Basic verification fields
       const verificationFields = {
         'faceMatchLevel': 'Face Match Level',
         'mrzValid': 'MRZ Valid',
@@ -1283,7 +1285,49 @@ async function openSessionModal(accountId) {
           `;
         }
       }
+
       verificationHtml += '</div>';
+
+      // Add fraud detection scores if available
+      const hasFraudScores = verifications.idScreenDetection || verifications.idPrintDetection || verifications.idPhotoTamperingDetection;
+      if (hasFraudScores) {
+        verificationHtml += '<hr class="my-3"><h6 class="mb-2">Fraud Detection Scores</h6><div class="row">';
+
+        if (verifications.idScreenDetection?.enabled) {
+          const score = verifications.idScreenDetection.score;
+          const colorClass = score > 50 ? 'text-danger' : score > 30 ? 'text-warning' : 'text-success';
+          verificationHtml += `
+            <div class="col-6 mb-2">
+              <small class="text-muted">Screen Detection</small>
+              <p class="mb-0 font-weight-bold ${colorClass}">${score}/100 ${score > 50 ? '⚠️' : '✓'}</p>
+            </div>
+          `;
+        }
+
+        if (verifications.idPrintDetection?.enabled) {
+          const score = verifications.idPrintDetection.score;
+          const colorClass = score > 50 ? 'text-danger' : 'text-success';
+          verificationHtml += `
+            <div class="col-6 mb-2">
+              <small class="text-muted">Print Detection</small>
+              <p class="mb-0 font-weight-bold ${colorClass}">${score}/100 ${score > 50 ? '⚠️' : '✓'}</p>
+            </div>
+          `;
+        }
+
+        if (verifications.idPhotoTamperingDetection?.enabled) {
+          const score = verifications.idPhotoTamperingDetection.score;
+          const colorClass = score > 70 ? 'text-danger' : 'text-success';
+          verificationHtml += `
+            <div class="col-6 mb-2">
+              <small class="text-muted">Photo Tampering</small>
+              <p class="mb-0 font-weight-bold ${colorClass}">${score}/100 ${score > 70 ? '⚠️' : '✓'}</p>
+            </div>
+          `;
+        }
+
+        verificationHtml += '</div>';
+      }
     } else {
       verificationHtml = '<p class="text-muted">No verification data available</p>';
     }
@@ -1322,6 +1366,9 @@ function createRadarChart(verifications) {
     'MRZ Valid': 0,
     'Document Valid': 0,
     'Data Consistency': 0,
+    'Screen Detection': 0,
+    'Print Detection': 0,
+    'Photo Tampering': 0,
     'Overall Quality': 0
   };
 
@@ -1349,7 +1396,21 @@ function createRadarChart(verifications) {
       scores['Data Consistency'] = verifications.dataConsistency ? 100 : 0;
     }
 
-    // Overall quality score (average of all)
+    // Fraud Detection Scores (0-100, inverted so lower = better)
+    // Higher fraud scores mean more suspicious, so we invert them
+    if (verifications.idScreenDetection?.enabled && verifications.idScreenDetection.score !== undefined) {
+      scores['Screen Detection'] = 100 - verifications.idScreenDetection.score;
+    }
+
+    if (verifications.idPrintDetection?.enabled && verifications.idPrintDetection.score !== undefined) {
+      scores['Print Detection'] = 100 - verifications.idPrintDetection.score;
+    }
+
+    if (verifications.idPhotoTamperingDetection?.enabled && verifications.idPhotoTamperingDetection.score !== undefined) {
+      scores['Photo Tampering'] = 100 - verifications.idPhotoTamperingDetection.score;
+    }
+
+    // Overall quality score (average of all non-zero scores)
     const values = Object.values(scores).filter(v => v > 0);
     if (values.length > 0) {
       scores['Overall Quality'] = values.reduce((a, b) => a + b, 0) / values.length;
