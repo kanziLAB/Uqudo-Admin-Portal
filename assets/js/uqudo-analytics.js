@@ -156,13 +156,15 @@ async function loadSessionData(sessionId) {
 function displaySessionHeader() {
   const session = currentSessionData;
 
-  // Session ID
-  document.getElementById('session-id-display').textContent = truncateId(session.sessionId || session.id);
-  document.getElementById('session-id').value = session.sessionId || session.id;
+  // Session ID - display full ID
+  const sessionIdValue = session.sessionId || session.id || '-';
+  document.getElementById('session-id-display').textContent = sessionIdValue;
+  document.getElementById('session-id').value = sessionIdValue;
 
-  // Device ID
-  document.getElementById('device-id-display').textContent = truncateId(session.deviceIdentifier);
-  document.getElementById('device-id').value = session.deviceIdentifier;
+  // Device ID - display full ID
+  const deviceIdValue = session.deviceIdentifier || '-';
+  document.getElementById('device-id-display').textContent = deviceIdValue;
+  document.getElementById('device-id').value = deviceIdValue;
 
   // Document Type - extract from START event if available
   let docType = currentVerificationData.documentType || session.documentType || 'Unknown';

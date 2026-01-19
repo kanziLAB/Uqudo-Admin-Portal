@@ -37,11 +37,53 @@
   <style>
     /* Uqudo Blue Theme for Session View */
     .session-header-card {
-      background: linear-gradient(195deg, #1e88e5 0%, #1565c0 100%);
-      color: white;
+      background: #ffffff;
+      color: #344767;
       padding: 2rem;
       border-radius: 1rem;
       margin-bottom: 1.5rem;
+      border: 1px solid #e9ecef;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .session-header-card .session-label {
+      color: #67748e;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .session-header-card .session-value {
+      color: #344767;
+      font-weight: 600;
+      font-size: 0.875rem;
+      word-break: break-all;
+      font-family: monospace;
+    }
+
+    .session-header-card .copy-button {
+      background: #f0f2f5;
+      color: #1e88e5;
+      border: 1px solid #e9ecef;
+    }
+
+    .session-header-card .copy-button:hover {
+      background: #e3f2fd;
+    }
+
+    .session-header-card .info-box {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+    }
+
+    .session-header-card .info-box .info-label {
+      color: #67748e;
+      font-size: 0.7rem;
+    }
+
+    .session-header-card h5 {
+      color: #1e88e5;
     }
 
     /* Nav Tabs - Uqudo Blue Theme */
@@ -464,11 +506,11 @@
       <div class="session-header-card" id="session-header" style="display: none;">
         <div class="row">
           <div class="col-md-6">
-            <h5 class="text-white mb-3">Session Overview</h5>
-            <div class="mb-2">
-              <small class="opacity-8">Session ID</small>
+            <h5 class="mb-3">Session Overview</h5>
+            <div class="mb-3">
+              <small class="session-label d-block mb-1">Session ID</small>
               <div class="d-flex align-items-center">
-                <span class="me-2" id="session-id-display">-</span>
+                <span class="session-value me-2" id="session-id-display">-</span>
                 <input type="hidden" id="session-id" value="">
                 <button class="copy-button" onclick="copyToClipboard('session-id')">
                   <i class="material-symbols-rounded" style="font-size: 14px;">content_copy</i>
@@ -476,9 +518,9 @@
               </div>
             </div>
             <div class="mb-2">
-              <small class="opacity-8">Device ID</small>
+              <small class="session-label d-block mb-1">Device ID</small>
               <div class="d-flex align-items-center">
-                <span class="me-2" id="device-id-display">-</span>
+                <span class="session-value me-2" id="device-id-display">-</span>
                 <input type="hidden" id="device-id" value="">
                 <button class="copy-button" onclick="copyToClipboard('device-id')">
                   <i class="material-symbols-rounded" style="font-size: 14px;">content_copy</i>
@@ -489,39 +531,39 @@
           <div class="col-md-6">
             <div class="row g-2">
               <div class="col-6">
-                <div class="text-center p-2 bg-white bg-opacity-10 rounded">
-                  <small class="opacity-8 d-block">Document Type</small>
-                  <span class="badge bg-white text-dark mt-1" id="document-type-badge">-</span>
+                <div class="text-center p-2 info-box rounded">
+                  <small class="info-label d-block">Document Type</small>
+                  <span class="badge bg-gradient-info mt-1" id="document-type-badge">-</span>
                 </div>
               </div>
               <div class="col-6">
-                <div class="text-center p-2 bg-white bg-opacity-10 rounded">
-                  <small class="opacity-8 d-block">Outcome</small>
+                <div class="text-center p-2 info-box rounded">
+                  <small class="info-label d-block">Outcome</small>
                   <span class="badge mt-1" id="outcome-badge">-</span>
                 </div>
               </div>
               <div class="col-6">
-                <div class="text-center p-2 bg-white bg-opacity-10 rounded">
-                  <small class="opacity-8 d-block">Risk Assessment</small>
+                <div class="text-center p-2 info-box rounded">
+                  <small class="info-label d-block">Risk Assessment</small>
                   <span class="badge mt-1" id="risk-badge">-</span>
                 </div>
               </div>
               <div class="col-6">
-                <div class="text-center p-2 bg-white bg-opacity-10 rounded">
-                  <small class="opacity-8 d-block">Duration</small>
-                  <span class="mt-1 d-block font-weight-bold" id="duration-display">-</span>
+                <div class="text-center p-2 info-box rounded">
+                  <small class="info-label d-block">Duration</small>
+                  <span class="mt-1 d-block font-weight-bold text-dark" id="duration-display">-</span>
                 </div>
               </div>
               <div class="col-6">
-                <div class="text-center p-2 bg-white bg-opacity-10 rounded">
-                  <small class="opacity-8 d-block">Platform</small>
-                  <span class="badge bg-white text-dark mt-1" id="platform-badge">-</span>
+                <div class="text-center p-2 info-box rounded">
+                  <small class="info-label d-block">Platform</small>
+                  <span class="badge bg-gradient-info mt-1" id="platform-badge">-</span>
                 </div>
               </div>
               <div class="col-6">
-                <div class="text-center p-2 bg-white bg-opacity-10 rounded">
-                  <small class="opacity-8 d-block">Timestamp</small>
-                  <span class="mt-1 d-block" style="font-size: 0.75rem;" id="timestamp-display">-</span>
+                <div class="text-center p-2 info-box rounded">
+                  <small class="info-label d-block">Timestamp</small>
+                  <span class="mt-1 d-block text-dark" style="font-size: 0.75rem;" id="timestamp-display">-</span>
                 </div>
               </div>
             </div>
