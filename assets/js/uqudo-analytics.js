@@ -6,6 +6,37 @@ let currentVerificationData = null;
 let currentEventsData = [];
 let currentDeviceHistory = null;
 let currentRawData = null; // Store raw data for debugging
+let analyticsConfig = null; // KYC setup analytics configuration
+
+// Default risk thresholds (used if config not loaded)
+const DEFAULT_RISK_THRESHOLDS = {
+  low: 70,    // Score >= 70 = low risk (success/green)
+  medium: 40  // Score >= 40 = medium risk (warning/orange), < 40 = high risk (danger/red)
+};
+
+// Load analytics configuration from KYC setup
+async function loadAnalyticsConfig() {
+  try {
+    const response = await api.getKYCSetup();
+    if (response.success && response.data) {
+      analyticsConfig = response.data.analytics_config || null;
+      console.log('📊 Analytics config loaded:', analyticsConfig);
+    }
+  } catch (e) {
+    console.warn('Could not load analytics config, using defaults:', e);
+  }
+}
+
+// Get risk thresholds from config or use defaults
+function getRiskThresholds() {
+  if (analyticsConfig?.risk_thresholds) {
+    return {
+      low: analyticsConfig.risk_thresholds.low || DEFAULT_RISK_THRESHOLDS.low,
+      medium: analyticsConfig.risk_thresholds.medium || DEFAULT_RISK_THRESHOLDS.medium
+    };
+  }
+  return DEFAULT_RISK_THRESHOLDS;
+}
 
 // Severity Mapping for Fraud Flags
 const SEVERITY_MAP = {
@@ -538,12 +569,16 @@ function calculateComprehensiveRisk(session) {
   // Calculate final score
   const finalScore = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 50; // Default to medium risk
 
-  // Determine risk class
+  // Get configurable risk thresholds
+  const thresholds = getRiskThresholds();
+
+  // Determine risk class based on configured thresholds
+  // Higher score = better/lower risk
   let riskClass = 'success'; // Green for low risk (high score)
-  if (finalScore < 40) {
-    riskClass = 'danger'; // Red for high risk
-  } else if (finalScore < 70) {
-    riskClass = 'warning'; // Orange for medium risk
+  if (finalScore < thresholds.medium) {
+    riskClass = 'danger'; // Red for high risk (score below medium threshold)
+  } else if (finalScore < thresholds.low) {
+    riskClass = 'warning'; // Orange for medium risk (score between medium and low thresholds)
   }
 
   const riskDetails = details.length > 0 ? details.join(' | ') : 'No verification data';
@@ -653,11 +688,14 @@ function calculateComprehensiveRiskFromSession(session, verifications, events) {
   // Calculate final score
   const finalScore = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 50;
 
-  // Determine risk class
+  // Get configurable risk thresholds
+  const thresholds = getRiskThresholds();
+
+  // Determine risk class based on configured thresholds
   let riskClass = 'risk-approve';
-  if (finalScore < 40) {
+  if (finalScore < thresholds.medium) {
     riskClass = 'risk-reject';
-  } else if (finalScore < 70) {
+  } else if (finalScore < thresholds.low) {
     riskClass = 'risk-review';
   }
 
@@ -1022,17 +1060,20 @@ function displayFraudFlags() {
   document.getElementById('device-risk-score').textContent = deviceRisk;
   document.getElementById('total-risk-score').textContent = totalRisk;
 
-  // Risk level badge
+  // Risk level badge - uses configured thresholds from analytics_config.risk_thresholds
+  // These thresholds are cumulative risk points (higher = worse)
+  const riskThresholds = analyticsConfig?.risk_thresholds || { low: 50, medium: 100, high: 200 };
+
   let riskLevel = 'LOW';
   let badgeClass = 'badge-success';
 
-  if (totalRisk >= 200) {
+  if (totalRisk >= riskThresholds.high) {
     riskLevel = 'CRITICAL';
     badgeClass = 'badge-danger';
-  } else if (totalRisk >= 100) {
+  } else if (totalRisk >= riskThresholds.medium) {
     riskLevel = 'HIGH';
     badgeClass = 'badge-warning';
-  } else if (totalRisk >= 50) {
+  } else if (totalRisk >= riskThresholds.low) {
     riskLevel = 'MEDIUM';
     badgeClass = 'badge-warning';
   }
@@ -2830,7 +2871,10 @@ function copyRawData() {
 }
 
 // Initialize page
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // Load analytics configuration first (for risk thresholds)
+  await loadAnalyticsConfig();
+
   // Check for session ID in URL
   const urlParams = new URLSearchParams(window.location.search);
   const sessionId = urlParams.get('sessionId');
