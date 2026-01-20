@@ -8,12 +8,13 @@ let currentDeviceHistory = null;
 let currentRawData = null; // Store raw data for debugging
 let analyticsConfig = null; // KYC setup analytics configuration
 
-// Default risk thresholds for cumulative risk points (higher = worse)
+// Default risk thresholds (0-100 scale, higher score = lower risk)
 // Configured in KYC Setup > Analytics Configuration > Risk Score Thresholds
+// These define the BOUNDARIES between risk levels
 const DEFAULT_RISK_THRESHOLDS = {
-  low: 50,     // 0-50 = LOW (green/approve)
-  medium: 100, // 50-100 = MEDIUM (yellow/review)
-  high: 200    // 100-200 = HIGH (orange/review), 200+ = CRITICAL (red/reject)
+  low: 70,     // Score >= 70 = LOW risk (green/approve)
+  medium: 40,  // Score 40-69 = MEDIUM risk (yellow/review)
+  high: 20     // Score 20-39 = HIGH risk (orange), < 20 = CRITICAL (red/reject)
 };
 
 // Load analytics configuration from KYC setup
@@ -30,12 +31,25 @@ async function loadAnalyticsConfig() {
 }
 
 // Get risk thresholds from analytics config
+// Converts the cumulative thresholds (0-200 scale) to percentage thresholds (0-100 scale)
 function getRiskThresholds() {
   if (analyticsConfig?.risk_thresholds) {
+    // Convert from cumulative (0-200+) to percentage (0-100)
+    // In KYC Setup: low=50, medium=100, high=200 means:
+    // - Score 0-50 cumulative = LOW risk = 75-100% quality
+    // - Score 50-100 cumulative = MEDIUM risk = 50-75% quality
+    // - Score 100-200 cumulative = HIGH risk = 25-50% quality
+    // - Score 200+ cumulative = CRITICAL = 0-25% quality
+    const configLow = analyticsConfig.risk_thresholds.low || 50;
+    const configMedium = analyticsConfig.risk_thresholds.medium || 100;
+    const configHigh = analyticsConfig.risk_thresholds.high || 200;
+
+    // Convert: higher cumulative threshold = lower percentage threshold
+    // Map cumulative 0-200 to percentage 100-0
     return {
-      low: analyticsConfig.risk_thresholds.low || DEFAULT_RISK_THRESHOLDS.low,
-      medium: analyticsConfig.risk_thresholds.medium || DEFAULT_RISK_THRESHOLDS.medium,
-      high: analyticsConfig.risk_thresholds.high || DEFAULT_RISK_THRESHOLDS.high
+      low: Math.max(0, Math.min(100, 100 - (configLow / 2))),      // 50 -> 75
+      medium: Math.max(0, Math.min(100, 100 - (configMedium / 2))), // 100 -> 50
+      high: Math.max(0, Math.min(100, 100 - (configHigh / 2)))      // 200 -> 0
     };
   }
   return DEFAULT_RISK_THRESHOLDS;
@@ -219,7 +233,7 @@ function displaySessionHeader() {
   // Risk Assessment - Calculate comprehensive risk score
   const { riskScore, riskClass } = calculateComprehensiveRiskFromSession(session, currentVerificationData, currentEventsData);
   const riskBadge = document.getElementById('risk-badge');
-  riskBadge.textContent = `${riskScore}/100`;
+  riskBadge.textContent = `${riskScore}`;
   riskBadge.className = `badge badge-${riskClass} mt-1`;
 
   // Duration
@@ -421,9 +435,10 @@ function buildJourneyFlow(events) {
 }
 
 // Calculate comprehensive risk score from all verification scores
-// Returns cumulative risk points (higher = worse risk)
+// Returns a score from 0-100 where higher = better/lower risk
 function calculateComprehensiveRisk(session) {
-  let riskScore = 0; // Cumulative risk points (higher = worse)
+  let totalScore = 0;
+  let scoreCount = 0;
   let details = [];
 
   try {
@@ -460,61 +475,70 @@ function calculateComprehensiveRisk(session) {
     }
 
     if (verifications) {
-      // Screen Detection Score - high score = document on screen = HIGH RISK
+      // Screen Detection Score (0-100, high detection score = bad, so invert)
       if (verifications.idScreenDetection?.enabled && verifications.idScreenDetection?.score !== undefined) {
-        const screenRisk = verifications.idScreenDetection.score; // Direct: high detection = high risk
-        riskScore += screenRisk;
-        if (screenRisk > 50) details.push(`Screen: ${screenRisk}`);
+        const score = 100 - verifications.idScreenDetection.score; // Invert: low detection = good
+        totalScore += score;
+        scoreCount++;
+        if (score < 50) details.push(`Screen: ${100 - score}`);
       }
 
-      // Print Detection Score - high score = printed document = HIGH RISK
+      // Print Detection Score (0-100, high detection score = bad, so invert)
       if (verifications.idPrintDetection?.enabled && verifications.idPrintDetection?.score !== undefined) {
-        const printRisk = verifications.idPrintDetection.score;
-        riskScore += printRisk;
-        if (printRisk > 50) details.push(`Print: ${printRisk}`);
+        const score = 100 - verifications.idPrintDetection.score;
+        totalScore += score;
+        scoreCount++;
+        if (score < 50) details.push(`Print: ${100 - score}`);
       }
 
-      // Photo Tampering Score - high score = tampering detected = HIGH RISK
+      // Photo Tampering Score (0-100, high detection score = bad, so invert)
       if (verifications.idPhotoTamperingDetection?.enabled && verifications.idPhotoTamperingDetection?.score !== undefined) {
-        const tamperRisk = verifications.idPhotoTamperingDetection.score;
-        riskScore += tamperRisk;
-        if (tamperRisk > 50) details.push(`Tampering: ${tamperRisk}`);
+        const score = 100 - verifications.idPhotoTamperingDetection.score;
+        totalScore += score;
+        scoreCount++;
+        if (score < 50) details.push(`Tampering: ${100 - score}`);
       }
 
-      // Source Detection - non-optimal adds risk
+      // Source Detection - optimal resolution = good
       if (verifications.sourceDetection?.enabled) {
-        if (!verifications.sourceDetection.optimalResolution) {
-          riskScore += 20;
-          details.push('Non-optimal resolution');
-        }
+        const score = verifications.sourceDetection.optimalResolution ? 100 : 70;
+        totalScore += score;
+        scoreCount++;
+        if (!verifications.sourceDetection.optimalResolution) details.push('Non-optimal resolution');
       }
 
-      // Face Match Level - LOW match = HIGH RISK
+      // Face Match Level - HIGH = good
       if (verifications.faceMatchLevel) {
-        const faceRisk = verifications.faceMatchLevel === 'LOW' ? 50 :
-                         verifications.faceMatchLevel === 'MEDIUM' ? 20 : 0;
-        riskScore += faceRisk;
-        if (faceRisk > 0) details.push(`Face: ${verifications.faceMatchLevel}`);
+        const score = verifications.faceMatchLevel === 'HIGH' ? 100 :
+                      verifications.faceMatchLevel === 'MEDIUM' ? 70 : 40;
+        totalScore += score;
+        scoreCount++;
+        if (score < 70) details.push(`Face: ${verifications.faceMatchLevel}`);
       }
 
-      // Liveness Level - LOW liveness = HIGH RISK
+      // Liveness Level - HIGH = good
       if (verifications.livenessLevel) {
-        const livenessRisk = verifications.livenessLevel === 'LOW' ? 50 :
-                            verifications.livenessLevel === 'MEDIUM' ? 20 : 0;
-        riskScore += livenessRisk;
-        if (livenessRisk > 0) details.push(`Liveness: ${verifications.livenessLevel}`);
+        const score = verifications.livenessLevel === 'HIGH' ? 100 :
+                      verifications.livenessLevel === 'MEDIUM' ? 70 : 40;
+        totalScore += score;
+        scoreCount++;
+        if (score < 70) details.push(`Liveness: ${verifications.livenessLevel}`);
       }
 
-      // Document Validity - invalid = HIGH RISK
-      if (verifications.documentValid !== undefined && !verifications.documentValid) {
-        riskScore += 50;
-        details.push('Doc: Invalid');
+      // Document Validity - valid = good
+      if (verifications.documentValid !== undefined) {
+        const score = verifications.documentValid ? 100 : 0;
+        totalScore += score;
+        scoreCount++;
+        if (!verifications.documentValid) details.push('Doc: Invalid');
       }
 
-      // MRZ Validity - invalid = MEDIUM RISK
-      if (verifications.mrzValid !== undefined && !verifications.mrzValid) {
-        riskScore += 30;
-        details.push('MRZ: Invalid');
+      // MRZ Validity - valid = good
+      if (verifications.mrzValid !== undefined) {
+        const score = verifications.mrzValid ? 100 : 30;
+        totalScore += score;
+        scoreCount++;
+        if (!verifications.mrzValid) details.push('MRZ: Invalid');
       }
     }
 
@@ -543,8 +567,9 @@ function calculateComprehensiveRisk(session) {
       ).length;
 
       if (failureCount > 0) {
-        const failurePenalty = failureCount * 25; // Each failure adds 25 risk points
-        riskScore += failurePenalty;
+        // Deduct points for failures (max 30 point penalty)
+        const failurePenalty = Math.min(failureCount * 10, 30);
+        totalScore = Math.max(0, totalScore - failurePenalty);
         details.push(`Failures: ${failureCount}`);
       }
     }
@@ -553,24 +578,27 @@ function calculateComprehensiveRisk(session) {
     console.error('Error calculating risk score:', e);
   }
 
+  // Calculate final score (0-100, higher = better)
+  const finalScore = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 50;
+
   // Get configurable risk thresholds from Analytics Configuration
   const thresholds = getRiskThresholds();
 
   // Determine risk class based on configured thresholds
-  // Lower score = lower risk (green), higher score = higher risk (red)
-  let riskClass = 'success'; // Green for low risk
-  if (riskScore >= thresholds.high) {
-    riskClass = 'danger'; // Red for critical risk (>= high threshold)
-  } else if (riskScore >= thresholds.medium) {
-    riskClass = 'warning'; // Orange for high risk (>= medium threshold)
-  } else if (riskScore >= thresholds.low) {
-    riskClass = 'warning'; // Yellow for medium risk (>= low threshold)
+  // Higher score = lower risk (green)
+  let riskClass = 'success'; // Green for low risk (score >= low threshold)
+  if (finalScore < thresholds.high) {
+    riskClass = 'danger'; // Red for critical risk (score below high threshold)
+  } else if (finalScore < thresholds.medium) {
+    riskClass = 'warning'; // Orange for high risk
+  } else if (finalScore < thresholds.low) {
+    riskClass = 'warning'; // Yellow for medium risk
   }
 
   const riskDetails = details.length > 0 ? details.join(' | ') : 'Low risk';
 
   return {
-    riskScore: riskScore,
+    riskScore: finalScore,
     riskClass: riskClass,
     riskDetails: riskDetails
   };
@@ -578,65 +606,72 @@ function calculateComprehensiveRisk(session) {
 
 // Calculate comprehensive risk for session detail view (works with separate verification data and events)
 // Calculate comprehensive risk for session detail view
-// Returns cumulative risk points (higher = worse risk)
+// Returns a score from 0-100 where higher = better/lower risk
 function calculateComprehensiveRiskFromSession(session, verifications, events) {
-  let riskScore = 0; // Cumulative risk points
+  let totalScore = 0;
+  let scoreCount = 0;
 
   try {
-    // Screen Detection Score - high score = HIGH RISK
+    // Screen Detection Score (invert: low detection = good)
     if (verifications.idScreenDetection?.enabled && verifications.idScreenDetection?.score !== undefined) {
-      riskScore += verifications.idScreenDetection.score;
+      totalScore += 100 - verifications.idScreenDetection.score;
+      scoreCount++;
     }
 
-    // Print Detection Score - high score = HIGH RISK
+    // Print Detection Score (invert: low detection = good)
     if (verifications.idPrintDetection?.enabled && verifications.idPrintDetection?.score !== undefined) {
-      riskScore += verifications.idPrintDetection.score;
+      totalScore += 100 - verifications.idPrintDetection.score;
+      scoreCount++;
     }
 
-    // Photo Tampering Score - high score = HIGH RISK
+    // Photo Tampering Score (invert: low detection = good)
     if (verifications.idPhotoTamperingDetection?.enabled && verifications.idPhotoTamperingDetection?.score !== undefined) {
-      riskScore += verifications.idPhotoTamperingDetection.score;
+      totalScore += 100 - verifications.idPhotoTamperingDetection.score;
+      scoreCount++;
     }
 
-    // Source Detection - non-optimal adds risk
+    // Source Detection - optimal = good
     if (verifications.sourceDetection?.enabled) {
-      if (!verifications.sourceDetection.optimalResolution) {
-        riskScore += 20;
-      }
+      totalScore += verifications.sourceDetection.optimalResolution ? 100 : 70;
+      scoreCount++;
     }
 
-    // Face Match Level - LOW = HIGH RISK
+    // Face Match Level - HIGH = good
     if (verifications.faceMatchLevel !== undefined) {
-      let faceRisk;
+      let score;
       if (typeof verifications.faceMatchLevel === 'number') {
-        faceRisk = Math.max(0, 50 - (verifications.faceMatchLevel / 5) * 50);
+        score = (verifications.faceMatchLevel / 5) * 100;
       } else {
-        faceRisk = verifications.faceMatchLevel === 'LOW' ? 50 :
-                   verifications.faceMatchLevel === 'MEDIUM' ? 20 : 0;
+        score = verifications.faceMatchLevel === 'HIGH' ? 100 :
+                verifications.faceMatchLevel === 'MEDIUM' ? 70 : 40;
       }
-      riskScore += faceRisk;
+      totalScore += score;
+      scoreCount++;
     }
 
-    // Liveness Level - LOW = HIGH RISK
+    // Liveness Level - HIGH = good
     if (verifications.livenessLevel !== undefined) {
-      let livenessRisk;
+      let score;
       if (typeof verifications.livenessLevel === 'number') {
-        livenessRisk = Math.max(0, 50 - (verifications.livenessLevel / 5) * 50);
+        score = (verifications.livenessLevel / 5) * 100;
       } else {
-        livenessRisk = verifications.livenessLevel === 'LOW' ? 50 :
-                       verifications.livenessLevel === 'MEDIUM' ? 20 : 0;
+        score = verifications.livenessLevel === 'HIGH' ? 100 :
+                verifications.livenessLevel === 'MEDIUM' ? 70 : 40;
       }
-      riskScore += livenessRisk;
+      totalScore += score;
+      scoreCount++;
     }
 
-    // Document Validity - invalid = HIGH RISK
-    if (verifications.documentValid !== undefined && !verifications.documentValid) {
-      riskScore += 50;
+    // Document Validity - valid = good
+    if (verifications.documentValid !== undefined) {
+      totalScore += verifications.documentValid ? 100 : 0;
+      scoreCount++;
     }
 
-    // MRZ Validity - invalid = MEDIUM RISK
-    if (verifications.mrzValid !== undefined && !verifications.mrzValid) {
-      riskScore += 30;
+    // MRZ Validity - valid = good
+    if (verifications.mrzValid !== undefined) {
+      totalScore += verifications.mrzValid ? 100 : 30;
+      scoreCount++;
     }
 
     // Check for failure events
@@ -646,26 +681,30 @@ function calculateComprehensiveRiskFromSession(session, verifications, events) {
       ).length;
 
       if (failureCount > 0) {
-        riskScore += failureCount * 25;
+        const penalty = Math.min(failureCount * 10, 30);
+        totalScore = Math.max(0, totalScore - penalty);
       }
     }
   } catch (e) {
     console.error('Error calculating session risk score:', e);
   }
 
+  // Calculate final score (0-100, higher = better)
+  const finalScore = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 50;
+
   // Get configurable risk thresholds
   const thresholds = getRiskThresholds();
 
-  // Determine risk class based on configured thresholds (higher score = higher risk)
+  // Determine risk class based on configured thresholds (higher score = lower risk)
   let riskClass = 'risk-approve';
-  if (riskScore >= thresholds.high) {
+  if (finalScore < thresholds.high) {
     riskClass = 'risk-reject';
-  } else if (riskScore >= thresholds.low) {
+  } else if (finalScore < thresholds.low) {
     riskClass = 'risk-review';
   }
 
   return {
-    riskScore: riskScore,
+    riskScore: finalScore,
     riskClass: riskClass
   };
 }
@@ -2173,7 +2212,7 @@ function buildSessionsTable(sessions) {
           </div>
         </td>
         <td>
-          <span class="badge badge-sm bg-${riskClass}" data-bs-toggle="tooltip" data-bs-placement="top" title="${riskDetails}">${riskScore}/100</span>
+          <span class="badge badge-sm bg-${riskClass}" data-bs-toggle="tooltip" data-bs-placement="top" title="${riskDetails}">${riskScore}</span>
         </td>
         <td>
           <div class="d-flex align-items-center">
