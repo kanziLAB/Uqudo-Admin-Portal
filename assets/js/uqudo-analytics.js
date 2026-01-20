@@ -2737,13 +2737,20 @@ async function loadSdkSession(sessionId) {
       url.searchParams.set('session', sessionId);
       window.history.pushState({}, '', url);
 
-      // Hide list view, show detail view
-      document.getElementById('sessions-list-view').style.display = 'none';
-      document.getElementById('session-detail-view').style.display = 'block';
-
-      // Display the session
-      displaySessionDetail();
       hideLoading();
+
+      // Display session data
+      displaySessionHeader();
+      displayVerificationSummary();
+      displayFraudFlags();
+      displayDeviceHistory();
+      displayUXAnalysis();
+      displayRawData();
+
+      // Hide list, show detail
+      document.getElementById('sessions-list-view').style.display = 'none';
+      document.getElementById('session-header').style.display = 'block';
+      document.getElementById('tabs-container').style.display = 'block';
       return;
     }
 
