@@ -8,10 +8,19 @@ let currentDeviceHistory = null;
 let currentRawData = null; // Store raw data for debugging
 let analyticsConfig = null; // KYC setup analytics configuration
 
-// Default risk thresholds (used if config not loaded)
-const DEFAULT_RISK_THRESHOLDS = {
+// Default risk thresholds for percentage-based scores (0-100, higher = better)
+// These are used for the Recent Sessions table badges
+const DEFAULT_SCORE_THRESHOLDS = {
   low: 70,    // Score >= 70 = low risk (success/green)
   medium: 40  // Score >= 40 = medium risk (warning/orange), < 40 = high risk (danger/red)
+};
+
+// Default risk thresholds for cumulative risk points (higher = worse)
+// These are used for the session detail view Risk Score Breakdown
+const DEFAULT_CUMULATIVE_THRESHOLDS = {
+  low: 50,     // 0-50 = LOW
+  medium: 100, // 50-100 = MEDIUM
+  high: 200    // 100-200 = HIGH, 200+ = CRITICAL
 };
 
 // Load analytics configuration from KYC setup
@@ -27,15 +36,24 @@ async function loadAnalyticsConfig() {
   }
 }
 
-// Get risk thresholds from config or use defaults
+// Get score thresholds for percentage-based scoring (Recent Sessions table)
+// Converts cumulative thresholds to percentage thresholds
 function getRiskThresholds() {
+  // Always use the default percentage-based thresholds for the table view
+  // The configured thresholds are for cumulative risk scoring, not percentage scores
+  return DEFAULT_SCORE_THRESHOLDS;
+}
+
+// Get cumulative risk thresholds (for session detail Risk Score Breakdown)
+function getCumulativeRiskThresholds() {
   if (analyticsConfig?.risk_thresholds) {
     return {
-      low: analyticsConfig.risk_thresholds.low || DEFAULT_RISK_THRESHOLDS.low,
-      medium: analyticsConfig.risk_thresholds.medium || DEFAULT_RISK_THRESHOLDS.medium
+      low: analyticsConfig.risk_thresholds.low || DEFAULT_CUMULATIVE_THRESHOLDS.low,
+      medium: analyticsConfig.risk_thresholds.medium || DEFAULT_CUMULATIVE_THRESHOLDS.medium,
+      high: analyticsConfig.risk_thresholds.high || DEFAULT_CUMULATIVE_THRESHOLDS.high
     };
   }
-  return DEFAULT_RISK_THRESHOLDS;
+  return DEFAULT_CUMULATIVE_THRESHOLDS;
 }
 
 // Severity Mapping for Fraud Flags
@@ -1062,7 +1080,7 @@ function displayFraudFlags() {
 
   // Risk level badge - uses configured thresholds from analytics_config.risk_thresholds
   // These thresholds are cumulative risk points (higher = worse)
-  const riskThresholds = analyticsConfig?.risk_thresholds || { low: 50, medium: 100, high: 200 };
+  const riskThresholds = getCumulativeRiskThresholds();
 
   let riskLevel = 'LOW';
   let badgeClass = 'badge-success';
