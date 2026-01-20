@@ -1157,16 +1157,19 @@ function displayDeviceHistory() {
   const tableBody = document.getElementById('device-sessions-table');
 
   if (sessions.length === 0) {
-    tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No previous sessions found</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No previous sessions found</td></tr>';
   } else {
     tableBody.innerHTML = sessions.map(session => `
       <tr>
         <td><small>${formatDate(new Date(session.timestamp))}</small></td>
-        <td><span class="badge badge-sm badge-outcome-${session.outcome.toLowerCase()}">${session.outcome}</span></td>
-        <td><small>${formatDuration(session.duration)}</small></td>
-        <td><small>${session.fraudFlags || 0}</small></td>
+        <td><span class="badge badge-sm badge-outcome-${(session.outcome || 'pending').toLowerCase()}">${session.outcome || 'PENDING'}</span></td>
         <td><span class="badge badge-sm bg-secondary">${formatDocumentType(session.documentType)}</span></td>
-        <td><small class="text-muted">${session.failureReason || '-'}</small></td>
+        <td><small>${session.platform || 'Unknown'}</small></td>
+        <td>
+          <button class="btn btn-link btn-sm p-0 text-info" onclick="viewFullSessionDetail('${session.id}')" title="View Session">
+            <i class="material-symbols-rounded text-sm">visibility</i>
+          </button>
+        </td>
       </tr>
     `).join('');
   }
@@ -2721,7 +2724,20 @@ async function loadSdkSession(sessionId) {
         verifications: [verifications]
       };
       currentEventsData = events;
+
+      // Fetch device history if we have a device identifier
       currentDeviceHistory = null;
+      const deviceId = sdkSource.deviceIdentifier;
+      if (deviceId) {
+        try {
+          const deviceResponse = await api.getDeviceHistoryFromSessions(deviceId, session.id);
+          if (deviceResponse.success && deviceResponse.data) {
+            currentDeviceHistory = deviceResponse.data;
+          }
+        } catch (e) {
+          console.error('Error fetching device history:', e);
+        }
+      }
 
       // Store raw data for debugging
       currentRawData = {
@@ -2729,7 +2745,8 @@ async function loadSdkSession(sessionId) {
         sdkAnalytics: sdkAnalytics,
         sdkSource: sdkSource,
         verifications: verifications,
-        events: events
+        events: events,
+        deviceHistory: currentDeviceHistory
       };
 
       // Update URL
@@ -2862,7 +2879,20 @@ async function loadAccountAsSession(accountId) {
       verifications: [verifications]
     };
     currentEventsData = events;
-    currentDeviceHistory = null; // Would need separate device history lookup
+
+    // Fetch device history if we have a device identifier
+    currentDeviceHistory = null;
+    const deviceId = sdkSource.deviceIdentifier;
+    if (deviceId) {
+      try {
+        const deviceResponse = await api.getDeviceHistoryFromSessions(deviceId, account.id);
+        if (deviceResponse.success && deviceResponse.data) {
+          currentDeviceHistory = deviceResponse.data;
+        }
+      } catch (e) {
+        console.error('Error fetching device history:', e);
+      }
+    }
 
     // Store raw data for debugging
     currentRawData = {
@@ -2870,7 +2900,8 @@ async function loadAccountAsSession(accountId) {
       sdk_trace: account.sdk_trace,
       sdk_source: account.sdk_source,
       sdk_verifications: account.sdk_verifications,
-      fraud_scores: account.fraud_scores
+      fraud_scores: account.fraud_scores,
+      deviceHistory: currentDeviceHistory
     };
 
     hideLoading();

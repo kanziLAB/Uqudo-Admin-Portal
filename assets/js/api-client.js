@@ -224,6 +224,11 @@ class ApiClient {
     return this.get(`/sdk-sessions/account/${accountId}`);
   }
 
+  async getDeviceHistoryFromSessions(deviceIdentifier, excludeSessionId = null) {
+    const params = excludeSessionId ? { excludeSessionId } : {};
+    return this.get(`/sdk-sessions/device/${encodeURIComponent(deviceIdentifier)}`, params);
+  }
+
   // ========================================
   // ACCOUNTS
   // ========================================

@@ -958,7 +958,8 @@ router.post('/enrollment-jws',
             fraud_scores: fraudScores,
             verification_channel: source?.sdkType?.toLowerCase().includes('web') ? 'web' : 'mobile',
             platform: source?.devicePlatform || null,
-            sdk_version: source?.sdkVersion || null
+            sdk_version: source?.sdkVersion || null,
+            device_identifier: source?.deviceIdentifier || null
           });
           console.log(`✅ SDK session stored: ${sessionId}`);
         } catch (sessionError) {
