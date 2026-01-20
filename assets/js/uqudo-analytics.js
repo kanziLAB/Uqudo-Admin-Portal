@@ -2614,11 +2614,11 @@ function createRadarChart(verifications) {
 }
 
 // View full session detail (navigate to full view)
-// Can be called with accountId directly or from modal (uses window.currentModalSessionId)
-function viewFullSessionDetail(accountId) {
-  const sessionId = accountId || window.currentModalSessionId;
+// Can be called with sessionId directly or from modal (uses window.currentModalSessionId)
+async function viewFullSessionDetail(sessionId) {
+  const id = sessionId || window.currentModalSessionId;
 
-  if (sessionId) {
+  if (id) {
     // Close modal if open
     const modalElement = document.getElementById('sessionDetailModal');
     if (modalElement) {
@@ -2627,8 +2627,134 @@ function viewFullSessionDetail(accountId) {
         modal.hide();
       }
     }
-    // Load full session view
-    loadAccountAsSession(sessionId);
+    // Load full session view - try SDK session first, then fall back to account
+    await loadSdkSession(id);
+  }
+}
+
+// Load SDK session data
+async function loadSdkSession(sessionId) {
+  try {
+    showLoading();
+
+    // First try to load as SDK session
+    const response = await api.getSdkSessionById(sessionId);
+
+    if (response.success && response.data) {
+      const session = response.data;
+
+      // Parse SDK data
+      let sdkAnalytics = {};
+      let sdkSource = {};
+      let verifications = {};
+
+      if (session.sdk_analytics) {
+        try {
+          sdkAnalytics = typeof session.sdk_analytics === 'string' ? JSON.parse(session.sdk_analytics) : session.sdk_analytics;
+        } catch (e) {
+          console.error('Error parsing sdk_analytics:', e);
+        }
+      }
+
+      if (session.sdk_source) {
+        try {
+          sdkSource = typeof session.sdk_source === 'string' ? JSON.parse(session.sdk_source) : session.sdk_source;
+        } catch (e) {
+          console.error('Error parsing sdk_source:', e);
+        }
+      }
+
+      if (session.sdk_verifications) {
+        try {
+          verifications = typeof session.sdk_verifications === 'string' ? JSON.parse(session.sdk_verifications) : session.sdk_verifications;
+          if (Array.isArray(verifications) && verifications.length > 0) {
+            verifications = verifications[0];
+          }
+        } catch (e) {
+          console.error('Error parsing sdk_verifications:', e);
+        }
+      }
+
+      if (session.fraud_scores) {
+        try {
+          const fraudScores = typeof session.fraud_scores === 'string' ? JSON.parse(session.fraud_scores) : session.fraud_scores;
+          verifications = { ...verifications, ...fraudScores };
+        } catch (e) {
+          console.error('Error parsing fraud_scores:', e);
+        }
+      }
+
+      // Parse events
+      let events = [];
+      if (sdkAnalytics) {
+        events = Array.isArray(sdkAnalytics) ? sdkAnalytics : sdkAnalytics.events || [];
+      }
+      if (events.length === 0 && session.sdk_trace) {
+        try {
+          const trace = typeof session.sdk_trace === 'string' ? JSON.parse(session.sdk_trace) : session.sdk_trace;
+          events = Array.isArray(trace) ? trace : [];
+        } catch (e) {
+          console.error('Error parsing sdk_trace:', e);
+        }
+      }
+
+      // Build session data object
+      currentSessionData = {
+        sessionId: session.id,
+        id: session.id,
+        account_id: session.account_id,
+        jti: session.jti,
+        deviceIdentifier: sdkSource.deviceIdentifier || session.id,
+        platform: sdkSource.devicePlatform || 'Unknown',
+        devicePlatform: sdkSource.devicePlatform || 'Unknown',
+        created_at: session.created_at,
+        timestamp: session.created_at,
+        outcome: session.verification_status || 'PENDING',
+        status: session.verification_status || 'PENDING',
+        verification_status: session.verification_status,
+        document_type: session.document_type
+      };
+
+      // Build verification data structure
+      currentVerificationData = {
+        documentType: session.document_type || verifications.documentType,
+        verifications: [verifications]
+      };
+      currentEventsData = events;
+      currentDeviceHistory = null;
+
+      // Store raw data for debugging
+      currentRawData = {
+        session: session,
+        sdkAnalytics: sdkAnalytics,
+        sdkSource: sdkSource,
+        verifications: verifications,
+        events: events
+      };
+
+      // Update URL
+      const url = new URL(window.location);
+      url.searchParams.set('session', sessionId);
+      window.history.pushState({}, '', url);
+
+      // Hide list view, show detail view
+      document.getElementById('sessions-list-view').style.display = 'none';
+      document.getElementById('session-detail-view').style.display = 'block';
+
+      // Display the session
+      displaySessionDetail();
+      hideLoading();
+      return;
+    }
+
+    // Fall back to loading as account
+    console.log('SDK session not found, trying as account...');
+    await loadAccountAsSession(sessionId);
+
+  } catch (error) {
+    console.error('Error loading SDK session:', error);
+    // Fall back to loading as account
+    await loadAccountAsSession(sessionId);
   }
 }
 
