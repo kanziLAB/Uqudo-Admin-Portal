@@ -940,12 +940,28 @@ router.post('/enrollment-jws',
         const fraudScores = extractFraudScores(verifications);
         const nameParts = (accountData?.full_name || '').split(' ');
 
-        // Extract deviceIdentifier - check source first, then trace events
+        // Extract or generate deviceIdentifier
+        // Priority: 1) explicit deviceIdentifier from source/trace, 2) generate fingerprint from device info
         let deviceIdentifier = source?.deviceIdentifier || null;
         if (!deviceIdentifier && trace && trace.length > 0) {
           // Web SDK stores deviceIdentifier in each trace event
           const traceWithDevice = trace.find(t => t.deviceIdentifier);
           deviceIdentifier = traceWithDevice?.deviceIdentifier || null;
+        }
+
+        // If no explicit deviceIdentifier, create a fingerprint from available device info
+        if (!deviceIdentifier && source) {
+          const fingerPrintParts = [
+            source.sourceIp || '',
+            source.deviceModel || '',
+            source.devicePlatform || '',
+            source.deviceVersion || ''
+          ].filter(Boolean);
+
+          if (fingerPrintParts.length >= 2) {
+            // Create a simple hash-like fingerprint
+            deviceIdentifier = `fp_${fingerPrintParts.join('_').replace(/[^a-zA-Z0-9_.-]/g, '_').substring(0, 100)}`;
+          }
         }
 
         try {

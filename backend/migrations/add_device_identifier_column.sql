@@ -25,5 +25,23 @@ WHERE device_identifier IS NULL
   AND jsonb_array_length(sdk_trace) > 0
   AND sdk_trace->0->>'deviceIdentifier' IS NOT NULL;
 
+-- Backfill device_identifier using fingerprint from sdk_source (sourceIp + deviceModel + devicePlatform)
+-- This creates a consistent identifier for devices that don't provide explicit deviceIdentifier
+UPDATE sdk_sessions
+SET device_identifier = 'fp_' ||
+    regexp_replace(
+      COALESCE(sdk_source->>'sourceIp', '') || '_' ||
+      COALESCE(sdk_source->>'deviceModel', '') || '_' ||
+      COALESCE(sdk_source->>'devicePlatform', ''),
+      '[^a-zA-Z0-9_.-]', '_', 'g'
+    )
+WHERE device_identifier IS NULL
+  AND sdk_source IS NOT NULL
+  AND (
+    sdk_source->>'sourceIp' IS NOT NULL OR
+    sdk_source->>'deviceModel' IS NOT NULL OR
+    sdk_source->>'devicePlatform' IS NOT NULL
+  );
+
 -- Add comment for documentation
-COMMENT ON COLUMN sdk_sessions.device_identifier IS 'Device identifier extracted from sdk_source or sdk_trace for efficient device history queries';
+COMMENT ON COLUMN sdk_sessions.device_identifier IS 'Device identifier - explicit from SDK or fingerprint from device info (sourceIp + deviceModel + devicePlatform)';

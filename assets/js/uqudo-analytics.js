@@ -3014,13 +3014,42 @@ async function loadSdkSession(sessionId) {
       }
 
       // Extract deviceIdentifier - check multiple sources
-      // Priority: 1) dedicated column, 2) sdk_source, 3) trace events
+      // Priority: 1) dedicated column, 2) sdk_source, 3) events, 4) raw trace, 5) generate fingerprint
       let deviceIdentifier = session.device_identifier || sdkSource.deviceIdentifier || null;
+
       if (!deviceIdentifier && events.length > 0) {
-        // Web SDK stores deviceIdentifier in each trace event
+        // Check normalized events (deviceIdentifier at top level) or raw events (in metadata)
         const eventWithDevice = events.find(e => e.deviceIdentifier || e.metadata?.deviceIdentifier);
         deviceIdentifier = eventWithDevice?.deviceIdentifier || eventWithDevice?.metadata?.deviceIdentifier || null;
       }
+
+      // Also try raw sdk_trace as last resort
+      if (!deviceIdentifier && session.sdk_trace) {
+        try {
+          const rawTrace = typeof session.sdk_trace === 'string' ? JSON.parse(session.sdk_trace) : session.sdk_trace;
+          if (Array.isArray(rawTrace) && rawTrace.length > 0) {
+            const traceWithDevice = rawTrace.find(t => t.deviceIdentifier);
+            deviceIdentifier = traceWithDevice?.deviceIdentifier || null;
+          }
+        } catch (e) {
+          console.error('Error extracting deviceIdentifier from raw trace:', e);
+        }
+      }
+
+      // Generate fingerprint from device info if still no deviceIdentifier
+      if (!deviceIdentifier && sdkSource) {
+        const parts = [
+          sdkSource.sourceIp || '',
+          sdkSource.deviceModel || '',
+          sdkSource.devicePlatform || ''
+        ].filter(Boolean);
+
+        if (parts.length >= 2) {
+          deviceIdentifier = `fp_${parts.join('_').replace(/[^a-zA-Z0-9_.-]/g, '_').substring(0, 100)}`;
+        }
+      }
+
+      console.log('🔍 Device ID:', deviceIdentifier);
 
       // Build session data object
       currentSessionData = {
@@ -3179,12 +3208,24 @@ async function loadAccountAsSession(accountId) {
     }
 
     // Extract deviceIdentifier - check multiple sources
-    // Priority: 1) dedicated column, 2) sdk_source, 3) trace events
+    // Priority: 1) dedicated column, 2) sdk_source, 3) events, 4) generate fingerprint
     let deviceIdentifier = account.device_identifier || sdkSource.deviceIdentifier || null;
     if (!deviceIdentifier && events.length > 0) {
-      // Web SDK stores deviceIdentifier in each trace event
       const eventWithDevice = events.find(e => e.deviceIdentifier || e.metadata?.deviceIdentifier);
       deviceIdentifier = eventWithDevice?.deviceIdentifier || eventWithDevice?.metadata?.deviceIdentifier || null;
+    }
+
+    // Generate fingerprint from device info if still no deviceIdentifier
+    if (!deviceIdentifier && sdkSource) {
+      const parts = [
+        sdkSource.sourceIp || '',
+        sdkSource.deviceModel || '',
+        sdkSource.devicePlatform || ''
+      ].filter(Boolean);
+
+      if (parts.length >= 2) {
+        deviceIdentifier = `fp_${parts.join('_').replace(/[^a-zA-Z0-9_.-]/g, '_').substring(0, 100)}`;
+      }
     }
 
     // Build session data object
