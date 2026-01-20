@@ -931,6 +931,40 @@ router.post('/enrollment-jws',
 
         // Store trace events in dedicated table for real-time analytics
         await storeTraceEvents(trace, accountId, tenantId, source);
+
+        // Store SDK session in sdk_sessions table for analytics
+        const sessionId = source?.jti || source?.sessionId || `sdk-${Date.now()}`;
+        const analyticsEvents = trace && trace.length > 0
+          ? normalizeTraceEvents(trace)
+          : buildAnalyticsEvents(source, verifications, documents, verificationStatus);
+        const fraudScores = extractFraudScores(verifications);
+        const nameParts = (accountData?.full_name || '').split(' ');
+
+        try {
+          await supabaseAdmin.from('sdk_sessions').insert({
+            tenant_id: tenantId,
+            account_id: accountId,
+            session_id: sessionId,
+            first_name: nameParts[0] || 'Unknown',
+            last_name: nameParts.slice(1).join(' ') || 'User',
+            id_number: accountData?.id_number || null,
+            document_type: accountData?.document_type || null,
+            verification_status: verificationStatus,
+            sdk_source: source,
+            sdk_analytics: analyticsEvents,
+            sdk_trace: trace,
+            sdk_verifications: verifications,
+            sdk_documents: documents,
+            fraud_scores: fraudScores,
+            verification_channel: source?.sdkType?.toLowerCase().includes('web') ? 'web' : 'mobile',
+            platform: source?.devicePlatform || null,
+            sdk_version: source?.sdkVersion || null
+          });
+          console.log(`✅ SDK session stored: ${sessionId}`);
+        } catch (sessionError) {
+          // Don't fail if session storage fails (table might not exist yet)
+          console.warn(`⚠️ Failed to store SDK session: ${sessionError.message}`);
+        }
       }
     } catch (error) {
       console.error('Account creation failed:', error);

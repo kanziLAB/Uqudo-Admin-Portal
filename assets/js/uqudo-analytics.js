@@ -1804,13 +1804,24 @@ async function loadSessionsList(page = 1) {
   try {
     currentPage = page;
 
-    // Fetch accounts data (which contain SDK results)
-    const response = await api.getAccounts({
+    // Try to fetch from sdk_sessions table first, fallback to accounts
+    let response = await api.getSdkSessions({
       page: page,
       limit: 20,
       sort: 'created_at',
       order: 'desc'
     });
+
+    // Fallback to accounts if sdk_sessions is empty or fails
+    if (!response.success || !response.data || response.data.length === 0) {
+      console.log('📊 Falling back to accounts table for sessions');
+      response = await api.getAccounts({
+        page: page,
+        limit: 20,
+        sort: 'created_at',
+        order: 'desc'
+      });
+    }
 
     if (!response.success) {
       document.getElementById('sessions-table-body').innerHTML = '<tr><td colspan="7" class="text-center text-danger">Error loading sessions</td></tr>';

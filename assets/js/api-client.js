@@ -209,6 +209,22 @@ class ApiClient {
   }
 
   // ========================================
+  // SDK SESSIONS
+  // ========================================
+
+  async getSdkSessions(params = {}) {
+    return this.get('/sdk-sessions', params);
+  }
+
+  async getSdkSessionById(id) {
+    return this.get(`/sdk-sessions/${id}`);
+  }
+
+  async getSdkSessionsByAccount(accountId) {
+    return this.get(`/sdk-sessions/account/${accountId}`);
+  }
+
+  // ========================================
   // ACCOUNTS
   // ========================================
 
