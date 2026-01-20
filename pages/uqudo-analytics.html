@@ -562,8 +562,8 @@
                 </div>
               </div>
               <div class="col-6">
-                <div class="text-center p-2 info-box rounded">
-                  <small class="info-label d-block">Risk Assessment</small>
+                <div class="text-center p-2 info-box rounded" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" title="<strong>Risk Score Calculation:</strong><br>• Verification scores (face match, liveness, tampering)<br>• Document authenticity checks<br>• Journey flags & failures<br><br>Lower score = Lower risk">
+                  <small class="info-label d-block">Risk Assessment <i class="material-symbols-rounded" style="font-size: 12px; vertical-align: middle; cursor: help;">info</i></small>
                   <span class="badge mt-1" id="risk-badge">-</span>
                 </div>
               </div>
@@ -585,7 +585,7 @@
               <div class="col-6">
                 <div class="text-center p-2 info-box rounded">
                   <small class="info-label d-block">Timestamp</small>
-                  <span class="mt-1 d-block info-value" style="font-size: 0.75rem;" id="timestamp-display">-</span>
+                  <span class="mt-1 d-block font-weight-bold info-value" id="timestamp-display">-</span>
                 </div>
               </div>
             </div>
@@ -714,15 +714,16 @@
                         <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Session ID</th>
                         <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Document Type</th>
                         <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Total Duration</th>
-                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Risk Score</th>
-                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">SDK Version</th>
+                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Total Risk Score</th>
+                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">UX Score</th>
+                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Device History</th>
                         <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Timestamp</th>
                         <th class="text-secondary opacity-7">Actions</th>
                       </tr>
                     </thead>
                     <tbody id="sessions-table-body">
                       <tr>
-                        <td colspan="7" class="text-center py-4">
+                        <td colspan="8" class="text-center py-4">
                           <div class="spinner-border text-info" role="status">
                             <span class="visually-hidden">Loading...</span>
                           </div>
@@ -1016,8 +1017,8 @@
             </div>
 
             <div class="row">
-              <div class="col-md-6">
-                <div class="card">
+              <div class="col-md-6 d-flex">
+                <div class="card flex-fill">
                   <div class="card-header pb-0">
                     <h6>Session Flow Metrics</h6>
                   </div>
@@ -1026,8 +1027,8 @@
                   </div>
                 </div>
               </div>
-              <div class="col-md-6">
-                <div class="card">
+              <div class="col-md-6 d-flex">
+                <div class="card flex-fill">
                   <div class="card-header pb-0">
                     <h6>Conversion Funnel</h6>
                   </div>

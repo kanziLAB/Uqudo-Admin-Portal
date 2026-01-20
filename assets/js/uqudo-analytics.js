@@ -837,6 +837,171 @@ function calculateDeviceRiskScore(deviceHistory) {
   return score;
 }
 
+// Calculate UX Analysis Score from friction analysis
+// Returns { score: number, level: string, emoji: string, details: string }
+function calculateUXScore(events) {
+  if (!events || events.length === 0) {
+    return { score: 0, level: 'N/A', emoji: '❓', details: 'No events data' };
+  }
+
+  const frictionData = calculateFrictionScoresForTable(events);
+
+  if (frictionData.length === 0) {
+    return { score: 100, level: 'EXCELLENT', emoji: '😊', details: 'Smooth journey, no friction detected' };
+  }
+
+  // Calculate average friction score
+  const totalScore = frictionData.reduce((sum, step) => sum + step.score, 0);
+  const avgScore = totalScore / frictionData.length;
+
+  // Convert friction score to UX score (inverse - lower friction = higher UX)
+  const uxScore = Math.max(0, 100 - avgScore);
+
+  // Determine level and emoji based on UX score
+  let level, emoji, details;
+  if (uxScore >= 80) {
+    level = 'EXCELLENT';
+    emoji = '😊';
+    details = 'Excellent user experience';
+  } else if (uxScore >= 60) {
+    level = 'GOOD';
+    emoji = '🙂';
+    details = 'Good user experience';
+  } else if (uxScore >= 40) {
+    level = 'FAIR';
+    emoji = '😐';
+    details = 'Fair experience, some friction';
+  } else if (uxScore >= 20) {
+    level = 'POOR';
+    emoji = '😕';
+    details = 'Poor experience, high friction';
+  } else {
+    level = 'CRITICAL';
+    emoji = '😟';
+    details = 'Critical friction issues';
+  }
+
+  // Add step-specific details
+  const stepDetails = frictionData.map(s => `${s.name}: ${s.level}`).join(', ');
+  details += ` | ${stepDetails}`;
+
+  return { score: Math.round(uxScore), level, emoji, details };
+}
+
+// Simplified friction calculation for table (without requiring global state)
+function calculateFrictionScoresForTable(events) {
+  const stepPatterns = [
+    { name: 'SCAN', patterns: ['SCAN', 'SCANNING', 'DOCUMENT_SCAN'] },
+    { name: 'READ', patterns: ['READ', 'NFC', 'NFC_READ', 'NFC_READING', 'READING'] },
+    { name: 'FACE', patterns: ['FACE', 'FACIAL', 'LIVENESS', 'FACE_MATCH', 'BIOMETRIC'] }
+  ];
+
+  const results = [];
+
+  stepPatterns.forEach(({ name: stepName, patterns }) => {
+    const stepEvents = events.filter(e => {
+      const eventName = (e.name || e.event || '').toUpperCase();
+      const category = (e.category || e.type || '').toUpperCase();
+      const page = (e.page || '').toUpperCase();
+      return patterns.some(pattern =>
+        eventName.includes(pattern) || category === pattern || page === pattern ||
+        category.includes(pattern) || page.includes(pattern)
+      );
+    });
+
+    if (stepEvents.length === 0) return;
+
+    const attempts = stepEvents.filter(e => {
+      const status = (e.status || '').toUpperCase();
+      return status === 'START' || status === 'STARTED';
+    }).length || 1;
+
+    const issues = stepEvents.filter(e => {
+      const status = (e.status || '').toUpperCase();
+      return status === 'FAILURE' || status === 'FAILED' || status === 'ERROR';
+    }).length;
+
+    let duration = 0;
+    stepEvents.forEach(e => {
+      duration += (e.duration || 0) / 1000;
+    });
+
+    const attemptPenalty = (attempts - 1) * 20;
+    const durationPenalty = Math.max(0, (duration / 30 - 1)) * 30;
+    const issuePenalty = issues * 10;
+
+    const score = Math.round(attemptPenalty + durationPenalty + issuePenalty);
+    const level = score > 70 ? 'HIGH' : score > 30 ? 'MEDIUM' : 'LOW';
+
+    results.push({ name: stepName, score, level });
+  });
+
+  return results;
+}
+
+// Calculate Total Risk Score for table (from Journey Fraud Flags)
+function calculateTotalRiskScoreForTable(session) {
+  let totalRisk = 0;
+
+  // Parse events
+  let events = [];
+  if (session.sdk_analytics) {
+    try {
+      const analytics = typeof session.sdk_analytics === 'string' ? JSON.parse(session.sdk_analytics) : session.sdk_analytics;
+      events = Array.isArray(analytics) ? analytics : (analytics.events || []);
+    } catch (e) {}
+  }
+  if (events.length === 0 && session.sdk_trace) {
+    try {
+      const trace = typeof session.sdk_trace === 'string' ? JSON.parse(session.sdk_trace) : session.sdk_trace;
+      events = Array.isArray(trace) ? trace : [];
+    } catch (e) {}
+  }
+
+  // Journey Risk from failures
+  events.forEach(event => {
+    if (event.status === 'FAILURE') {
+      const severity = getSeverity(event.statusCode);
+      if (severity === 'CRITICAL') totalRisk += 100;
+      if (severity === 'HIGH') totalRisk += 50;
+      if (severity === 'MEDIUM') totalRisk += 10;
+    }
+  });
+
+  // Parse verifications
+  let verifications = {};
+  if (session.sdk_verifications) {
+    try {
+      verifications = typeof session.sdk_verifications === 'string' ? JSON.parse(session.sdk_verifications) : session.sdk_verifications;
+      if (Array.isArray(verifications) && verifications.length > 0) {
+        verifications = verifications[0];
+      }
+    } catch (e) {}
+  }
+  if (session.fraud_scores) {
+    try {
+      const fraudScores = typeof session.fraud_scores === 'string' ? JSON.parse(session.fraud_scores) : session.fraud_scores;
+      verifications = { ...verifications, ...fraudScores };
+    } catch (e) {}
+  }
+
+  // Verification Risk
+  if (verifications.idPhotoTamperingDetection?.score > 40) totalRisk += 80;
+  if (verifications.idScreenDetection?.score > 30) totalRisk += 40;
+  if (verifications.idPrintDetection?.score > 30) totalRisk += 30;
+  if (verifications.faceLiveness?.score < 50) totalRisk += 60;
+  if (verifications.faceMatch?.score < 70) totalRisk += 40;
+
+  return totalRisk;
+}
+
+// Get risk class based on total risk score
+function getTotalRiskClass(totalRisk) {
+  if (totalRisk >= 200) return 'danger';
+  if (totalRisk >= 50) return 'warning';
+  return 'success';
+}
+
 // Display Verification Summary (Tab 1)
 function displayVerificationSummary() {
   const verification = currentVerificationData;
@@ -2072,7 +2237,7 @@ function buildSessionsTable(sessions) {
   const tableBody = document.getElementById('sessions-table-body');
 
   if (sessions.length === 0) {
-    tableBody.innerHTML = '<tr><td colspan="7" class="text-center">No sessions found</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="8" class="text-center">No sessions found</td></tr>';
     document.getElementById('empty-state').style.display = 'block';
     document.getElementById('sessions-list-view').style.display = 'none';
     return;
@@ -2168,32 +2333,19 @@ function buildSessionsTable(sessions) {
       } catch (e) {}
     }
 
-    // Calculate comprehensive risk score from all verification scores
-    const { riskScore, riskClass, riskDetails } = calculateComprehensiveRisk(session);
+    // Calculate Total Risk Score from Journey Fraud Flags
+    const totalRiskScore = calculateTotalRiskScoreForTable(session);
+    const totalRiskClass = getTotalRiskClass(totalRiskScore);
+    const riskDetails = totalRiskScore >= 200 ? 'High Risk - Reject' : totalRiskScore >= 50 ? 'Medium Risk - Review' : 'Low Risk - Approve';
+
+    // Calculate UX Score
+    const uxScore = calculateUXScore(events);
+
+    // Get device identifier for history lookup
+    const deviceIdentifier = sdkSource.deviceIdentifier || null;
 
     // Get full session ID (JTI from SDK source or account ID)
     const fullSessionId = sdkSource.jti || sdkSource.sessionId || session.id;
-
-    // Get SDK version info with icon (like accounts page)
-    const sdkType = sdkSource.sdkType?.toLowerCase() || '';
-    const sdkVersion = sdkSource.sdkVersion || '';
-    let sdkIcon = 'verified_user';
-    let sdkColor = 'info';
-    let sdkLabel = sdkVersion ? `SDK v${sdkVersion}` : 'SDK';
-
-    if (sdkType.includes('mobile') || sdkType.includes('android') || sdkType.includes('ios')) {
-      sdkIcon = 'phone_iphone';
-      sdkColor = 'success';
-      sdkLabel = `Mobile ${sdkVersion ? 'v' + sdkVersion : ''}`.trim();
-    } else if (sdkType.includes('web') || sdkType.includes('browser')) {
-      sdkIcon = 'language';
-      sdkColor = 'info';
-      sdkLabel = `Web ${sdkVersion ? 'v' + sdkVersion : ''}`.trim();
-    } else if (!sdkSource.sdkType) {
-      sdkIcon = 'edit';
-      sdkColor = 'secondary';
-      sdkLabel = 'Manual';
-    }
 
     // Format timestamp with date and time
     const timestamp = new Date(session.created_at);
@@ -2225,13 +2377,24 @@ function buildSessionsTable(sessions) {
           </div>
         </td>
         <td>
-          <span class="badge badge-sm bg-${riskClass}" data-bs-toggle="tooltip" data-bs-placement="top" title="${riskDetails}">${riskScore}</span>
+          <span class="badge badge-sm bg-${totalRiskClass}" data-bs-toggle="tooltip" data-bs-placement="top" title="${riskDetails}">${totalRiskScore}</span>
         </td>
         <td>
+          <span data-bs-toggle="tooltip" data-bs-placement="top" title="${uxScore.details}" style="cursor: help; font-size: 1.2rem;">${uxScore.emoji}</span>
+          <small class="ms-1 text-muted">${uxScore.score}</small>
+        </td>
+        <td>
+          ${deviceIdentifier ? `
           <div class="d-flex align-items-center">
-            <i class="material-symbols-rounded text-${sdkColor} me-1" style="font-size: 18px;">${sdkIcon}</i>
-            <span class="text-xs">${sdkLabel}</span>
+            <span class="badge badge-sm bg-secondary device-history-badge" data-device-id="${deviceIdentifier}" data-session-id="${session.id}">
+              <i class="material-symbols-rounded me-1" style="font-size: 12px;">devices</i>
+              <span class="device-count">...</span>
+            </span>
+            <button class="btn btn-link btn-sm p-0 ms-1 text-danger" onclick="addDeviceToBlocklist('${deviceIdentifier}')" title="Add to Blocklist" style="font-size: 12px;">
+              <i class="material-symbols-rounded" style="font-size: 14px;">block</i>
+            </button>
           </div>
+          ` : '<span class="text-muted text-xs">N/A</span>'}
         </td>
         <td>
           <p class="text-xs mb-0 font-weight-bold">${formattedTimestamp}</p>
@@ -2249,7 +2412,7 @@ function buildSessionsTable(sessions) {
       // Return a basic row with error indication
       return `
       <tr>
-        <td colspan="7" class="text-danger">
+        <td colspan="8" class="text-danger">
           <small>Error loading session ${session?.id?.substring(0, 8) || index} - ${error.message}</small>
         </td>
       </tr>
@@ -2262,6 +2425,75 @@ function buildSessionsTable(sessions) {
   tooltipTriggerList.map(function (tooltipTriggerEl) {
     return new bootstrap.Tooltip(tooltipTriggerEl);
   });
+
+  // Load device history counts for each device badge
+  loadDeviceHistoryCounts();
+}
+
+// Load device history counts for the table
+async function loadDeviceHistoryCounts() {
+  const badges = document.querySelectorAll('.device-history-badge');
+
+  for (const badge of badges) {
+    const deviceId = badge.dataset.deviceId;
+    const sessionId = badge.dataset.sessionId;
+
+    if (!deviceId) continue;
+
+    try {
+      const response = await api.getDeviceHistoryFromSessions(deviceId, sessionId);
+      if (response.success && response.data) {
+        const count = response.data.totalSessions || 0;
+        const countSpan = badge.querySelector('.device-count');
+        if (countSpan) {
+          countSpan.textContent = count;
+
+          // Update badge color based on count
+          badge.classList.remove('bg-secondary', 'bg-warning', 'bg-danger');
+          if (count > 5) {
+            badge.classList.add('bg-danger');
+            badge.setAttribute('title', `${count} sessions from this device - High risk`);
+          } else if (count > 2) {
+            badge.classList.add('bg-warning');
+            badge.setAttribute('title', `${count} sessions from this device - Medium risk`);
+          } else {
+            badge.classList.add('bg-secondary');
+            badge.setAttribute('title', `${count} sessions from this device`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading device history:', error);
+      const countSpan = badge.querySelector('.device-count');
+      if (countSpan) countSpan.textContent = '?';
+    }
+  }
+}
+
+// Add device to blocklist
+async function addDeviceToBlocklist(deviceIdentifier) {
+  if (!deviceIdentifier) {
+    showError('No device identifier available');
+    return;
+  }
+
+  if (!confirm(`Are you sure you want to add device "${deviceIdentifier.substring(0, 20)}..." to the blocklist?`)) {
+    return;
+  }
+
+  try {
+    // TODO: Implement blocklist API endpoint
+    // const response = await api.addToBlocklist({ type: 'device', value: deviceIdentifier });
+    // if (response.success) {
+    //   showSuccess('Device added to blocklist');
+    // }
+
+    // For now, show a message that this feature is coming soon
+    showError('Blocklist feature coming soon. Device ID: ' + deviceIdentifier.substring(0, 20) + '...');
+  } catch (error) {
+    console.error('Error adding device to blocklist:', error);
+    showError('Failed to add device to blocklist');
+  }
 }
 
 // View session detail (keeps existing functionality)
