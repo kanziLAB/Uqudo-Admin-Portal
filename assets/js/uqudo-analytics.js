@@ -2413,11 +2413,29 @@ function buildSessionsTable(sessions) {
     // Calculate UX Score
     const uxScore = calculateUXScore(events);
 
-    // Get device identifier for history lookup
-    const deviceIdentifier = sdkSource.deviceIdentifier || null;
-
     // Get full session ID (JTI from SDK source or account ID)
     const fullSessionId = sdkSource.jti || sdkSource.sessionId || session.id;
+
+    // Get SDK/Platform info with icon
+    const sdkType = sdkSource.sdkType?.toLowerCase() || '';
+    const sdkVersion = sdkSource.sdkVersion || '';
+    let sdkIcon = 'verified_user';
+    let sdkColor = 'info';
+    let sdkLabel = sdkVersion ? `SDK v${sdkVersion}` : 'SDK';
+
+    if (sdkType.includes('mobile') || sdkType.includes('android') || sdkType.includes('ios') || platform.toLowerCase().includes('ios') || platform.toLowerCase().includes('android')) {
+      sdkIcon = 'phone_iphone';
+      sdkColor = 'success';
+      sdkLabel = platform !== 'Unknown' ? platform : `Mobile ${sdkVersion ? 'v' + sdkVersion : ''}`.trim();
+    } else if (sdkType.includes('web') || sdkType.includes('browser')) {
+      sdkIcon = 'language';
+      sdkColor = 'info';
+      sdkLabel = `Web ${sdkVersion ? 'v' + sdkVersion : ''}`.trim();
+    } else if (!sdkSource.sdkType && platform === 'Unknown') {
+      sdkIcon = 'edit';
+      sdkColor = 'secondary';
+      sdkLabel = 'Manual';
+    }
 
     // Format timestamp with date and time
     const timestamp = new Date(session.created_at);
@@ -2456,17 +2474,10 @@ function buildSessionsTable(sessions) {
           <small class="ms-1 text-muted">${uxScore.score}</small>
         </td>
         <td>
-          ${deviceIdentifier ? `
           <div class="d-flex align-items-center">
-            <span class="badge badge-sm bg-secondary device-history-badge" data-device-id="${deviceIdentifier}" data-session-id="${session.id}">
-              <i class="material-symbols-rounded me-1" style="font-size: 12px;">devices</i>
-              <span class="device-count">...</span>
-            </span>
-            <button class="btn btn-link btn-sm p-0 ms-1 text-danger" onclick="addDeviceToBlocklist('${deviceIdentifier}')" title="Add to Blocklist" style="font-size: 12px;">
-              <i class="material-symbols-rounded" style="font-size: 14px;">block</i>
-            </button>
+            <i class="material-symbols-rounded text-${sdkColor} me-1" style="font-size: 18px;">${sdkIcon}</i>
+            <span class="text-xs">${sdkLabel}</span>
           </div>
-          ` : '<span class="text-muted text-xs">N/A</span>'}
         </td>
         <td>
           <p class="text-xs mb-0 font-weight-bold">${formattedTimestamp}</p>
@@ -2497,9 +2508,6 @@ function buildSessionsTable(sessions) {
   tooltipTriggerList.map(function (tooltipTriggerEl) {
     return new bootstrap.Tooltip(tooltipTriggerEl);
   });
-
-  // Load device history counts for each device badge
-  loadDeviceHistoryCounts();
 }
 
 // Load device history counts for the table
