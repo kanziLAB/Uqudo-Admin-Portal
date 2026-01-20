@@ -8,13 +8,13 @@ let currentDeviceHistory = null;
 let currentRawData = null; // Store raw data for debugging
 let analyticsConfig = null; // KYC setup analytics configuration
 
-// Default risk thresholds (0-100 scale, higher score = lower risk)
-// Configured in KYC Setup > Analytics Configuration > Risk Score Thresholds
-// These define the BOUNDARIES between risk levels
+// Default risk thresholds matching KYC Setup Analytics Configuration
+// Risk Score: 0-100 where LOWER score = LOWER risk (better)
+// These thresholds define the UPPER BOUND for each risk level
 const DEFAULT_RISK_THRESHOLDS = {
-  low: 70,     // Score >= 70 = LOW risk (green/approve)
-  medium: 40,  // Score 40-69 = MEDIUM risk (yellow/review)
-  high: 20     // Score 20-39 = HIGH risk (orange), < 20 = CRITICAL (red/reject)
+  low: 50,     // Score 0-50 = LOW risk (green/approve)
+  medium: 100, // Score 51-100 = MEDIUM risk (yellow/review) - capped at 100
+  high: 100    // For 0-100 scale, high threshold is capped
 };
 
 // Load analytics configuration from KYC setup
@@ -31,25 +31,19 @@ async function loadAnalyticsConfig() {
 }
 
 // Get risk thresholds from analytics config
-// Converts the cumulative thresholds (0-200 scale) to percentage thresholds (0-100 scale)
+// Returns thresholds scaled to 0-100 range
 function getRiskThresholds() {
   if (analyticsConfig?.risk_thresholds) {
-    // Convert from cumulative (0-200+) to percentage (0-100)
-    // In KYC Setup: low=50, medium=100, high=200 means:
-    // - Score 0-50 cumulative = LOW risk = 75-100% quality
-    // - Score 50-100 cumulative = MEDIUM risk = 50-75% quality
-    // - Score 100-200 cumulative = HIGH risk = 25-50% quality
-    // - Score 200+ cumulative = CRITICAL = 0-25% quality
+    // KYC Setup uses 0-200+ scale, we scale to 0-100
+    // low=50 -> 25, medium=100 -> 50, high=200 -> 100
     const configLow = analyticsConfig.risk_thresholds.low || 50;
     const configMedium = analyticsConfig.risk_thresholds.medium || 100;
     const configHigh = analyticsConfig.risk_thresholds.high || 200;
 
-    // Convert: higher cumulative threshold = lower percentage threshold
-    // Map cumulative 0-200 to percentage 100-0
     return {
-      low: Math.max(0, Math.min(100, 100 - (configLow / 2))),      // 50 -> 75
-      medium: Math.max(0, Math.min(100, 100 - (configMedium / 2))), // 100 -> 50
-      high: Math.max(0, Math.min(100, 100 - (configHigh / 2)))      // 200 -> 0
+      low: Math.min(100, configLow / 2),      // 50 -> 25
+      medium: Math.min(100, configMedium / 2), // 100 -> 50
+      high: Math.min(100, configHigh / 2)      // 200 -> 100
     };
   }
   return DEFAULT_RISK_THRESHOLDS;
@@ -578,27 +572,29 @@ function calculateComprehensiveRisk(session) {
     console.error('Error calculating risk score:', e);
   }
 
-  // Calculate final score (0-100, higher = better)
-  const finalScore = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 50;
+  // Calculate quality score (0-100, higher = better quality)
+  const qualityScore = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 50;
+
+  // Convert to risk score (0-100, lower = lower risk)
+  // Quality 100 = Risk 0, Quality 0 = Risk 100
+  const riskScore = 100 - qualityScore;
 
   // Get configurable risk thresholds from Analytics Configuration
   const thresholds = getRiskThresholds();
 
   // Determine risk class based on configured thresholds
-  // Higher score = lower risk (green)
-  let riskClass = 'success'; // Green for low risk (score >= low threshold)
-  if (finalScore < thresholds.high) {
-    riskClass = 'danger'; // Red for critical risk (score below high threshold)
-  } else if (finalScore < thresholds.medium) {
-    riskClass = 'warning'; // Orange for high risk
-  } else if (finalScore < thresholds.low) {
-    riskClass = 'warning'; // Yellow for medium risk
+  // Lower risk score = lower risk (green)
+  let riskClass = 'success'; // Green for low risk
+  if (riskScore > thresholds.medium) {
+    riskClass = 'danger'; // Red for high/critical risk (above medium threshold)
+  } else if (riskScore > thresholds.low) {
+    riskClass = 'warning'; // Yellow for medium risk (above low threshold)
   }
 
   const riskDetails = details.length > 0 ? details.join(' | ') : 'Low risk';
 
   return {
-    riskScore: finalScore,
+    riskScore: riskScore,
     riskClass: riskClass,
     riskDetails: riskDetails
   };
@@ -689,22 +685,25 @@ function calculateComprehensiveRiskFromSession(session, verifications, events) {
     console.error('Error calculating session risk score:', e);
   }
 
-  // Calculate final score (0-100, higher = better)
-  const finalScore = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 50;
+  // Calculate quality score (0-100, higher = better quality)
+  const qualityScore = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 50;
+
+  // Convert to risk score (0-100, lower = lower risk)
+  const riskScore = 100 - qualityScore;
 
   // Get configurable risk thresholds
   const thresholds = getRiskThresholds();
 
-  // Determine risk class based on configured thresholds (higher score = lower risk)
+  // Determine risk class based on configured thresholds (lower risk score = lower risk)
   let riskClass = 'risk-approve';
-  if (finalScore < thresholds.high) {
+  if (riskScore > thresholds.medium) {
     riskClass = 'risk-reject';
-  } else if (finalScore < thresholds.low) {
+  } else if (riskScore > thresholds.low) {
     riskClass = 'risk-review';
   }
 
   return {
-    riskScore: finalScore,
+    riskScore: riskScore,
     riskClass: riskClass
   };
 }
