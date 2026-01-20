@@ -16,5 +16,14 @@ WHERE device_identifier IS NULL
   AND sdk_source IS NOT NULL
   AND sdk_source->>'deviceIdentifier' IS NOT NULL;
 
+-- Backfill device_identifier from sdk_trace array (Web SDK stores it in trace events)
+-- Extract from first trace event that has deviceIdentifier
+UPDATE sdk_sessions
+SET device_identifier = (sdk_trace->0->>'deviceIdentifier')
+WHERE device_identifier IS NULL
+  AND sdk_trace IS NOT NULL
+  AND jsonb_array_length(sdk_trace) > 0
+  AND sdk_trace->0->>'deviceIdentifier' IS NOT NULL;
+
 -- Add comment for documentation
-COMMENT ON COLUMN sdk_sessions.device_identifier IS 'Device identifier extracted from sdk_source for efficient device history queries';
+COMMENT ON COLUMN sdk_sessions.device_identifier IS 'Device identifier extracted from sdk_source or sdk_trace for efficient device history queries';

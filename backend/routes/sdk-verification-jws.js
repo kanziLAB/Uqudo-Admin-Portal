@@ -940,6 +940,14 @@ router.post('/enrollment-jws',
         const fraudScores = extractFraudScores(verifications);
         const nameParts = (accountData?.full_name || '').split(' ');
 
+        // Extract deviceIdentifier - check source first, then trace events
+        let deviceIdentifier = source?.deviceIdentifier || null;
+        if (!deviceIdentifier && trace && trace.length > 0) {
+          // Web SDK stores deviceIdentifier in each trace event
+          const traceWithDevice = trace.find(t => t.deviceIdentifier);
+          deviceIdentifier = traceWithDevice?.deviceIdentifier || null;
+        }
+
         try {
           await supabaseAdmin.from('sdk_sessions').insert({
             tenant_id: tenantId,
@@ -959,7 +967,7 @@ router.post('/enrollment-jws',
             verification_channel: source?.sdkType?.toLowerCase().includes('web') ? 'web' : 'mobile',
             platform: source?.devicePlatform || null,
             sdk_version: source?.sdkVersion || null,
-            device_identifier: source?.deviceIdentifier || null
+            device_identifier: deviceIdentifier
           });
           console.log(`✅ SDK session stored: ${sessionId}`);
         } catch (sessionError) {

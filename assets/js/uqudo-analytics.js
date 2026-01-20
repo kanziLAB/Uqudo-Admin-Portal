@@ -3013,13 +3013,22 @@ async function loadSdkSession(sessionId) {
         }
       }
 
+      // Extract deviceIdentifier - check multiple sources
+      // Priority: 1) dedicated column, 2) sdk_source, 3) trace events
+      let deviceIdentifier = session.device_identifier || sdkSource.deviceIdentifier || null;
+      if (!deviceIdentifier && events.length > 0) {
+        // Web SDK stores deviceIdentifier in each trace event
+        const eventWithDevice = events.find(e => e.deviceIdentifier || e.metadata?.deviceIdentifier);
+        deviceIdentifier = eventWithDevice?.deviceIdentifier || eventWithDevice?.metadata?.deviceIdentifier || null;
+      }
+
       // Build session data object
       currentSessionData = {
         sessionId: session.id,
         id: session.id,
         account_id: session.account_id,
         jti: session.jti,
-        deviceIdentifier: sdkSource.deviceIdentifier || session.id,
+        deviceIdentifier: deviceIdentifier,
         platform: sdkSource.devicePlatform || 'Unknown',
         devicePlatform: sdkSource.devicePlatform || 'Unknown',
         created_at: session.created_at,
@@ -3039,7 +3048,7 @@ async function loadSdkSession(sessionId) {
 
       // Fetch device history if we have a device identifier
       currentDeviceHistory = null;
-      const deviceId = sdkSource.deviceIdentifier;
+      const deviceId = deviceIdentifier;
       if (deviceId) {
         try {
           const deviceResponse = await api.getDeviceHistoryFromSessions(deviceId, session.id);
@@ -3169,11 +3178,20 @@ async function loadAccountAsSession(accountId) {
       }
     }
 
+    // Extract deviceIdentifier - check multiple sources
+    // Priority: 1) dedicated column, 2) sdk_source, 3) trace events
+    let deviceIdentifier = account.device_identifier || sdkSource.deviceIdentifier || null;
+    if (!deviceIdentifier && events.length > 0) {
+      // Web SDK stores deviceIdentifier in each trace event
+      const eventWithDevice = events.find(e => e.deviceIdentifier || e.metadata?.deviceIdentifier);
+      deviceIdentifier = eventWithDevice?.deviceIdentifier || eventWithDevice?.metadata?.deviceIdentifier || null;
+    }
+
     // Build session data object
     currentSessionData = {
       sessionId: account.id,
       id: account.id,
-      deviceIdentifier: sdkSource.deviceIdentifier || account.id,
+      deviceIdentifier: deviceIdentifier,
       platform: sdkSource.devicePlatform || 'Unknown',
       devicePlatform: sdkSource.devicePlatform || 'Unknown',
       created_at: account.created_at,
@@ -3194,7 +3212,7 @@ async function loadAccountAsSession(accountId) {
 
     // Fetch device history if we have a device identifier
     currentDeviceHistory = null;
-    const deviceId = sdkSource.deviceIdentifier;
+    const deviceId = deviceIdentifier;
     if (deviceId) {
       try {
         const deviceResponse = await api.getDeviceHistoryFromSessions(deviceId, account.id);
