@@ -1277,43 +1277,81 @@ function displayFraudFlags() {
 
 // Display Device History (Tab 3)
 function displayDeviceHistory() {
-  if (!currentDeviceHistory) {
-    document.getElementById('device-profile-id').textContent = truncateId(currentSessionData.deviceIdentifier);
-    document.getElementById('device-first-seen').textContent = '-';
-    document.getElementById('device-total-sessions').textContent = '1';
+  const deviceId = currentSessionData.deviceIdentifier || '-';
+  const deviceIdElement = document.getElementById('device-profile-id');
+
+  // Show full device ID with copy button
+  deviceIdElement.innerHTML = `
+    <span class="text-monospace" style="word-break: break-all; font-size: 0.8rem;">${deviceId}</span>
+    ${deviceId !== '-' ? `<button class="btn btn-link btn-sm p-0 ms-2" onclick="copyToClipboard('device-id')" title="Copy Device ID">
+      <i class="material-symbols-rounded" style="font-size: 14px;">content_copy</i>
+    </button>
+    <input type="hidden" id="device-id-copy" value="${deviceId}">` : ''}
+  `;
+
+  // Hide device alert by default
+  const deviceAlert = document.getElementById('device-alert');
+  if (deviceAlert) {
+    deviceAlert.style.display = 'none';
+  }
+
+  if (!currentDeviceHistory || currentDeviceHistory.totalSessions === 0) {
+    // New device - never seen before
+    document.getElementById('device-first-seen').innerHTML = '<span class="badge bg-success">New Device</span>';
+    document.getElementById('device-total-sessions').textContent = '0';
     document.getElementById('device-successful').textContent = '0';
     document.getElementById('device-failed').textContent = '0';
     document.getElementById('device-abandoned').textContent = '0';
-    document.getElementById('device-success-rate').textContent = '0%';
+    document.getElementById('device-success-rate').textContent = 'N/A';
     document.getElementById('device-fraud-flags').textContent = '0';
-    document.getElementById('device-document-types').innerHTML = '<span class="badge bg-secondary">Unknown</span>';
+    document.getElementById('device-document-types').innerHTML = '<span class="badge bg-secondary">None</span>';
+
+    // Previous sessions table - empty for new device
+    const tableBody = document.getElementById('device-sessions-table');
+    tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-success"><i class="material-symbols-rounded me-1" style="vertical-align: middle;">verified</i> New device - No previous sessions</td></tr>';
     return;
   }
 
   const device = currentDeviceHistory;
 
-  // Device Profile
-  document.getElementById('device-profile-id').textContent = truncateId(device.deviceIdentifier);
-  document.getElementById('device-first-seen').textContent = formatDate(new Date(device.firstSeen));
+  // First Seen - show date when device was first seen
+  if (device.firstSeen) {
+    document.getElementById('device-first-seen').textContent = formatDate(new Date(device.firstSeen));
+  } else {
+    document.getElementById('device-first-seen').innerHTML = '<span class="badge bg-success">New Device</span>';
+  }
+
+  // Total Sessions (previous sessions count)
   document.getElementById('device-total-sessions').textContent = device.totalSessions || 0;
   document.getElementById('device-successful').textContent = device.successfulSessions || 0;
   document.getElementById('device-failed').textContent = device.failedSessions || 0;
   document.getElementById('device-abandoned').textContent = device.abandonedSessions || 0;
-  document.getElementById('device-success-rate').textContent = `${Math.round(device.successRate * 100)}%`;
+  document.getElementById('device-success-rate').textContent = device.totalSessions > 0 ? `${Math.round(device.successRate * 100)}%` : 'N/A';
+
+  // Total Fraud Flags from previous sessions
   document.getElementById('device-fraud-flags').textContent = device.totalHistoricalFlags || 0;
 
-  // Document types
+  // Document Types Used
   const docTypes = device.documentTypesUsed || [];
-  const docTypesHtml = docTypes.map(type => `<span class="badge bg-info me-1">${formatDocumentType(type)}</span>`).join('');
-  document.getElementById('device-document-types').innerHTML = docTypesHtml || '<span class="badge bg-secondary">None</span>';
+  if (docTypes.length > 0) {
+    const docTypesHtml = docTypes.map(type => `<span class="badge bg-info me-1">${formatDocumentType(type)}</span>`).join('');
+    document.getElementById('device-document-types').innerHTML = docTypesHtml;
+  } else {
+    document.getElementById('device-document-types').innerHTML = '<span class="badge bg-secondary">None</span>';
+  }
 
-  // Device alert
-  if (device.totalSessions > 1) {
-    document.getElementById('device-alert').style.display = 'block';
+  // Device alert - show warning if device has previous sessions
+  if (device.totalSessions > 0 && deviceAlert) {
+    deviceAlert.style.display = 'block';
+    const alertClass = device.totalSessions > 5 ? 'alert-danger' : device.totalSessions > 2 ? 'alert-warning' : 'alert-info';
+    deviceAlert.className = `alert ${alertClass} mb-3`;
     document.getElementById('device-alert-text').innerHTML = `
-      This device has <strong>${device.totalSessions}</strong> previous onboarding attempts |
+      <strong><i class="material-symbols-rounded me-1" style="vertical-align: middle;">warning</i> Device History Alert:</strong>
+      This device has <strong>${device.totalSessions}</strong> previous session${device.totalSessions > 1 ? 's' : ''} |
       Success Rate: <strong>${Math.round(device.successRate * 100)}%</strong> |
-      Previous Fraud Flags: <strong>${device.totalHistoricalFlags || 0}</strong>
+      Fraud Flags: <strong>${device.totalHistoricalFlags || 0}</strong>
+      ${device.hasRapidRetry ? ' | <span class="text-danger"><strong>Rapid Retry Detected</strong></span>' : ''}
+      ${device.hasPreviousRejection ? ' | <span class="text-danger"><strong>Previous Rejection</strong></span>' : ''}
     `;
   }
 
