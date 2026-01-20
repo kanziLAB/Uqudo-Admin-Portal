@@ -8,19 +8,12 @@ let currentDeviceHistory = null;
 let currentRawData = null; // Store raw data for debugging
 let analyticsConfig = null; // KYC setup analytics configuration
 
-// Default risk thresholds for percentage-based scores (0-100, higher = better)
-// These are used for the Recent Sessions table badges
-const DEFAULT_SCORE_THRESHOLDS = {
-  low: 70,    // Score >= 70 = low risk (success/green)
-  medium: 40  // Score >= 40 = medium risk (warning/orange), < 40 = high risk (danger/red)
-};
-
 // Default risk thresholds for cumulative risk points (higher = worse)
-// These are used for the session detail view Risk Score Breakdown
-const DEFAULT_CUMULATIVE_THRESHOLDS = {
-  low: 50,     // 0-50 = LOW
-  medium: 100, // 50-100 = MEDIUM
-  high: 200    // 100-200 = HIGH, 200+ = CRITICAL
+// Configured in KYC Setup > Analytics Configuration > Risk Score Thresholds
+const DEFAULT_RISK_THRESHOLDS = {
+  low: 50,     // 0-50 = LOW (green/approve)
+  medium: 100, // 50-100 = MEDIUM (yellow/review)
+  high: 200    // 100-200 = HIGH (orange/review), 200+ = CRITICAL (red/reject)
 };
 
 // Load analytics configuration from KYC setup
@@ -36,24 +29,16 @@ async function loadAnalyticsConfig() {
   }
 }
 
-// Get score thresholds for percentage-based scoring (Recent Sessions table)
-// Converts cumulative thresholds to percentage thresholds
+// Get risk thresholds from analytics config
 function getRiskThresholds() {
-  // Always use the default percentage-based thresholds for the table view
-  // The configured thresholds are for cumulative risk scoring, not percentage scores
-  return DEFAULT_SCORE_THRESHOLDS;
-}
-
-// Get cumulative risk thresholds (for session detail Risk Score Breakdown)
-function getCumulativeRiskThresholds() {
   if (analyticsConfig?.risk_thresholds) {
     return {
-      low: analyticsConfig.risk_thresholds.low || DEFAULT_CUMULATIVE_THRESHOLDS.low,
-      medium: analyticsConfig.risk_thresholds.medium || DEFAULT_CUMULATIVE_THRESHOLDS.medium,
-      high: analyticsConfig.risk_thresholds.high || DEFAULT_CUMULATIVE_THRESHOLDS.high
+      low: analyticsConfig.risk_thresholds.low || DEFAULT_RISK_THRESHOLDS.low,
+      medium: analyticsConfig.risk_thresholds.medium || DEFAULT_RISK_THRESHOLDS.medium,
+      high: analyticsConfig.risk_thresholds.high || DEFAULT_RISK_THRESHOLDS.high
     };
   }
-  return DEFAULT_CUMULATIVE_THRESHOLDS;
+  return DEFAULT_RISK_THRESHOLDS;
 }
 
 // Severity Mapping for Fraud Flags
@@ -436,9 +421,9 @@ function buildJourneyFlow(events) {
 }
 
 // Calculate comprehensive risk score from all verification scores
+// Returns cumulative risk points (higher = worse risk)
 function calculateComprehensiveRisk(session) {
-  let totalScore = 0;
-  let scoreCount = 0;
+  let riskScore = 0; // Cumulative risk points (higher = worse)
   let details = [];
 
   try {
@@ -475,77 +460,61 @@ function calculateComprehensiveRisk(session) {
     }
 
     if (verifications) {
-      // Screen Detection Score (0-100, lower is better)
+      // Screen Detection Score - high score = document on screen = HIGH RISK
       if (verifications.idScreenDetection?.enabled && verifications.idScreenDetection?.score !== undefined) {
-        const screenScore = 100 - verifications.idScreenDetection.score; // Invert: high detection = high risk
-        totalScore += screenScore;
-        scoreCount++;
-        details.push(`Screen: ${verifications.idScreenDetection.score}/100`);
+        const screenRisk = verifications.idScreenDetection.score; // Direct: high detection = high risk
+        riskScore += screenRisk;
+        if (screenRisk > 50) details.push(`Screen: ${screenRisk}`);
       }
 
-      // Print Detection Score (0-100, lower is better)
+      // Print Detection Score - high score = printed document = HIGH RISK
       if (verifications.idPrintDetection?.enabled && verifications.idPrintDetection?.score !== undefined) {
-        const printScore = 100 - verifications.idPrintDetection.score; // Invert
-        totalScore += printScore;
-        scoreCount++;
-        details.push(`Print: ${verifications.idPrintDetection.score}/100`);
+        const printRisk = verifications.idPrintDetection.score;
+        riskScore += printRisk;
+        if (printRisk > 50) details.push(`Print: ${printRisk}`);
       }
 
-      // Photo Tampering Score (0-100, lower is better)
+      // Photo Tampering Score - high score = tampering detected = HIGH RISK
       if (verifications.idPhotoTamperingDetection?.enabled && verifications.idPhotoTamperingDetection?.score !== undefined) {
-        const tamperScore = 100 - verifications.idPhotoTamperingDetection.score; // Invert
-        totalScore += tamperScore;
-        scoreCount++;
-        details.push(`Tampering: ${verifications.idPhotoTamperingDetection.score}/100`);
+        const tamperRisk = verifications.idPhotoTamperingDetection.score;
+        riskScore += tamperRisk;
+        if (tamperRisk > 50) details.push(`Tampering: ${tamperRisk}`);
       }
 
-      // Source Detection
+      // Source Detection - non-optimal adds risk
       if (verifications.sourceDetection?.enabled) {
-        let sourceScore = 100; // Start with perfect
         if (!verifications.sourceDetection.optimalResolution) {
-          sourceScore -= 20; // Penalty for non-optimal resolution
+          riskScore += 20;
+          details.push('Non-optimal resolution');
         }
-        if (verifications.sourceDetection.allowNonPhysicalDocuments === false) {
-          // If non-physical docs not allowed, this increases risk
-          sourceScore -= 10;
-        }
-        totalScore += sourceScore;
-        scoreCount++;
-        details.push(`Source: ${verifications.sourceDetection.optimalResolution ? 'Optimal' : 'Sub-optimal'}`);
       }
 
-      // Face Match Level
+      // Face Match Level - LOW match = HIGH RISK
       if (verifications.faceMatchLevel) {
-        const faceScore = verifications.faceMatchLevel === 'HIGH' ? 95 :
-                         verifications.faceMatchLevel === 'MEDIUM' ? 75 : 50;
-        totalScore += faceScore;
-        scoreCount++;
-        details.push(`Face: ${verifications.faceMatchLevel}`);
+        const faceRisk = verifications.faceMatchLevel === 'LOW' ? 50 :
+                         verifications.faceMatchLevel === 'MEDIUM' ? 20 : 0;
+        riskScore += faceRisk;
+        if (faceRisk > 0) details.push(`Face: ${verifications.faceMatchLevel}`);
       }
 
-      // Liveness Level
+      // Liveness Level - LOW liveness = HIGH RISK
       if (verifications.livenessLevel) {
-        const livenessScore = verifications.livenessLevel === 'HIGH' ? 95 :
-                             verifications.livenessLevel === 'MEDIUM' ? 75 : 50;
-        totalScore += livenessScore;
-        scoreCount++;
-        details.push(`Liveness: ${verifications.livenessLevel}`);
+        const livenessRisk = verifications.livenessLevel === 'LOW' ? 50 :
+                            verifications.livenessLevel === 'MEDIUM' ? 20 : 0;
+        riskScore += livenessRisk;
+        if (livenessRisk > 0) details.push(`Liveness: ${verifications.livenessLevel}`);
       }
 
-      // Document Validity
-      if (verifications.documentValid !== undefined) {
-        const docScore = verifications.documentValid ? 100 : 0;
-        totalScore += docScore;
-        scoreCount++;
-        details.push(`Doc: ${verifications.documentValid ? 'Valid' : 'Invalid'}`);
+      // Document Validity - invalid = HIGH RISK
+      if (verifications.documentValid !== undefined && !verifications.documentValid) {
+        riskScore += 50;
+        details.push('Doc: Invalid');
       }
 
-      // MRZ Validity
-      if (verifications.mrzValid !== undefined) {
-        const mrzScore = verifications.mrzValid ? 100 : 0;
-        totalScore += mrzScore;
-        scoreCount++;
-        details.push(`MRZ: ${verifications.mrzValid ? 'Valid' : 'Invalid'}`);
+      // MRZ Validity - invalid = MEDIUM RISK
+      if (verifications.mrzValid !== undefined && !verifications.mrzValid) {
+        riskScore += 30;
+        details.push('MRZ: Invalid');
       }
     }
 
@@ -574,8 +543,8 @@ function calculateComprehensiveRisk(session) {
       ).length;
 
       if (failureCount > 0) {
-        const failurePenalty = Math.min(failureCount * 15, 50); // Max 50 point penalty
-        totalScore = Math.max(0, totalScore - failurePenalty);
+        const failurePenalty = failureCount * 25; // Each failure adds 25 risk points
+        riskScore += failurePenalty;
         details.push(`Failures: ${failureCount}`);
       }
     }
@@ -584,108 +553,90 @@ function calculateComprehensiveRisk(session) {
     console.error('Error calculating risk score:', e);
   }
 
-  // Calculate final score
-  const finalScore = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 50; // Default to medium risk
-
-  // Get configurable risk thresholds
+  // Get configurable risk thresholds from Analytics Configuration
   const thresholds = getRiskThresholds();
 
   // Determine risk class based on configured thresholds
-  // Higher score = better/lower risk
-  let riskClass = 'success'; // Green for low risk (high score)
-  if (finalScore < thresholds.medium) {
-    riskClass = 'danger'; // Red for high risk (score below medium threshold)
-  } else if (finalScore < thresholds.low) {
-    riskClass = 'warning'; // Orange for medium risk (score between medium and low thresholds)
+  // Lower score = lower risk (green), higher score = higher risk (red)
+  let riskClass = 'success'; // Green for low risk
+  if (riskScore >= thresholds.high) {
+    riskClass = 'danger'; // Red for critical risk (>= high threshold)
+  } else if (riskScore >= thresholds.medium) {
+    riskClass = 'warning'; // Orange for high risk (>= medium threshold)
+  } else if (riskScore >= thresholds.low) {
+    riskClass = 'warning'; // Yellow for medium risk (>= low threshold)
   }
 
-  const riskDetails = details.length > 0 ? details.join(' | ') : 'No verification data';
+  const riskDetails = details.length > 0 ? details.join(' | ') : 'Low risk';
 
   return {
-    riskScore: finalScore,
+    riskScore: riskScore,
     riskClass: riskClass,
     riskDetails: riskDetails
   };
 }
 
 // Calculate comprehensive risk for session detail view (works with separate verification data and events)
+// Calculate comprehensive risk for session detail view
+// Returns cumulative risk points (higher = worse risk)
 function calculateComprehensiveRiskFromSession(session, verifications, events) {
-  let totalScore = 0;
-  let scoreCount = 0;
+  let riskScore = 0; // Cumulative risk points
 
   try {
-    // Screen Detection Score (0-100, lower is better)
+    // Screen Detection Score - high score = HIGH RISK
     if (verifications.idScreenDetection?.enabled && verifications.idScreenDetection?.score !== undefined) {
-      const screenScore = 100 - verifications.idScreenDetection.score;
-      totalScore += screenScore;
-      scoreCount++;
+      riskScore += verifications.idScreenDetection.score;
     }
 
-    // Print Detection Score (0-100, lower is better)
+    // Print Detection Score - high score = HIGH RISK
     if (verifications.idPrintDetection?.enabled && verifications.idPrintDetection?.score !== undefined) {
-      const printScore = 100 - verifications.idPrintDetection.score;
-      totalScore += printScore;
-      scoreCount++;
+      riskScore += verifications.idPrintDetection.score;
     }
 
-    // Photo Tampering Score (0-100, lower is better)
+    // Photo Tampering Score - high score = HIGH RISK
     if (verifications.idPhotoTamperingDetection?.enabled && verifications.idPhotoTamperingDetection?.score !== undefined) {
-      const tamperScore = 100 - verifications.idPhotoTamperingDetection.score;
-      totalScore += tamperScore;
-      scoreCount++;
+      riskScore += verifications.idPhotoTamperingDetection.score;
     }
 
-    // Source Detection
+    // Source Detection - non-optimal adds risk
     if (verifications.sourceDetection?.enabled) {
-      let sourceScore = 100;
       if (!verifications.sourceDetection.optimalResolution) {
-        sourceScore -= 20;
+        riskScore += 20;
       }
-      if (verifications.sourceDetection.allowNonPhysicalDocuments === false) {
-        sourceScore -= 10;
-      }
-      totalScore += sourceScore;
-      scoreCount++;
     }
 
-    // Face Match Level (convert numeric score to level)
+    // Face Match Level - LOW = HIGH RISK
     if (verifications.faceMatchLevel !== undefined) {
-      let faceScore;
+      let faceRisk;
       if (typeof verifications.faceMatchLevel === 'number') {
-        faceScore = (verifications.faceMatchLevel / 5) * 100; // Convert 0-5 scale to 0-100
+        faceRisk = Math.max(0, 50 - (verifications.faceMatchLevel / 5) * 50);
       } else {
-        faceScore = verifications.faceMatchLevel === 'HIGH' ? 95 :
-                   verifications.faceMatchLevel === 'MEDIUM' ? 75 : 50;
+        faceRisk = verifications.faceMatchLevel === 'LOW' ? 50 :
+                   verifications.faceMatchLevel === 'MEDIUM' ? 20 : 0;
       }
-      totalScore += faceScore;
-      scoreCount++;
+      riskScore += faceRisk;
     }
 
-    // Liveness Level
+    // Liveness Level - LOW = HIGH RISK
     if (verifications.livenessLevel !== undefined) {
-      let livenessScore;
+      let livenessRisk;
       if (typeof verifications.livenessLevel === 'number') {
-        livenessScore = (verifications.livenessLevel / 5) * 100;
+        livenessRisk = Math.max(0, 50 - (verifications.livenessLevel / 5) * 50);
       } else {
-        livenessScore = verifications.livenessLevel === 'HIGH' ? 95 :
-                       verifications.livenessLevel === 'MEDIUM' ? 75 : 50;
+        livenessRisk = verifications.livenessLevel === 'LOW' ? 50 :
+                       verifications.livenessLevel === 'MEDIUM' ? 20 : 0;
       }
-      totalScore += livenessScore;
-      scoreCount++;
+      riskScore += livenessRisk;
     }
 
-    // Document Validity
-    if (verifications.documentValid !== undefined) {
-      const docScore = verifications.documentValid ? 100 : 0;
-      totalScore += docScore;
-      scoreCount++;
+    // Document Validity - invalid = HIGH RISK
+    if (verifications.documentValid !== undefined && !verifications.documentValid) {
+      riskScore += 50;
     }
 
-    // MRZ Validity
-    if (verifications.mrzValid !== undefined) {
-      const mrzScore = verifications.mrzValid ? 100 : 0;
-      totalScore += mrzScore;
-      scoreCount++;
+    // MRZ Validity - invalid = MEDIUM RISK
+    if (verifications.mrzValid !== undefined && !verifications.mrzValid) {
+      riskScore += 30;
     }
 
     // Check for failure events
@@ -695,30 +646,26 @@ function calculateComprehensiveRiskFromSession(session, verifications, events) {
       ).length;
 
       if (failureCount > 0) {
-        const failurePenalty = Math.min(failureCount * 15, 50);
-        totalScore = Math.max(0, totalScore - failurePenalty);
+        riskScore += failureCount * 25;
       }
     }
   } catch (e) {
     console.error('Error calculating session risk score:', e);
   }
 
-  // Calculate final score
-  const finalScore = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 50;
-
   // Get configurable risk thresholds
   const thresholds = getRiskThresholds();
 
-  // Determine risk class based on configured thresholds
+  // Determine risk class based on configured thresholds (higher score = higher risk)
   let riskClass = 'risk-approve';
-  if (finalScore < thresholds.medium) {
+  if (riskScore >= thresholds.high) {
     riskClass = 'risk-reject';
-  } else if (finalScore < thresholds.low) {
+  } else if (riskScore >= thresholds.low) {
     riskClass = 'risk-review';
   }
 
   return {
-    riskScore: finalScore,
+    riskScore: riskScore,
     riskClass: riskClass
   };
 }
@@ -1080,7 +1027,7 @@ function displayFraudFlags() {
 
   // Risk level badge - uses configured thresholds from analytics_config.risk_thresholds
   // These thresholds are cumulative risk points (higher = worse)
-  const riskThresholds = getCumulativeRiskThresholds();
+  const riskThresholds = getRiskThresholds();
 
   let riskLevel = 'LOW';
   let badgeClass = 'badge-success';
