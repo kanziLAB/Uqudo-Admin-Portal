@@ -98,12 +98,48 @@
     .risk-high { background: #f44336; }
     .threshold-slider {
       width: 200px;
+      position: relative;
     }
     .threshold-value {
       min-width: 50px;
       text-align: center;
       font-weight: 600;
       color: #1e88e5;
+    }
+    /* Slider tooltip styles */
+    .slider-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+    .slider-tooltip {
+      position: absolute;
+      background: #344767;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      top: -32px;
+      transform: translateX(-50%);
+      z-index: 1000;
+    }
+    .slider-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: #344767 transparent transparent transparent;
+    }
+    .slider-wrapper:hover .slider-tooltip,
+    .slider-wrapper.dragging .slider-tooltip {
+      opacity: 1;
     }
   </style>
 </head>
@@ -929,7 +965,57 @@
       loadGeneralSettings();
       loadRiskThresholds();
       loadCountries();
+      initSliderTooltips();
     });
+
+    // Initialize slider tooltips for analytics configuration
+    function initSliderTooltips() {
+      const sliders = document.querySelectorAll('.threshold-slider');
+
+      sliders.forEach(slider => {
+        // Wrap slider with tooltip container
+        const wrapper = document.createElement('div');
+        wrapper.className = 'slider-wrapper';
+        slider.parentNode.insertBefore(wrapper, slider);
+        wrapper.appendChild(slider);
+
+        // Create tooltip element
+        const tooltip = document.createElement('div');
+        tooltip.className = 'slider-tooltip';
+        wrapper.appendChild(tooltip);
+
+        // Get suffix from oninput attribute or use default
+        const oninputAttr = slider.getAttribute('oninput') || '';
+        let suffix = '';
+        const suffixMatch = oninputAttr.match(/'([^']*)'[^']*$/);
+        if (suffixMatch) {
+          suffix = suffixMatch[1];
+        }
+
+        // Update tooltip position and value
+        function updateTooltip() {
+          const value = slider.value;
+          const min = parseFloat(slider.min);
+          const max = parseFloat(slider.max);
+          const percent = ((value - min) / (max - min)) * 100;
+
+          tooltip.textContent = value + suffix;
+          tooltip.style.left = `calc(${percent}% + (${8 - percent * 0.15}px))`;
+        }
+
+        // Initial update
+        updateTooltip();
+
+        // Update on input
+        slider.addEventListener('input', updateTooltip);
+
+        // Track dragging state for tooltip visibility
+        slider.addEventListener('mousedown', () => wrapper.classList.add('dragging'));
+        slider.addEventListener('touchstart', () => wrapper.classList.add('dragging'));
+        document.addEventListener('mouseup', () => wrapper.classList.remove('dragging'));
+        document.addEventListener('touchend', () => wrapper.classList.remove('dragging'));
+      });
+    }
 
     // Load configuration statistics
     async function loadConfigStats() {
