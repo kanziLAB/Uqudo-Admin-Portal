@@ -2023,23 +2023,46 @@ function updateSummaryCards(sessions) {
   const successful = sessions.filter(s => s.verification_status === 'APPROVED' || s.status === 'approved').length;
   const successRate = total > 0 ? Math.round((successful / total) * 100) : 0;
 
-  // Calculate average duration from sdk_analytics
+  // Calculate average duration from sdk_analytics or sdk_trace
   let totalDuration = 0;
   let durationsCount = 0;
 
   sessions.forEach(session => {
+    let events = [];
+
+    // Try sdk_analytics first
     if (session.sdk_analytics) {
       try {
         const analytics = typeof session.sdk_analytics === 'string' ? JSON.parse(session.sdk_analytics) : session.sdk_analytics;
-        if (analytics.events && analytics.events.length > 0) {
-          const duration = calculateSessionDuration(analytics.events);
-          if (duration > 0) {
-            totalDuration += duration;
-            durationsCount++;
-          }
+        // Handle both array format and {events: []} format
+        if (Array.isArray(analytics)) {
+          events = analytics;
+        } else if (analytics.events && Array.isArray(analytics.events)) {
+          events = analytics.events;
         }
       } catch (e) {
         // Skip invalid analytics
+      }
+    }
+
+    // Fallback to sdk_trace if no events found
+    if (events.length === 0 && session.sdk_trace) {
+      try {
+        const trace = typeof session.sdk_trace === 'string' ? JSON.parse(session.sdk_trace) : session.sdk_trace;
+        if (Array.isArray(trace)) {
+          events = trace;
+        }
+      } catch (e) {
+        // Skip invalid trace
+      }
+    }
+
+    // Calculate duration if we have events
+    if (events.length > 0) {
+      const duration = calculateSessionDuration(events);
+      if (duration > 0) {
+        totalDuration += duration;
+        durationsCount++;
       }
     }
   });
@@ -2149,19 +2172,30 @@ function updateCharts(sessions) {
       hourlyDurations[hourKey] = { total: 0, count: 0 };
     }
 
-    // Calculate duration from sdk_analytics
+    // Calculate duration from sdk_analytics or sdk_trace
+    let events = [];
+
     if (session.sdk_analytics) {
       try {
         const analytics = typeof session.sdk_analytics === 'string' ? JSON.parse(session.sdk_analytics) : session.sdk_analytics;
-        const events = Array.isArray(analytics) ? analytics : analytics.events || [];
-        if (events.length > 0) {
-          const duration = calculateSessionDuration(events);
-          if (duration > 0) {
-            hourlyDurations[hourKey].total += duration;
-            hourlyDurations[hourKey].count++;
-          }
-        }
+        events = Array.isArray(analytics) ? analytics : analytics.events || [];
       } catch (e) {}
+    }
+
+    // Fallback to sdk_trace
+    if (events.length === 0 && session.sdk_trace) {
+      try {
+        const trace = typeof session.sdk_trace === 'string' ? JSON.parse(session.sdk_trace) : session.sdk_trace;
+        events = Array.isArray(trace) ? trace : [];
+      } catch (e) {}
+    }
+
+    if (events.length > 0) {
+      const duration = calculateSessionDuration(events);
+      if (duration > 0) {
+        hourlyDurations[hourKey].total += duration;
+        hourlyDurations[hourKey].count++;
+      }
     }
   });
 
