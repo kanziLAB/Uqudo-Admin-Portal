@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="icon" type="image/avif" href="../assets/img/FavIcon.avif">
+  <link rel="apple-touch-icon" sizes="76x76" href="../assets/img/FavIcon.avif">
+  <title>Security Settings - Uqudo Admin Portal</title>
+
+  <!-- Authentication & URL Protection -->
+  <script>
+    (function() {
+      if (window.location.pathname.endsWith('.html')) {
+        const cleanPath = window.location.pathname.replace('.html', '');
+        window.location.replace(cleanPath + window.location.search + window.location.hash);
+        return;
+      }
+      const authToken = localStorage.getItem('uqudo_token') || localStorage.getItem('auth_token');
+      if (!authToken) {
+        window.location.replace('/pages/uqudo-sign-in');
+      }
+    })();
+  </script>
+
+  <!-- Fonts and icons -->
+  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,900" />
+  <link href="../assets/css/nucleo-icons.css" rel="stylesheet" />
+  <link href="../assets/css/nucleo-svg.css" rel="stylesheet" />
+  <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+  <!-- CSS Files -->
+  <link id="pagestyle" href="../assets/css/material-dashboard.css?v=3.2.0" rel="stylesheet" />
+  <link href="../assets/css/uqudo-blue-theme.css" rel="stylesheet" />
+
+  <style>
+    .provider-card {
+      border: 2px solid #e9ecef;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      transition: all 0.2s;
+    }
+    .provider-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .provider-card.enabled {
+      border-color: #4CAF50;
+      background: rgba(76, 175, 80, 0.05);
+    }
+    .provider-card.disabled {
+      opacity: 0.7;
+    }
+    .provider-logo {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      font-size: 24px;
+    }
+    .provider-google { background: #EA4335; color: white; }
+    .provider-azure { background: #0078D4; color: white; }
+    .provider-okta { background: #007DC1; color: white; }
+    .provider-oidc { background: #F78C40; color: white; }
+    .provider-saml { background: #6c757d; color: white; }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .status-enabled { background: #E8F5E9; color: #2E7D32; }
+    .status-disabled { background: #ECEFF1; color: #546E7A; }
+    .status-primary { background: #E3F2FD; color: #1565C0; }
+    .config-section {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    .config-section-title {
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: #344767;
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .test-result {
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      margin-top: 0.5rem;
+    }
+    .test-pass { background: #E8F5E9; color: #2E7D32; }
+    .test-fail { background: #FFEBEE; color: #C62828; }
+    .test-warn { background: #FFF8E1; color: #F57C00; }
+    .help-text {
+      font-size: 0.75rem;
+      color: #6c757d;
+      margin-top: 0.25rem;
+    }
+    .copy-btn {
+      cursor: pointer;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: #e9ecef;
+      font-size: 0.75rem;
+    }
+    .copy-btn:hover {
+      background: #dee2e6;
+    }
+  </style>
+</head>
+
+<body class="g-sidenav-show bg-gray-200">
+  <!-- Sidebar -->
+  <aside class="sidenav navbar navbar-vertical navbar-expand-xs border-radius-lg fixed-start ms-2 bg-white my-2" id="sidenav-main">
+    <div class="sidenav-header" style="height: 112px;">
+      <i class="fas fa-times p-3 cursor-pointer text-dark opacity-5 position-absolute end-0 top-0 d-none d-xl-none" aria-hidden="true" id="iconSidenav"></i>
+      <a class="navbar-brand m-0 p-0 d-block w-100 h-100 d-flex align-items-center" href="#">
+        <img src="../assets/img/uqudo-logo.svg" alt="Uqudo Logo" style="width: 100%; height: auto; display: block;">
+      </a>
+    </div>
+    <hr class="horizontal dark mt-0 mb-2">
+    <div class="collapse navbar-collapse w-auto" id="sidenav-collapse-main">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="./uqudo-dashboard">
+            <i class="material-symbols-rounded opacity-10">dashboard</i>
+            <span class="nav-link-text ms-1">Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="./accounts">
+            <i class="material-symbols-rounded opacity-10">person</i>
+            <span class="nav-link-text ms-1">Accounts</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="./alerts">
+            <i class="material-symbols-rounded opacity-10">notification_important</i>
+            <span class="nav-link-text ms-1">KYC Alerts</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="./cases">
+            <i class="material-symbols-rounded opacity-10">gavel</i>
+            <span class="nav-link-text ms-1">AML Cases</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="./uqudo-analytics">
+            <i class="material-symbols-rounded opacity-10">analytics</i>
+            <span class="nav-link-text ms-1">Uqudo Analytics</span>
+          </a>
+        </li>
+        <li class="nav-item mt-3">
+          <h6 class="ps-4 ms-2 text-uppercase text-xs text-dark font-weight-bolder opacity-8">Configuration</h6>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="kyc-setup">
+            <i class="material-symbols-rounded opacity-10">settings</i>
+            <span class="nav-link-text ms-1">KYC Setup</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="blocklist">
+            <i class="material-symbols-rounded opacity-10">block</i>
+            <span class="nav-link-text ms-1">Blocklist</span>
+          </a>
+        </li>
+        <li class="nav-item mt-3">
+          <h6 class="ps-4 ms-2 text-uppercase text-xs text-dark font-weight-bolder opacity-8">Administration</h6>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="user-access">
+            <i class="material-symbols-rounded opacity-10">admin_panel_settings</i>
+            <span class="nav-link-text ms-1">User Access</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active bg-gradient-info text-white" href="security-settings">
+            <i class="material-symbols-rounded opacity-10">security</i>
+            <span class="nav-link-text ms-1">Security Settings</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+    <div class="sidenav-footer position-absolute w-100 bottom-0">
+      <div class="mx-3">
+        <a class="btn btn-outline-dark mt-4 w-100" href="documentation" target="_blank">
+          <i class="material-symbols-rounded text-sm me-1">description</i>
+          Documentation
+        </a>
+        <a class="btn bg-gradient-info w-100 mt-2" href="#" id="logout-btn">
+          <i class="material-symbols-rounded text-sm me-1">logout</i>
+          Logout
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content position-relative max-height-vh-100 h-100 border-radius-lg">
+    <!-- Navbar -->
+    <nav class="navbar navbar-main navbar-expand-lg px-0 mx-3 shadow-none border-radius-xl" id="navbarBlur">
+      <div class="container-fluid py-1 px-3">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb bg-transparent mb-0 pb-0 pt-1 px-0 me-sm-6 me-5">
+            <li class="breadcrumb-item text-sm"><a class="opacity-5 text-dark" href="javascript:;">Administration</a></li>
+            <li class="breadcrumb-item text-sm text-dark active" aria-current="page">Security Settings</li>
+          </ol>
+          <h6 class="font-weight-bolder mb-0">Security Settings</h6>
+        </nav>
+        <div class="collapse navbar-collapse mt-sm-0 mt-2 me-md-0 me-sm-4" id="navbar">
+          <div class="ms-md-auto pe-md-3 d-flex align-items-center"></div>
+          <ul class="navbar-nav justify-content-end">
+            <li class="nav-item d-flex align-items-center">
+              <a href="#" class="nav-link text-body font-weight-bold px-0">
+                <i class="material-symbols-rounded">account_circle</i>
+                <span class="d-sm-inline d-none ms-1" id="user-name">User</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="container-fluid py-2">
+      <!-- Page Title -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="ms-3">
+            <h3 class="mb-0 h4 font-weight-bolder">Security Settings</h3>
+            <p class="mb-0 text-sm">Configure authentication and SSO providers</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SSO Overview Card -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="mb-1">Single Sign-On (SSO)</h6>
+                  <p class="text-sm text-secondary mb-0" id="ssoStatusText">Loading...</p>
+                </div>
+                <div class="d-flex gap-2" id="ssoStatusBadges">
+                  <!-- Status badges will be populated here -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SSO Providers -->
+      <div class="row">
+        <div class="col-lg-8">
+          <div class="card">
+            <div class="card-header pb-0">
+              <h6 class="mb-0">SSO Providers</h6>
+              <p class="text-sm mb-0">Configure identity providers for single sign-on</p>
+            </div>
+            <div class="card-body" id="ssoProvidersContainer">
+              <div class="text-center py-4">
+                <div class="spinner-border text-info" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Available Providers -->
+        <div class="col-lg-4">
+          <div class="card">
+            <div class="card-header pb-0">
+              <h6 class="mb-0">Available Providers</h6>
+              <p class="text-sm mb-0">Add a new SSO provider</p>
+            </div>
+            <div class="card-body" id="availableProvidersContainer">
+              <div class="text-center py-4">
+                <div class="spinner-border text-info" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Security Tips -->
+          <div class="card mt-4">
+            <div class="card-header pb-0">
+              <h6 class="mb-0">Security Recommendations</h6>
+            </div>
+            <div class="card-body">
+              <ul class="list-unstyled mb-0">
+                <li class="d-flex align-items-start mb-3">
+                  <i class="material-symbols-rounded text-success me-2">check_circle</i>
+                  <span class="text-sm">Enable SSO for centralized identity management</span>
+                </li>
+                <li class="d-flex align-items-start mb-3">
+                  <i class="material-symbols-rounded text-success me-2">check_circle</i>
+                  <span class="text-sm">Consider enforcing SSO-only login for enhanced security</span>
+                </li>
+                <li class="d-flex align-items-start mb-3">
+                  <i class="material-symbols-rounded text-success me-2">check_circle</i>
+                  <span class="text-sm">Map SSO groups to roles for automatic provisioning</span>
+                </li>
+                <li class="d-flex align-items-start">
+                  <i class="material-symbols-rounded text-success me-2">check_circle</i>
+                  <span class="text-sm">Test SSO configuration before enabling</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- SSO Provider Configuration Modal -->
+  <div class="modal fade" id="ssoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="ssoModalTitle">Configure SSO Provider</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="ssoForm">
+            <input type="hidden" id="ssoProviderId">
+            <input type="hidden" id="ssoProviderType">
+
+            <!-- Provider Info -->
+            <div class="config-section">
+              <div class="config-section-title">Provider Information</div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Display Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="ssoName" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Status</label>
+                  <div class="d-flex gap-3 mt-2">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="ssoEnabled">
+                      <label class="form-check-label" for="ssoEnabled">Enabled</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="ssoPrimary">
+                      <label class="form-check-label" for="ssoPrimary">Primary Provider</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- OAuth Configuration -->
+            <div class="config-section" id="oauthConfigSection">
+              <div class="config-section-title">OAuth / OIDC Configuration</div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Client ID <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="ssoClientId">
+                  <div class="help-text">From your identity provider's app registration</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Client Secret</label>
+                  <input type="password" class="form-control" id="ssoClientSecret" placeholder="Enter new secret to update">
+                  <div class="help-text">Leave blank to keep existing secret</div>
+                </div>
+              </div>
+              <div class="row" id="azureTenantRow" style="display: none;">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Azure AD Tenant ID <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="ssoTenantIdAzure">
+                  <div class="help-text">Your Azure AD directory (tenant) ID</div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-12 mb-3">
+                  <label class="form-label">Redirect URI</label>
+                  <div class="input-group">
+                    <input type="text" class="form-control" id="ssoRedirectUri" readonly>
+                    <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('ssoRedirectUri')">
+                      <i class="material-symbols-rounded">content_copy</i>
+                    </button>
+                  </div>
+                  <div class="help-text">Add this URI to your identity provider's allowed redirect URIs</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Advanced Settings -->
+            <div class="config-section">
+              <div class="config-section-title">Advanced Settings</div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Default Role</label>
+                  <select class="form-select" id="ssoDefaultRole">
+                    <option value="">Select default role for new users</option>
+                  </select>
+                  <div class="help-text">Role assigned to auto-provisioned users</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Options</label>
+                  <div class="mt-2">
+                    <div class="form-check mb-2">
+                      <input class="form-check-input" type="checkbox" id="ssoEnforceSsoOnly">
+                      <label class="form-check-label" for="ssoEnforceSsoOnly">
+                        Enforce SSO-only login
+                      </label>
+                    </div>
+                    <div class="form-check mb-2">
+                      <input class="form-check-input" type="checkbox" id="ssoAutoProvision" checked>
+                      <label class="form-check-label" for="ssoAutoProvision">
+                        Auto-provision new users
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="ssoAutoUpdate" checked>
+                      <label class="form-check-label" for="ssoAutoUpdate">
+                        Auto-update user info on login
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Test Results -->
+            <div class="config-section" id="testResultsSection" style="display: none;">
+              <div class="config-section-title">Connection Test Results</div>
+              <div id="testResultsContainer"></div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" id="testSsoBtn">
+            <i class="material-symbols-rounded me-1">science</i>
+            Test Connection
+          </button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn bg-gradient-info" id="saveSsoBtn">Save Provider</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Delete SSO Provider</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to delete this SSO provider?</p>
+          <p class="text-danger mb-0">
+            <i class="material-symbols-rounded me-1">warning</i>
+            Users who only have SSO login will no longer be able to access the system.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete Provider</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Core JS Files -->
+  <script src="../assets/js/core/popper.min.js"></script>
+  <script src="../assets/js/core/bootstrap.min.js"></script>
+  <script src="../assets/js/plugins/perfect-scrollbar.min.js"></script>
+  <script src="../assets/js/plugins/smooth-scrollbar.min.js"></script>
+  <script src="../assets/js/material-dashboard.min.js?v=3.2.0"></script>
+
+  <!-- API Client -->
+  <script src="../assets/js/api-client.js"></script>
+
+  <!-- Security Settings Script -->
+  <script src="../assets/js/security-settings.js"></script>
+
+  <!-- Vercel Analytics -->
+  <script type="module">
+    import { inject } from 'https://cdn.jsdelivr.net/npm/@vercel/analytics@1.6.1/+esm';
+    inject();
+  </script>
+</body>
+
+</html>

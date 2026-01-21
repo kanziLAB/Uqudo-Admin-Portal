@@ -17,6 +17,10 @@ import workflowRoutes from './routes/workflow.js';
 import sdkVerificationRoutes from './routes/sdk-verification.js';
 import sdkVerificationJWSRoutes from './routes/sdk-verification-jws.js';
 import sdkSessionsRoutes from './routes/sdk-sessions.js';
+import usersRoutes from './routes/users.js';
+import rolesRoutes from './routes/roles.js';
+import permissionsRoutes from './routes/permissions.js';
+import ssoRoutes from './routes/sso.js';
 
 // Import middleware
 import { authenticate } from './middleware/auth.js';
@@ -102,6 +106,12 @@ app.use('/api/cases', authenticate, auditLogger, casesRoutes);
 app.use('/api/config', authenticate, auditLogger, configRoutes);
 app.use('/api/workflow', authenticate, auditLogger, workflowRoutes);
 app.use('/api/sdk-sessions', authenticate, auditLogger, sdkSessionsRoutes);
+
+// User Access Management routes (authentication required)
+app.use('/api/users', authenticate, auditLogger, usersRoutes);
+app.use('/api/roles', authenticate, auditLogger, rolesRoutes);
+app.use('/api/permissions', authenticate, auditLogger, permissionsRoutes);
+app.use('/api/sso', authenticate, auditLogger, ssoRoutes);
 
 // Serve frontend static files (in production)
 if (process.env.NODE_ENV === 'production') {

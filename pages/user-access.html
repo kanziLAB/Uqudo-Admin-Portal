@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="icon" type="image/avif" href="../assets/img/FavIcon.avif">
+  <link rel="apple-touch-icon" sizes="76x76" href="../assets/img/FavIcon.avif">
+  <title>User Access Management - Uqudo Admin Portal</title>
+
+  <!-- Authentication & URL Protection -->
+  <script>
+    (function() {
+      if (window.location.pathname.endsWith('.html')) {
+        const cleanPath = window.location.pathname.replace('.html', '');
+        window.location.replace(cleanPath + window.location.search + window.location.hash);
+        return;
+      }
+      const authToken = localStorage.getItem('uqudo_token') || localStorage.getItem('auth_token');
+      if (!authToken) {
+        window.location.replace('/pages/uqudo-sign-in');
+      }
+    })();
+  </script>
+
+  <!-- Fonts and icons -->
+  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,900" />
+  <link href="../assets/css/nucleo-icons.css" rel="stylesheet" />
+  <link href="../assets/css/nucleo-svg.css" rel="stylesheet" />
+  <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+  <!-- CSS Files -->
+  <link id="pagestyle" href="../assets/css/material-dashboard.css?v=3.2.0" rel="stylesheet" />
+  <link href="../assets/css/uqudo-blue-theme.css" rel="stylesheet" />
+
+  <style>
+    .role-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .role-badge i {
+      font-size: 14px;
+    }
+    .permission-matrix {
+      overflow-x: auto;
+    }
+    .permission-matrix table {
+      min-width: 800px;
+    }
+    .permission-matrix th {
+      position: sticky;
+      top: 0;
+      background: white;
+      z-index: 10;
+    }
+    .permission-matrix .category-header {
+      background: #f8f9fa;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+    }
+    .permission-check {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+    .user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: white;
+      font-size: 14px;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+    }
+    .status-active { background-color: #4CAF50; }
+    .status-inactive { background-color: #9e9e9e; }
+    .status-pending { background-color: #ff9800; }
+    .tab-content-section {
+      display: none;
+    }
+    .tab-content-section.active {
+      display: block;
+    }
+    .nav-pills-uam .nav-link {
+      color: #344767;
+      font-weight: 500;
+    }
+    .nav-pills-uam .nav-link.active {
+      background: linear-gradient(195deg, #1e88e5 0%, #1565c0 100%);
+      color: white;
+    }
+    .role-card {
+      border: 2px solid #e9ecef;
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .role-card:hover {
+      border-color: #1e88e5;
+      box-shadow: 0 4px 12px rgba(30, 136, 229, 0.15);
+    }
+    .role-card.selected {
+      border-color: #1e88e5;
+      background: rgba(30, 136, 229, 0.05);
+    }
+    .permission-group {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    .permission-group-title {
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: #344767;
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .permission-item {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #e9ecef;
+    }
+    .permission-item:last-child {
+      border-bottom: none;
+    }
+    .search-box {
+      position: relative;
+    }
+    .search-box input {
+      padding-left: 40px;
+    }
+    .search-box i {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #6c757d;
+    }
+  </style>
+</head>
+
+<body class="g-sidenav-show bg-gray-200">
+  <!-- Sidebar -->
+  <aside class="sidenav navbar navbar-vertical navbar-expand-xs border-radius-lg fixed-start ms-2 bg-white my-2" id="sidenav-main">
+    <div class="sidenav-header" style="height: 112px;">
+      <i class="fas fa-times p-3 cursor-pointer text-dark opacity-5 position-absolute end-0 top-0 d-none d-xl-none" aria-hidden="true" id="iconSidenav"></i>
+      <a class="navbar-brand m-0 p-0 d-block w-100 h-100 d-flex align-items-center" href="#">
+        <img src="../assets/img/uqudo-logo.svg" alt="Uqudo Logo" style="width: 100%; height: auto; display: block;">
+      </a>
+    </div>
+    <hr class="horizontal dark mt-0 mb-2">
+    <div class="collapse navbar-collapse w-auto" id="sidenav-collapse-main">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="./uqudo-dashboard">
+            <i class="material-symbols-rounded opacity-10">dashboard</i>
+            <span class="nav-link-text ms-1">Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="./accounts">
+            <i class="material-symbols-rounded opacity-10">person</i>
+            <span class="nav-link-text ms-1">Accounts</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="./alerts">
+            <i class="material-symbols-rounded opacity-10">notification_important</i>
+            <span class="nav-link-text ms-1">KYC Alerts</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="./cases">
+            <i class="material-symbols-rounded opacity-10">gavel</i>
+            <span class="nav-link-text ms-1">AML Cases</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="./uqudo-analytics">
+            <i class="material-symbols-rounded opacity-10">analytics</i>
+            <span class="nav-link-text ms-1">Uqudo Analytics</span>
+          </a>
+        </li>
+        <li class="nav-item mt-3">
+          <h6 class="ps-4 ms-2 text-uppercase text-xs text-dark font-weight-bolder opacity-8">Configuration</h6>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="kyc-setup">
+            <i class="material-symbols-rounded opacity-10">settings</i>
+            <span class="nav-link-text ms-1">KYC Setup</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="blocklist">
+            <i class="material-symbols-rounded opacity-10">block</i>
+            <span class="nav-link-text ms-1">Blocklist</span>
+          </a>
+        </li>
+        <li class="nav-item mt-3">
+          <h6 class="ps-4 ms-2 text-uppercase text-xs text-dark font-weight-bolder opacity-8">Administration</h6>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active bg-gradient-info text-white" href="user-access">
+            <i class="material-symbols-rounded opacity-10">admin_panel_settings</i>
+            <span class="nav-link-text ms-1">User Access</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="security-settings">
+            <i class="material-symbols-rounded opacity-10">security</i>
+            <span class="nav-link-text ms-1">Security Settings</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+    <div class="sidenav-footer position-absolute w-100 bottom-0">
+      <div class="mx-3">
+        <a class="btn btn-outline-dark mt-4 w-100" href="documentation" target="_blank">
+          <i class="material-symbols-rounded text-sm me-1">description</i>
+          Documentation
+        </a>
+        <a class="btn bg-gradient-info w-100 mt-2" href="#" id="logout-btn">
+          <i class="material-symbols-rounded text-sm me-1">logout</i>
+          Logout
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content position-relative max-height-vh-100 h-100 border-radius-lg">
+    <!-- Navbar -->
+    <nav class="navbar navbar-main navbar-expand-lg px-0 mx-3 shadow-none border-radius-xl" id="navbarBlur">
+      <div class="container-fluid py-1 px-3">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb bg-transparent mb-0 pb-0 pt-1 px-0 me-sm-6 me-5">
+            <li class="breadcrumb-item text-sm"><a class="opacity-5 text-dark" href="javascript:;">Administration</a></li>
+            <li class="breadcrumb-item text-sm text-dark active" aria-current="page">User Access Management</li>
+          </ol>
+          <h6 class="font-weight-bolder mb-0">User Access Management</h6>
+        </nav>
+        <div class="collapse navbar-collapse mt-sm-0 mt-2 me-md-0 me-sm-4" id="navbar">
+          <div class="ms-md-auto pe-md-3 d-flex align-items-center"></div>
+          <ul class="navbar-nav justify-content-end">
+            <li class="nav-item d-flex align-items-center">
+              <a href="#" class="nav-link text-body font-weight-bold px-0">
+                <i class="material-symbols-rounded">account_circle</i>
+                <span class="d-sm-inline d-none ms-1" id="user-name">User</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="container-fluid py-2">
+      <!-- Page Title -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="ms-3">
+            <h3 class="mb-0 h4 font-weight-bolder">User Access Management</h3>
+            <p class="mb-0 text-sm">Manage users, roles, and permissions for your organization</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body py-3">
+              <ul class="nav nav-pills nav-pills-uam" id="uamTabs">
+                <li class="nav-item">
+                  <a class="nav-link active" href="#" data-tab="users">
+                    <i class="material-symbols-rounded text-sm me-1">people</i>
+                    Users
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="#" data-tab="roles">
+                    <i class="material-symbols-rounded text-sm me-1">badge</i>
+                    Roles
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="#" data-tab="permissions">
+                    <i class="material-symbols-rounded text-sm me-1">lock</i>
+                    Permission Matrix
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Users Tab Content -->
+      <div class="tab-content-section active" id="users-tab">
+        <div class="row">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header pb-0 d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="mb-0">Users</h6>
+                  <p class="text-sm mb-0">Manage user accounts and their role assignments</p>
+                </div>
+                <button class="btn bg-gradient-info mb-0" id="addUserBtn">
+                  <i class="material-symbols-rounded text-sm me-1">person_add</i>
+                  Add User
+                </button>
+              </div>
+              <div class="card-body px-0 pt-0 pb-2">
+                <!-- Filters -->
+                <div class="px-4 py-3">
+                  <div class="row g-3">
+                    <div class="col-md-4">
+                      <div class="search-box">
+                        <i class="material-symbols-rounded">search</i>
+                        <input type="text" class="form-control" id="userSearch" placeholder="Search users...">
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <select class="form-select" id="roleFilter">
+                        <option value="">All Roles</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <select class="form-select" id="statusFilter">
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="pending">Pending</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Users Table -->
+                <div class="table-responsive p-0">
+                  <table class="table align-items-center mb-0">
+                    <thead>
+                      <tr>
+                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">User</th>
+                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Roles</th>
+                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Department</th>
+                        <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Status</th>
+                        <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Last Login</th>
+                        <th class="text-secondary opacity-7"></th>
+                      </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                      <tr>
+                        <td colspan="6" class="text-center py-4">
+                          <div class="spinner-border text-info" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="px-4 py-3 d-flex justify-content-between align-items-center">
+                  <span class="text-sm text-secondary" id="usersPaginationInfo">Showing 0 of 0 users</span>
+                  <nav>
+                    <ul class="pagination pagination-sm mb-0" id="usersPagination"></ul>
+                  </nav>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Roles Tab Content -->
+      <div class="tab-content-section" id="roles-tab">
+        <div class="row">
+          <!-- Roles List -->
+          <div class="col-lg-5">
+            <div class="card">
+              <div class="card-header pb-0 d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="mb-0">Roles</h6>
+                  <p class="text-sm mb-0">Define roles and their permissions</p>
+                </div>
+                <button class="btn bg-gradient-info btn-sm mb-0" id="addRoleBtn">
+                  <i class="material-symbols-rounded text-sm me-1">add</i>
+                  Add Role
+                </button>
+              </div>
+              <div class="card-body pt-3" id="rolesListContainer">
+                <div class="text-center py-4">
+                  <div class="spinner-border text-info" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Role Permissions Editor -->
+          <div class="col-lg-7">
+            <div class="card">
+              <div class="card-header pb-0">
+                <h6 class="mb-0" id="roleEditorTitle">Select a Role</h6>
+                <p class="text-sm mb-0" id="roleEditorDesc">Click on a role to view and edit its permissions</p>
+              </div>
+              <div class="card-body" id="rolePermissionsContainer">
+                <div class="text-center py-5 text-secondary">
+                  <i class="material-symbols-rounded" style="font-size: 48px;">touch_app</i>
+                  <p class="mt-2 mb-0">Select a role from the list to manage its permissions</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Permission Matrix Tab Content -->
+      <div class="tab-content-section" id="permissions-tab">
+        <div class="row">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header pb-0">
+                <h6 class="mb-0">Permission Matrix</h6>
+                <p class="text-sm mb-0">Overview of all roles and their permissions</p>
+              </div>
+              <div class="card-body permission-matrix">
+                <div class="text-center py-4" id="matrixLoader">
+                  <div class="spinner-border text-info" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                </div>
+                <div id="permissionMatrixTable" style="display: none;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add/Edit User Modal -->
+  <div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="userModalTitle">Add User</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="userForm">
+            <input type="hidden" id="userId">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="userFullName" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Email <span class="text-danger">*</span></label>
+                <input type="email" class="form-control" id="userEmail" required>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Department</label>
+                <select class="form-select" id="userDepartment">
+                  <option value="">Select Department</option>
+                  <option value="compliance">Compliance</option>
+                  <option value="fraud">Fraud Prevention</option>
+                  <option value="operations">Operations</option>
+                  <option value="management">Management</option>
+                  <option value="it">IT</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Status</label>
+                <select class="form-select" id="userStatus">
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="pending">Pending</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-3" id="passwordSection">
+              <label class="form-label">Password <span class="text-danger">*</span></label>
+              <input type="password" class="form-control" id="userPassword" minlength="8">
+              <small class="text-muted">Minimum 8 characters</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Assign Roles</label>
+              <div id="userRolesCheckboxes" class="d-flex flex-wrap gap-2">
+                <!-- Role checkboxes will be populated here -->
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn bg-gradient-info" id="saveUserBtn">Save User</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Role Modal -->
+  <div class="modal fade" id="roleModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="roleModalTitle">Add Role</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="roleForm">
+            <input type="hidden" id="roleId">
+            <div class="mb-3">
+              <label class="form-label">Role Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="roleName" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Role Code <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="roleCode" required placeholder="e.g., fraud_analyst">
+              <small class="text-muted">Lowercase letters, numbers, and underscores only</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Description</label>
+              <textarea class="form-control" id="roleDescription" rows="2"></textarea>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Color</label>
+                <input type="color" class="form-control form-control-color w-100" id="roleColor" value="#6c757d">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Priority</label>
+                <input type="number" class="form-control" id="rolePriority" value="0" min="0" max="100">
+              </div>
+            </div>
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="roleIsDefault">
+              <label class="form-check-label" for="roleIsDefault">
+                Set as default role for new users
+              </label>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn bg-gradient-info" id="saveRoleBtn">Save Role</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reset Password Modal -->
+  <div class="modal fade" id="resetPasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Reset Password</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>Enter a new password for <strong id="resetPasswordUserName"></strong></p>
+          <input type="hidden" id="resetPasswordUserId">
+          <div class="mb-3">
+            <label class="form-label">New Password</label>
+            <input type="password" class="form-control" id="newPassword" minlength="8" required>
+            <small class="text-muted">Minimum 8 characters</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Confirm Password</label>
+            <input type="password" class="form-control" id="confirmPassword" minlength="8" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn bg-gradient-info" id="confirmResetPasswordBtn">Reset Password</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Core JS Files -->
+  <script src="../assets/js/core/popper.min.js"></script>
+  <script src="../assets/js/core/bootstrap.min.js"></script>
+  <script src="../assets/js/plugins/perfect-scrollbar.min.js"></script>
+  <script src="../assets/js/plugins/smooth-scrollbar.min.js"></script>
+  <script src="../assets/js/material-dashboard.min.js?v=3.2.0"></script>
+
+  <!-- API Client -->
+  <script src="../assets/js/api-client.js"></script>
+
+  <!-- User Access Management Script -->
+  <script src="../assets/js/user-access.js"></script>
+
+  <!-- Vercel Analytics -->
+  <script type="module">
+    import { inject } from 'https://cdn.jsdelivr.net/npm/@vercel/analytics@1.6.1/+esm';
+    inject();
+  </script>
+</body>
+
+</html>
