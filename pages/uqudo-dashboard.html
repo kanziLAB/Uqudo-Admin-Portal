@@ -36,6 +36,7 @@
   <!-- CSS Files -->
   <link id="pagestyle" href="../assets/css/material-dashboard.css?v=3.2.0" rel="stylesheet" />
   <link href="../assets/css/uqudo-blue-theme.css" rel="stylesheet" />
+  <link href="../assets/css/dark-mode.css" rel="stylesheet" />
 
   <!-- Editable Label Styles -->
   <style>
@@ -174,7 +175,13 @@
           <div class="ms-md-auto pe-md-3 d-flex align-items-center">
             <!-- Search can be added here -->
           </div>
-          <ul class="navbar-nav justify-content-end">
+          <ul class="navbar-nav justify-content-end align-items-center">
+            <li class="nav-item d-flex align-items-center me-2">
+              <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                <span class="material-symbols-rounded icon-sun">light_mode</span>
+                <span class="material-symbols-rounded icon-moon">dark_mode</span>
+              </button>
+            </li>
             <li class="nav-item d-flex align-items-center">
               <a href="#" class="nav-link text-body font-weight-bold px-0">
                 <i class="material-symbols-rounded">account_circle</i>
@@ -1036,6 +1043,9 @@
     // Also reload labels after a short delay
     setTimeout(loadSavedLabels, 500);
   </script>
+
+  <!-- Theme Manager (load early for instant theme application) -->
+  <script src="../assets/js/theme-manager.js"></script>
 
   <!-- Vercel Analytics -->
   <script type="module">

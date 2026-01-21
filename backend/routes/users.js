@@ -547,6 +547,96 @@ router.post('/:id/roles', authorizePermission('users.assign_roles'), asyncHandle
 }));
 
 /**
+ * @route   GET /api/users/me/preferences
+ * @desc    Get current user's preferences (theme, etc.)
+ * @access  Private
+ */
+router.get('/me/preferences', asyncHandler(async (req, res) => {
+  const { tenantId, id: userId } = req.user;
+
+  const { data: user, error } = await supabaseAdmin
+    .from('users')
+    .select('preferences')
+    .eq('id', userId)
+    .eq('tenant_id', tenantId)
+    .single();
+
+  if (error) {
+    console.error('Error fetching user preferences:', error);
+    throw error;
+  }
+
+  res.json({
+    success: true,
+    data: user?.preferences || {
+      theme_preference: 'system',
+      notifications_enabled: true,
+      language: 'en'
+    }
+  });
+}));
+
+/**
+ * @route   PATCH /api/users/me/preferences
+ * @desc    Update current user's preferences
+ * @access  Private
+ */
+router.patch('/me/preferences', asyncHandler(async (req, res) => {
+  const { tenantId, id: userId } = req.user;
+  const {
+    theme_preference,
+    notifications_enabled,
+    language
+  } = req.body;
+
+  // Get current preferences
+  const { data: user } = await supabaseAdmin
+    .from('users')
+    .select('preferences')
+    .eq('id', userId)
+    .eq('tenant_id', tenantId)
+    .single();
+
+  const currentPrefs = user?.preferences || {};
+
+  // Merge with new preferences
+  const updatedPrefs = {
+    ...currentPrefs,
+    ...(theme_preference !== undefined && { theme_preference }),
+    ...(notifications_enabled !== undefined && { notifications_enabled }),
+    ...(language !== undefined && { language })
+  };
+
+  // Validate theme_preference
+  if (theme_preference && !['light', 'dark', 'system'].includes(theme_preference)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid theme preference. Must be "light", "dark", or "system".'
+    });
+  }
+
+  const { error } = await supabaseAdmin
+    .from('users')
+    .update({
+      preferences: updatedPrefs,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', userId)
+    .eq('tenant_id', tenantId);
+
+  if (error) {
+    console.error('Error updating user preferences:', error);
+    throw error;
+  }
+
+  res.json({
+    success: true,
+    data: updatedPrefs,
+    message: 'Preferences updated successfully'
+  });
+}));
+
+/**
  * @route   POST /api/users/:id/reset-password
  * @desc    Reset user password (admin action)
  * @access  Private - requires users.reset_password permission

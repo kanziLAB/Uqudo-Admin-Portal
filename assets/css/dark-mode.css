@@ -1,0 +1,1008 @@
+/**
+ * Uqudo Admin Portal - Dark Mode Theme
+ * Claude Code-inspired dark UI with subtle blue accents
+ *
+ * Design tokens and CSS variables for theming
+ */
+
+/* ============================================
+   CSS Custom Properties (Design Tokens)
+   ============================================ */
+
+:root {
+  /* Light Mode Colors (Default) */
+  --bg-body: #f0f2f5;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #e9ecef;
+  --bg-elevated: #ffffff;
+  --bg-hover: rgba(0, 0, 0, 0.04);
+  --bg-active: rgba(0, 0, 0, 0.08);
+
+  /* Text Colors - Light Mode */
+  --text-primary: #344767;
+  --text-secondary: #7b809a;
+  --text-tertiary: #8392ab;
+  --text-muted: #adb5bd;
+  --text-inverse: #ffffff;
+
+  /* Border Colors - Light Mode */
+  --border-primary: #dee2e6;
+  --border-secondary: #e9ecef;
+  --border-focus: #1e88e5;
+
+  /* Accent Colors */
+  --accent-primary: #1e88e5;
+  --accent-primary-hover: #1565c0;
+  --accent-primary-active: #0d47a1;
+  --accent-primary-subtle: rgba(30, 136, 229, 0.1);
+  --accent-primary-glow: rgba(30, 136, 229, 0.3);
+
+  /* Status Colors */
+  --color-success: #4caf50;
+  --color-success-subtle: rgba(76, 175, 80, 0.1);
+  --color-warning: #fb8c00;
+  --color-warning-subtle: rgba(251, 140, 0, 0.1);
+  --color-danger: #f44336;
+  --color-danger-subtle: rgba(244, 67, 54, 0.1);
+  --color-info: #1e88e5;
+  --color-info-subtle: rgba(30, 136, 229, 0.1);
+
+  /* Shadows - Light Mode */
+  --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.125);
+  --shadow-card: 0 4px 6px rgba(0, 0, 0, 0.04);
+  --shadow-elevated: 0 8px 24px rgba(0, 0, 0, 0.08);
+
+  /* Glow Effects - Light Mode */
+  --glow-primary: 0 0 0 3px rgba(30, 136, 229, 0.15);
+  --glow-success: 0 0 0 3px rgba(76, 175, 80, 0.15);
+  --glow-danger: 0 0 0 3px rgba(244, 67, 54, 0.15);
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(195deg, #42a5f5, #1e88e5);
+  --gradient-dark: linear-gradient(195deg, #42424a, #191919);
+  --gradient-success: linear-gradient(195deg, #66bb6a, #43a047);
+  --gradient-warning: linear-gradient(195deg, #ffa726, #fb8c00);
+  --gradient-danger: linear-gradient(195deg, #ef5350, #e53935);
+
+  /* Component Specific */
+  --sidenav-bg: #ffffff;
+  --sidenav-text: #344767;
+  --sidenav-active-bg: var(--gradient-primary);
+  --sidenav-hover-bg: rgba(0, 0, 0, 0.04);
+
+  --card-bg: #ffffff;
+  --card-border: transparent;
+  --card-shadow: var(--shadow-card);
+
+  --input-bg: #ffffff;
+  --input-border: #d2d6da;
+  --input-focus-border: var(--accent-primary);
+  --input-placeholder: #adb5bd;
+
+  --table-header-bg: #f8f9fa;
+  --table-row-hover: rgba(0, 0, 0, 0.02);
+  --table-border: #e9ecef;
+
+  --modal-bg: #ffffff;
+  --modal-overlay: rgba(0, 0, 0, 0.5);
+
+  --dropdown-bg: #ffffff;
+  --dropdown-hover: #f8f9fa;
+  --dropdown-border: #e9ecef;
+
+  /* Scrollbar */
+  --scrollbar-track: #f1f1f1;
+  --scrollbar-thumb: #c1c1c1;
+  --scrollbar-thumb-hover: #a8a8a8;
+
+  /* Transition */
+  --theme-transition: background-color 0.3s ease,
+                      color 0.3s ease,
+                      border-color 0.3s ease,
+                      box-shadow 0.3s ease;
+}
+
+/* ============================================
+   Dark Mode Colors
+   ============================================ */
+
+[data-theme="dark"],
+.dark-mode {
+  /* Background Colors - Dark Mode */
+  --bg-body: #0d1117;
+  --bg-primary: #161b22;
+  --bg-secondary: #1c2128;
+  --bg-tertiary: #21262d;
+  --bg-elevated: #1c2128;
+  --bg-hover: rgba(255, 255, 255, 0.04);
+  --bg-active: rgba(255, 255, 255, 0.08);
+
+  /* Text Colors - Dark Mode */
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-tertiary: #6e7681;
+  --text-muted: #484f58;
+  --text-inverse: #0d1117;
+
+  /* Border Colors - Dark Mode */
+  --border-primary: #30363d;
+  --border-secondary: #21262d;
+  --border-focus: #58a6ff;
+
+  /* Accent Colors - Dark Mode (Subtle Blue Glow) */
+  --accent-primary: #58a6ff;
+  --accent-primary-hover: #79b8ff;
+  --accent-primary-active: #388bfd;
+  --accent-primary-subtle: rgba(88, 166, 255, 0.15);
+  --accent-primary-glow: rgba(88, 166, 255, 0.4);
+
+  /* Status Colors - Dark Mode */
+  --color-success: #3fb950;
+  --color-success-subtle: rgba(63, 185, 80, 0.15);
+  --color-warning: #d29922;
+  --color-warning-subtle: rgba(210, 153, 34, 0.15);
+  --color-danger: #f85149;
+  --color-danger-subtle: rgba(248, 81, 73, 0.15);
+  --color-info: #58a6ff;
+  --color-info-subtle: rgba(88, 166, 255, 0.15);
+
+  /* Shadows - Dark Mode (Subtle Glow) */
+  --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.4);
+
+  /* Glow Effects - Dark Mode */
+  --glow-primary: 0 0 0 3px rgba(88, 166, 255, 0.25), 0 0 15px rgba(88, 166, 255, 0.15);
+  --glow-success: 0 0 0 3px rgba(63, 185, 80, 0.25), 0 0 15px rgba(63, 185, 80, 0.15);
+  --glow-danger: 0 0 0 3px rgba(248, 81, 73, 0.25), 0 0 15px rgba(248, 81, 73, 0.15);
+
+  /* Gradients - Dark Mode */
+  --gradient-primary: linear-gradient(195deg, #58a6ff, #388bfd);
+  --gradient-dark: linear-gradient(195deg, #30363d, #21262d);
+  --gradient-success: linear-gradient(195deg, #3fb950, #238636);
+  --gradient-warning: linear-gradient(195deg, #d29922, #9e6a03);
+  --gradient-danger: linear-gradient(195deg, #f85149, #da3633);
+
+  /* Component Specific - Dark Mode */
+  --sidenav-bg: #161b22;
+  --sidenav-text: #e6edf3;
+  --sidenav-active-bg: var(--gradient-primary);
+  --sidenav-hover-bg: rgba(255, 255, 255, 0.04);
+
+  --card-bg: #161b22;
+  --card-border: #30363d;
+  --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 1px rgba(88, 166, 255, 0.1);
+
+  --input-bg: #0d1117;
+  --input-border: #30363d;
+  --input-focus-border: #58a6ff;
+  --input-placeholder: #6e7681;
+
+  --table-header-bg: #21262d;
+  --table-row-hover: rgba(255, 255, 255, 0.04);
+  --table-border: #30363d;
+
+  --modal-bg: #161b22;
+  --modal-overlay: rgba(0, 0, 0, 0.7);
+
+  --dropdown-bg: #161b22;
+  --dropdown-hover: #21262d;
+  --dropdown-border: #30363d;
+
+  /* Scrollbar - Dark Mode */
+  --scrollbar-track: #161b22;
+  --scrollbar-thumb: #30363d;
+  --scrollbar-thumb-hover: #484f58;
+}
+
+/* ============================================
+   Base Styles with Theme Support
+   ============================================ */
+
+/* Apply theme transition to all elements */
+*,
+*::before,
+*::after {
+  transition: var(--theme-transition);
+}
+
+/* Body */
+body {
+  background-color: var(--bg-body) !important;
+  color: var(--text-primary);
+}
+
+.bg-gray-200,
+.bg-gray-100 {
+  background-color: var(--bg-body) !important;
+}
+
+/* ============================================
+   Navigation & Sidebar
+   ============================================ */
+
+/* Sidenav */
+.sidenav,
+.sidenav.bg-white,
+aside.sidenav {
+  background-color: var(--sidenav-bg) !important;
+  border-color: var(--border-primary) !important;
+}
+
+[data-theme="dark"] .sidenav,
+.dark-mode .sidenav {
+  border: 1px solid var(--border-primary);
+  box-shadow: var(--shadow-card), 0 0 1px rgba(88, 166, 255, 0.2);
+}
+
+.sidenav .nav-link {
+  color: var(--sidenav-text) !important;
+}
+
+.sidenav .nav-link:hover:not(.active) {
+  background-color: var(--sidenav-hover-bg) !important;
+}
+
+.sidenav .nav-link.active {
+  background: var(--sidenav-active-bg) !important;
+  color: var(--text-inverse) !important;
+}
+
+[data-theme="dark"] .sidenav .nav-link.active,
+.dark-mode .sidenav .nav-link.active {
+  box-shadow: 0 0 15px rgba(88, 166, 255, 0.3);
+}
+
+.sidenav .navbar-brand,
+.sidenav .sidenav-header {
+  border-bottom-color: var(--border-primary) !important;
+}
+
+.sidenav-footer {
+  border-top-color: var(--border-primary) !important;
+}
+
+/* Top Navbar */
+.navbar-main,
+.navbar.navbar-main {
+  background-color: var(--bg-primary) !important;
+}
+
+[data-theme="dark"] .navbar-main,
+.dark-mode .navbar-main {
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.navbar .breadcrumb-item,
+.navbar .breadcrumb-item a,
+.navbar .nav-link {
+  color: var(--text-secondary) !important;
+}
+
+.navbar .breadcrumb-item.active,
+.navbar .nav-link:hover {
+  color: var(--text-primary) !important;
+}
+
+/* ============================================
+   Cards
+   ============================================ */
+
+.card {
+  background-color: var(--card-bg) !important;
+  border: 1px solid var(--card-border) !important;
+  box-shadow: var(--card-shadow) !important;
+}
+
+[data-theme="dark"] .card,
+.dark-mode .card {
+  border: 1px solid var(--border-primary) !important;
+}
+
+[data-theme="dark"] .card:hover,
+.dark-mode .card:hover {
+  border-color: rgba(88, 166, 255, 0.3) !important;
+  box-shadow: var(--shadow-card), 0 0 20px rgba(88, 166, 255, 0.1) !important;
+}
+
+.card-header {
+  background-color: transparent !important;
+  border-bottom-color: var(--border-primary) !important;
+}
+
+.card-footer {
+  background-color: transparent !important;
+  border-top-color: var(--border-primary) !important;
+}
+
+.card-body h1, .card-body h2, .card-body h3,
+.card-body h4, .card-body h5, .card-body h6,
+.card-header h1, .card-header h2, .card-header h3,
+.card-header h4, .card-header h5, .card-header h6 {
+  color: var(--text-primary) !important;
+}
+
+.card-body p,
+.card-body span:not(.badge):not(.status-dot),
+.card-body label {
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   Tables
+   ============================================ */
+
+.table {
+  color: var(--text-primary);
+}
+
+.table thead th {
+  background-color: var(--table-header-bg) !important;
+  color: var(--text-secondary) !important;
+  border-bottom-color: var(--table-border) !important;
+}
+
+.table tbody tr {
+  border-bottom-color: var(--table-border) !important;
+}
+
+.table tbody tr:hover {
+  background-color: var(--table-row-hover) !important;
+}
+
+.table td {
+  border-bottom-color: var(--table-border) !important;
+  color: var(--text-primary);
+}
+
+.table td .text-secondary,
+.table td .text-sm {
+  color: var(--text-secondary) !important;
+}
+
+.table-responsive {
+  border-color: var(--table-border);
+}
+
+/* ============================================
+   Forms & Inputs
+   ============================================ */
+
+.form-control,
+.form-select,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+textarea,
+select {
+  background-color: var(--input-bg) !important;
+  border-color: var(--input-border) !important;
+  color: var(--text-primary) !important;
+}
+
+.form-control::placeholder,
+input::placeholder,
+textarea::placeholder {
+  color: var(--input-placeholder) !important;
+}
+
+.form-control:focus,
+.form-select:focus,
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--input-focus-border) !important;
+  box-shadow: var(--glow-primary) !important;
+  background-color: var(--input-bg) !important;
+}
+
+.form-label,
+label {
+  color: var(--text-primary) !important;
+}
+
+.form-text,
+.input-group-text {
+  color: var(--text-secondary) !important;
+}
+
+.input-group-text {
+  background-color: var(--bg-tertiary) !important;
+  border-color: var(--input-border) !important;
+}
+
+/* Checkboxes and Radio buttons */
+.form-check-input {
+  background-color: var(--input-bg) !important;
+  border-color: var(--input-border) !important;
+}
+
+.form-check-input:checked {
+  background-color: var(--accent-primary) !important;
+  border-color: var(--accent-primary) !important;
+}
+
+.form-check-label {
+  color: var(--text-primary) !important;
+}
+
+/* ============================================
+   Buttons
+   ============================================ */
+
+/* Primary Button */
+.btn-primary,
+.btn.bg-gradient-primary,
+.btn.bg-gradient-info {
+  background: var(--gradient-primary) !important;
+  border: none !important;
+  color: #ffffff !important;
+}
+
+.btn-primary:hover,
+.btn.bg-gradient-primary:hover,
+.btn.bg-gradient-info:hover {
+  background: var(--gradient-primary) !important;
+  box-shadow: var(--glow-primary) !important;
+}
+
+/* Success Button */
+.btn-success,
+.btn.bg-gradient-success {
+  background: var(--gradient-success) !important;
+}
+
+.btn-success:hover,
+.btn.bg-gradient-success:hover {
+  box-shadow: var(--glow-success) !important;
+}
+
+/* Danger Button */
+.btn-danger,
+.btn.bg-gradient-danger {
+  background: var(--gradient-danger) !important;
+}
+
+.btn-danger:hover,
+.btn.bg-gradient-danger:hover {
+  box-shadow: var(--glow-danger) !important;
+}
+
+/* Outline Buttons */
+.btn-outline-primary,
+.btn-outline-info {
+  color: var(--accent-primary) !important;
+  border-color: var(--accent-primary) !important;
+  background-color: transparent !important;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-info:hover {
+  background-color: var(--accent-primary-subtle) !important;
+  color: var(--accent-primary) !important;
+}
+
+/* Secondary/Light Buttons */
+.btn-secondary,
+.btn-light,
+.btn-outline-secondary {
+  background-color: var(--bg-tertiary) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+.btn-secondary:hover,
+.btn-light:hover,
+.btn-outline-secondary:hover {
+  background-color: var(--bg-hover) !important;
+}
+
+/* Link Button */
+.btn-link {
+  color: var(--accent-primary) !important;
+}
+
+.btn-link:hover {
+  color: var(--accent-primary-hover) !important;
+}
+
+/* ============================================
+   Modals
+   ============================================ */
+
+.modal-backdrop {
+  background-color: var(--modal-overlay) !important;
+}
+
+.modal-content {
+  background-color: var(--modal-bg) !important;
+  border: 1px solid var(--border-primary) !important;
+  box-shadow: var(--shadow-elevated) !important;
+}
+
+[data-theme="dark"] .modal-content,
+.dark-mode .modal-content {
+  box-shadow: var(--shadow-elevated), 0 0 30px rgba(88, 166, 255, 0.1) !important;
+}
+
+.modal-header {
+  border-bottom-color: var(--border-primary) !important;
+}
+
+.modal-header .modal-title {
+  color: var(--text-primary) !important;
+}
+
+.modal-header .btn-close {
+  filter: var(--text-primary);
+}
+
+[data-theme="dark"] .modal-header .btn-close,
+.dark-mode .modal-header .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+.modal-footer {
+  border-top-color: var(--border-primary) !important;
+}
+
+.modal-body {
+  color: var(--text-primary);
+}
+
+/* ============================================
+   Dropdowns
+   ============================================ */
+
+.dropdown-menu {
+  background-color: var(--dropdown-bg) !important;
+  border: 1px solid var(--dropdown-border) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+[data-theme="dark"] .dropdown-menu,
+.dark-mode .dropdown-menu {
+  box-shadow: var(--shadow-md), 0 0 1px rgba(88, 166, 255, 0.2) !important;
+}
+
+.dropdown-item {
+  color: var(--text-primary) !important;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background-color: var(--dropdown-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+.dropdown-divider {
+  border-color: var(--border-primary) !important;
+}
+
+/* ============================================
+   Badges & Pills
+   ============================================ */
+
+.badge.bg-primary,
+.badge.bg-info {
+  background-color: var(--accent-primary) !important;
+}
+
+.badge.bg-success {
+  background-color: var(--color-success) !important;
+}
+
+.badge.bg-warning {
+  background-color: var(--color-warning) !important;
+}
+
+.badge.bg-danger {
+  background-color: var(--color-danger) !important;
+}
+
+.badge.bg-secondary {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-secondary) !important;
+}
+
+/* ============================================
+   Alerts
+   ============================================ */
+
+.alert {
+  border: 1px solid var(--border-primary);
+}
+
+.alert-primary,
+.alert-info {
+  background-color: var(--color-info-subtle) !important;
+  color: var(--accent-primary) !important;
+  border-color: var(--accent-primary) !important;
+}
+
+.alert-success {
+  background-color: var(--color-success-subtle) !important;
+  color: var(--color-success) !important;
+  border-color: var(--color-success) !important;
+}
+
+.alert-warning {
+  background-color: var(--color-warning-subtle) !important;
+  color: var(--color-warning) !important;
+  border-color: var(--color-warning) !important;
+}
+
+.alert-danger {
+  background-color: var(--color-danger-subtle) !important;
+  color: var(--color-danger) !important;
+  border-color: var(--color-danger) !important;
+}
+
+/* ============================================
+   Tabs & Nav Pills
+   ============================================ */
+
+.nav-tabs {
+  border-bottom-color: var(--border-primary) !important;
+}
+
+.nav-tabs .nav-link {
+  color: var(--text-secondary) !important;
+  border-color: transparent !important;
+}
+
+.nav-tabs .nav-link:hover {
+  border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+.nav-tabs .nav-link.active {
+  background-color: var(--bg-primary) !important;
+  border-color: var(--border-primary) var(--border-primary) var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+.nav-pills .nav-link {
+  color: var(--text-secondary) !important;
+}
+
+.nav-pills .nav-link:hover {
+  background-color: var(--bg-hover) !important;
+}
+
+.nav-pills .nav-link.active {
+  background: var(--gradient-primary) !important;
+  color: #ffffff !important;
+}
+
+/* ============================================
+   Progress Bars
+   ============================================ */
+
+.progress {
+  background-color: var(--bg-tertiary) !important;
+}
+
+.progress-bar {
+  background: var(--gradient-primary) !important;
+}
+
+/* ============================================
+   Tooltips
+   ============================================ */
+
+.tooltip .tooltip-inner {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .tooltip .tooltip-inner,
+.dark-mode .tooltip .tooltip-inner {
+  border: 1px solid var(--border-primary);
+}
+
+/* ============================================
+   Pagination
+   ============================================ */
+
+.pagination .page-link {
+  background-color: var(--bg-primary) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+.pagination .page-link:hover {
+  background-color: var(--bg-hover) !important;
+}
+
+.pagination .page-item.active .page-link {
+  background: var(--gradient-primary) !important;
+  border-color: var(--accent-primary) !important;
+  color: #ffffff !important;
+}
+
+.pagination .page-item.disabled .page-link {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-muted) !important;
+}
+
+/* ============================================
+   Scrollbar Styling
+   ============================================ */
+
+/* Webkit browsers */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* ============================================
+   Text Utilities
+   ============================================ */
+
+.text-dark {
+  color: var(--text-primary) !important;
+}
+
+.text-secondary {
+  color: var(--text-secondary) !important;
+}
+
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+.text-primary,
+.text-info {
+  color: var(--accent-primary) !important;
+}
+
+.text-success {
+  color: var(--color-success) !important;
+}
+
+.text-warning {
+  color: var(--color-warning) !important;
+}
+
+.text-danger {
+  color: var(--color-danger) !important;
+}
+
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  color: var(--text-primary);
+}
+
+p {
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   Background Utilities
+   ============================================ */
+
+.bg-white {
+  background-color: var(--bg-primary) !important;
+}
+
+.bg-light {
+  background-color: var(--bg-secondary) !important;
+}
+
+/* ============================================
+   Border Utilities
+   ============================================ */
+
+.border {
+  border-color: var(--border-primary) !important;
+}
+
+.border-top,
+.border-bottom,
+.border-start,
+.border-end {
+  border-color: var(--border-primary) !important;
+}
+
+/* ============================================
+   Custom Components
+   ============================================ */
+
+/* Status dots */
+.status-dot {
+  box-shadow: 0 0 6px currentColor;
+}
+
+/* User avatars */
+.user-avatar {
+  border: 2px solid var(--border-primary);
+}
+
+[data-theme="dark"] .user-avatar,
+.dark-mode .user-avatar {
+  border-color: var(--border-primary);
+}
+
+/* Role badges */
+.role-badge {
+  border: 1px solid transparent;
+}
+
+[data-theme="dark"] .role-badge,
+.dark-mode .role-badge {
+  border-color: currentColor;
+  opacity: 0.9;
+}
+
+/* Permission matrix */
+.category-header td {
+  background-color: var(--table-header-bg) !important;
+  color: var(--text-primary) !important;
+  font-weight: 600;
+}
+
+/* SSO Provider cards */
+.provider-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-primary);
+}
+
+[data-theme="dark"] .provider-card:hover,
+.dark-mode .provider-card:hover {
+  border-color: rgba(88, 166, 255, 0.4);
+  box-shadow: 0 0 20px rgba(88, 166, 255, 0.15);
+}
+
+/* ============================================
+   Theme Toggle Button
+   ============================================ */
+
+.theme-toggle {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.theme-toggle:hover {
+  background-color: var(--bg-hover);
+}
+
+.theme-toggle .icon-sun,
+.theme-toggle .icon-moon {
+  position: absolute;
+  transition: all 0.3s ease;
+}
+
+.theme-toggle .icon-sun {
+  opacity: 1;
+  transform: rotate(0deg);
+  color: var(--color-warning);
+}
+
+.theme-toggle .icon-moon {
+  opacity: 0;
+  transform: rotate(-90deg);
+  color: var(--accent-primary);
+}
+
+[data-theme="dark"] .theme-toggle .icon-sun,
+.dark-mode .theme-toggle .icon-sun {
+  opacity: 0;
+  transform: rotate(90deg);
+}
+
+[data-theme="dark"] .theme-toggle .icon-moon,
+.dark-mode .theme-toggle .icon-moon {
+  opacity: 1;
+  transform: rotate(0deg);
+}
+
+/* ============================================
+   Loading States
+   ============================================ */
+
+.spinner-border {
+  border-color: var(--accent-primary);
+  border-right-color: transparent;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 25%,
+    var(--bg-secondary) 50%,
+    var(--bg-tertiary) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ============================================
+   Focus States (Accessibility)
+   ============================================ */
+
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+[data-theme="dark"] :focus-visible,
+.dark-mode :focus-visible {
+  outline-color: var(--accent-primary);
+  box-shadow: var(--glow-primary);
+}
+
+/* ============================================
+   Print Styles
+   ============================================ */
+
+@media print {
+  :root,
+  [data-theme="dark"],
+  .dark-mode {
+    --bg-body: #ffffff;
+    --bg-primary: #ffffff;
+    --text-primary: #000000;
+    --text-secondary: #333333;
+  }
+}
+
+/* ============================================
+   Reduced Motion
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
