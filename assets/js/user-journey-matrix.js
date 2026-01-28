@@ -111,6 +111,7 @@ class UserJourneyExperienceMatrix {
     const name = (eventName || '').toUpperCase();
 
     // Direct name-to-stage mappings (highest priority)
+    // These cover both Web SDK (category/page) and Mobile SDK (name) events
     const directMap = {
       'SCAN': 'document',
       'READ': 'document',
@@ -119,9 +120,11 @@ class UserJourneyExperienceMatrix {
       'OCR': 'document',
       'CAPTURE': 'document',
       'FACE': 'face',
+      'FACIAL': 'face',
       'LIVENESS': 'face',
       'SELFIE': 'face',
-      'BIOMETRIC': 'face'
+      'BIOMETRIC': 'face',
+      'ENROLLMENT': 'face'
     };
 
     // Check direct mappings first
@@ -159,22 +162,24 @@ class UserJourneyExperienceMatrix {
 
     const stageConfig = this.getStageConfig(stageId);
 
-    // Extract real event information
+    // Extract real event information - check all possible identifier fields
     const eventDetails = events.map(e => {
-      const name = e.name || e.event || 'Event';
-      const type = e.type || e.category || '';
+      // Get the primary identifier (category for Web SDK, name for Mobile SDK)
+      const identifier = e.category || e.page || e.name || e.event || 'Event';
+      // Get the action type (VIEW, START, COMPLETE, etc.)
+      const actionType = e.type || '';
       const status = (e.status || 'SUCCESS').toUpperCase();
       const duration = e.duration || 0;
-      return { name, type, status, duration };
+      return { name: identifier, type: actionType, status, duration };
     });
 
-    // Get unique event names from real data
+    // Get unique event identifiers from real data
     const uniqueEvents = [...new Set(eventDetails.map(e => e.name))];
 
     // Build activity text showing actual SDK events
     let activityText = '';
     if (uniqueEvents.length === 1) {
-      // Single event type - show name and type
+      // Single event type - show identifier and action type
       const evt = eventDetails[0];
       activityText = evt.type ? `${evt.name} - ${evt.type}` : evt.name;
     } else if (uniqueEvents.length <= 3) {
@@ -832,25 +837,49 @@ class UserJourneyExperienceMatrix {
     });
 
     // Categorize each event into a stage
-    // SDK events have: event.name = "SCAN", "FACE", "READ", event.type = "VIEW", "START", "COMPLETE"
+    // SDK events can have: category, type, page, name, event fields
+    // Mobile SDK: name="SCAN", type="VIEW"/"COMPLETE"
+    // Web SDK: category="SCAN", page="SCAN"
     events.forEach(event => {
-      // Primary: use event.name (SCAN, FACE, READ, NFC)
-      // Secondary: use event.event if name not present
-      // Tertiary: use event.type only as fallback
-      const eventName = event.name || event.event || '';
-      const eventType = event.type || event.category || '';
+      // Extract all possible identifiers from the event
+      const category = (event.category || '').toUpperCase();
+      const type = (event.type || '').toUpperCase();
+      const page = (event.page || '').toUpperCase();
+      const name = (event.name || '').toUpperCase();
+      const eventField = (event.event || '').toUpperCase();
 
-      // Try to map by name first (SCAN -> document, FACE -> face)
-      let stageId = this.mapEventToStage(eventName);
+      // Try to map using all possible fields in priority order
+      let stageId = null;
 
-      // If no match, try combining name + type
-      if (!stageId && eventType) {
-        stageId = this.mapEventToStage(`${eventName} ${eventType}`);
+      // Priority 1: category (Web SDK primary identifier)
+      if (!stageId && category) {
+        stageId = this.mapEventToStage(category);
       }
 
-      // If still no match, try type alone
+      // Priority 2: page (Web SDK page identifier)
+      if (!stageId && page) {
+        stageId = this.mapEventToStage(page);
+      }
+
+      // Priority 3: name (Mobile SDK primary identifier)
+      if (!stageId && name) {
+        stageId = this.mapEventToStage(name);
+      }
+
+      // Priority 4: event field
+      if (!stageId && eventField) {
+        stageId = this.mapEventToStage(eventField);
+      }
+
+      // Priority 5: type (often VIEW/START/COMPLETE, less specific)
+      if (!stageId && type) {
+        stageId = this.mapEventToStage(type);
+      }
+
+      // Priority 6: Try combinations
       if (!stageId) {
-        stageId = this.mapEventToStage(eventType);
+        const combined = `${category} ${page} ${name} ${type}`.trim();
+        stageId = this.mapEventToStage(combined);
       }
 
       if (stageId) {
