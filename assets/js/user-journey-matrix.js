@@ -113,72 +113,62 @@ class UserJourneyExperienceMatrix {
   }
 
   /**
-   * Map event name to stage ID
-   * Priority mapping: SCAN/READ/NFC -> document, FACE -> face, etc.
+   * Map event name/statusCode to stage ID
+   * Priority: statusCode patterns (SCAN_DOCUMENT_..., FACE_..., NFC_...) > category > type
    */
   mapEventToStage(eventName) {
     const name = (eventName || '').toUpperCase();
+    if (!name) return null;
 
-    // Direct name-to-stage mappings (highest priority)
-    // These cover both Web SDK (category/page) and Mobile SDK (name) events
-    const directMap = {
-      // Document Capture (SCAN events)
-      'SCAN': 'document',
-      'DOCUMENT': 'document',
-      'OCR': 'document',
-      'CAPTURE': 'document',
-      // NFC (READ events)
-      'READ': 'nfc',
-      'NFC': 'nfc',
-      // Facial Verification (FACE events)
-      'FACE': 'face',
-      'FACIAL': 'face',
-      'LIVENESS': 'face',
-      'SELFIE': 'face',
-      'BIOMETRIC': 'face',
-      'ENROLLMENT': 'face',
-      // AML Check (BACKGROUND_CHECK events)
-      'BACKGROUND_CHECK': 'aml',
-      'BACKGROUNDCHECK': 'aml',
-      'AML': 'aml',
-      'SCREENING': 'aml',
-      'WATCHLIST': 'aml',
-      'SANCTION': 'aml',
-      // Entry Point
-      'INIT': 'entry',
-      'LOADING': 'entry',
-      'OPEN': 'entry',
-      'LAUNCH': 'entry',
-      // Start Verification
-      'START': 'start',
-      'CONSENT': 'start',
-      'BEGIN': 'start',
-      'READY': 'start',
-      // Finish
-      'COMPLETE': 'finish',
-      'FINISH': 'finish',
-      'DONE': 'finish',
-      'RESULT': 'finish',
-      'SUBMIT': 'finish',
-      'UPLOAD': 'finish'
-    };
-
-    // Check direct mappings first
-    for (const [key, stageId] of Object.entries(directMap)) {
-      if (name.includes(key)) {
-        return stageId;
-      }
+    // Check for specific statusCode prefixes first (most specific)
+    // These are from Enrollment SDK events where statusCode contains step info
+    if (name.startsWith('SCAN_') || name.includes('_SCAN_') || name.includes('DOCUMENT_SCAN')) {
+      return 'document';
+    }
+    if (name.startsWith('NFC_') || name.includes('_NFC_') || name.startsWith('READ_')) {
+      return 'nfc';
+    }
+    if (name.startsWith('FACE_') || name.includes('_FACE_') || name.includes('LIVENESS')) {
+      return 'face';
+    }
+    if (name.startsWith('BACKGROUND_CHECK') || name.includes('AML') || name.includes('SCREENING')) {
+      return 'aml';
     }
 
-    // Fall back to stage eventTypes for other mappings
-    for (const stage of this.stages) {
-      // Skip document and face stages (already handled above)
-      if (stage.id === 'document' || stage.id === 'face') continue;
-
-      if (stage.eventTypes.some(et => name.includes(et))) {
-        return stage.id;
-      }
+    // Check for exact matches and simple patterns
+    // Document Capture
+    if (name === 'SCAN' || name === 'DOCUMENT' || name === 'OCR' || name === 'CAPTURE') {
+      return 'document';
     }
+    // NFC
+    if (name === 'NFC' || name === 'READ') {
+      return 'nfc';
+    }
+    // Face
+    if (name === 'FACE' || name === 'FACIAL' || name === 'SELFIE' || name === 'BIOMETRIC') {
+      return 'face';
+    }
+    // Entry Point
+    if (name === 'INIT' || name === 'LOADING' || name === 'OPEN' || name === 'LAUNCH' || name === 'VIEW') {
+      return 'entry';
+    }
+    // Start Verification
+    if (name === 'START' || name === 'CONSENT' || name === 'BEGIN' || name === 'READY') {
+      return 'start';
+    }
+    // Finish
+    if (name === 'COMPLETE' || name === 'FINISH' || name === 'DONE' || name === 'RESULT' || name === 'SUBMIT' || name === 'UPLOAD') {
+      return 'finish';
+    }
+
+    // Check for partial matches (less specific)
+    if (name.includes('SCAN')) return 'document';
+    if (name.includes('NFC') || name.includes('READ')) return 'nfc';
+    if (name.includes('FACE') || name.includes('LIVENESS') || name.includes('SELFIE')) return 'face';
+    if (name.includes('BACKGROUND') || name.includes('AML') || name.includes('SCREENING')) return 'aml';
+    if (name.includes('INIT') || name.includes('VIEW') || name.includes('OPEN')) return 'entry';
+    if (name.includes('START') || name.includes('BEGIN')) return 'start';
+    if (name.includes('COMPLETE') || name.includes('FINISH') || name.includes('DONE')) return 'finish';
 
     return null;
   }
@@ -873,9 +863,10 @@ class UserJourneyExperienceMatrix {
     });
 
     // Categorize each event into a stage
-    // SDK events can have: category, type, page, name, event fields
+    // SDK events can have: category, type, page, name, event, statusCode fields
     // Mobile SDK: name="SCAN", type="VIEW"/"COMPLETE"
     // Web SDK: category="SCAN", page="SCAN"
+    // Enrollment SDK: category="ENROLLMENT", statusCode="SCAN_DOCUMENT_...", "FACE_...", "NFC_..."
     events.forEach(event => {
       // Extract all possible identifiers from the event
       const category = (event.category || '').toUpperCase();
@@ -883,38 +874,45 @@ class UserJourneyExperienceMatrix {
       const page = (event.page || '').toUpperCase();
       const name = (event.name || '').toUpperCase();
       const eventField = (event.event || '').toUpperCase();
+      const statusCode = (event.statusCode || event.statusMessage || '').toUpperCase();
 
       // Try to map using all possible fields in priority order
       let stageId = null;
 
-      // Priority 1: category (Web SDK primary identifier)
-      if (!stageId && category) {
+      // Priority 1: statusCode - contains step info like SCAN_DOCUMENT_..., FACE_..., NFC_...
+      // This is critical for Enrollment SDK events where category is always "ENROLLMENT"
+      if (!stageId && statusCode) {
+        stageId = this.mapEventToStage(statusCode);
+      }
+
+      // Priority 2: category (Web SDK primary identifier) - skip generic "ENROLLMENT"
+      if (!stageId && category && category !== 'ENROLLMENT' && category !== 'SDK') {
         stageId = this.mapEventToStage(category);
       }
 
-      // Priority 2: page (Web SDK page identifier)
+      // Priority 3: page (Web SDK page identifier)
       if (!stageId && page) {
         stageId = this.mapEventToStage(page);
       }
 
-      // Priority 3: name (Mobile SDK primary identifier)
-      if (!stageId && name) {
+      // Priority 4: name (Mobile SDK primary identifier) - skip generic names
+      if (!stageId && name && name !== 'ENROLLMENT' && name !== 'SDK') {
         stageId = this.mapEventToStage(name);
       }
 
-      // Priority 4: event field
+      // Priority 5: event field
       if (!stageId && eventField) {
         stageId = this.mapEventToStage(eventField);
       }
 
-      // Priority 5: type (often VIEW/START/COMPLETE, less specific)
+      // Priority 6: type (often VIEW/START/COMPLETE, less specific)
       if (!stageId && type) {
         stageId = this.mapEventToStage(type);
       }
 
-      // Priority 6: Try combinations
+      // Priority 7: Try combinations
       if (!stageId) {
-        const combined = `${category} ${page} ${name} ${type}`.trim();
+        const combined = `${category} ${page} ${name} ${type} ${statusCode}`.trim();
         stageId = this.mapEventToStage(combined);
       }
 
