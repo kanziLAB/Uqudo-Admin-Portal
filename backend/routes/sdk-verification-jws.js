@@ -787,6 +787,26 @@ router.post('/enrollment-jws',
         existingAccount = data;
       }
 
+      // Extract or generate deviceIdentifier for accounts table
+      // Priority: 1) explicit deviceIdentifier from source/trace, 2) generate fingerprint from device info
+      let deviceIdentifier = source?.deviceIdentifier || null;
+      if (!deviceIdentifier && trace && trace.length > 0) {
+        // Web SDK stores deviceIdentifier in each trace event
+        const traceWithDevice = trace.find(t => t.deviceIdentifier);
+        deviceIdentifier = traceWithDevice?.deviceIdentifier || null;
+      }
+      // If no explicit deviceIdentifier, create a fingerprint from available device info
+      if (!deviceIdentifier && source) {
+        const fingerPrintParts = [
+          source.sourceIp || '',
+          source.deviceModel || '',
+          source.devicePlatform || ''
+        ].filter(Boolean);
+        if (fingerPrintParts.length >= 2) {
+          deviceIdentifier = `fp_${fingerPrintParts.join('_').replace(/[^a-zA-Z0-9_.-]/g, '_').substring(0, 100)}`;
+        }
+      }
+
       if (existingAccount) {
         accountId = existingAccount.id;
         console.log(`✅ Found existing account: ${accountId}`);
@@ -813,7 +833,8 @@ router.post('/enrollment-jws',
           verification_channel: source?.sdkType?.toLowerCase().includes('web') ? 'web' : 'mobile',
           verification_type: hasIdNumber ? 'document' : 'selfie_only',
           document_type: accountData?.document_type || null,
-          fraud_scores: fraudScores
+          fraud_scores: fraudScores,
+          device_identifier: deviceIdentifier // Store device identifier for device history
         };
 
         // Update first_name and last_name if we have a full_name from SDK
@@ -869,6 +890,8 @@ router.post('/enrollment-jws',
             document_type: accountData?.document_type || null,
             // Fraud detection scores
             fraud_scores: fraudScores,
+            // Device identifier for device history
+            device_identifier: deviceIdentifier,
             // SDK data storage
             sdk_analytics: analyticsEvents,
             sdk_source: source,
