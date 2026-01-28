@@ -42,9 +42,9 @@
 
 .journey-matrix-grid {
   display: grid;
-  grid-template-columns: 140px repeat(6, minmax(150px, 1fr));
+  grid-template-columns: 140px repeat(7, minmax(130px, 1fr));
   gap: 0;
-  min-width: 1100px;
+  min-width: 1200px;
 }
 
 /* Stage Headers (Top Row) */
@@ -87,6 +87,13 @@
   padding-left: 20px;
 }
 
+.journey-stage-header.stage-nfc {
+  background: linear-gradient(135deg, #29b6f6 0%, #0288d1 100%);
+  clip-path: polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%);
+  margin-left: -10px;
+  padding-left: 20px;
+}
+
 .journey-stage-header.stage-face {
   background: linear-gradient(135deg, #5c6bc0 0%, #3f51b5 100%);
   clip-path: polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%);
@@ -94,14 +101,14 @@
   padding-left: 20px;
 }
 
-.journey-stage-header.stage-submission {
+.journey-stage-header.stage-aml {
   background: linear-gradient(135deg, #7e57c2 0%, #673ab7 100%);
   clip-path: polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%);
   margin-left: -10px;
   padding-left: 20px;
 }
 
-.journey-stage-header.stage-result {
+.journey-stage-header.stage-finish {
   background: linear-gradient(135deg, #26c6da 0%, #00acc1 100%);
   clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 10% 50%);
   margin-left: -10px;
@@ -404,15 +411,27 @@
 }
 
 /* Responsive Styles */
+@media (max-width: 1400px) {
+  .journey-matrix-grid {
+    grid-template-columns: 120px repeat(7, minmax(110px, 1fr));
+    min-width: 1000px;
+  }
+
+  .journey-stage-header {
+    font-size: 0.65rem;
+    padding: 0.75rem 0.5rem;
+  }
+}
+
 @media (max-width: 1200px) {
   .journey-matrix-grid {
-    grid-template-columns: 120px repeat(6, minmax(130px, 1fr));
+    grid-template-columns: 100px repeat(7, minmax(100px, 1fr));
     min-width: 900px;
   }
 
   .journey-stage-header {
-    font-size: 0.7rem;
-    padding: 0.75rem 0.5rem;
+    font-size: 0.6rem;
+    padding: 0.5rem 0.4rem;
   }
 }
 

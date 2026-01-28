@@ -25,6 +25,7 @@ class UserJourneyExperienceMatrix {
     };
 
     // Journey Stages Configuration
+    // Columns: Entry Point, Start Verification, Document Capture (SCAN), NFC (READ), Facial Verification (FACE), AML Check (BACKGROUND_CHECK), Finish
     this.stages = [
       {
         id: 'entry',
@@ -32,7 +33,7 @@ class UserJourneyExperienceMatrix {
         color: '#546e7a',
         cssClass: 'stage-entry',
         icon: 'link',
-        eventTypes: ['INIT', 'START', 'OPEN', 'LAUNCH']
+        eventTypes: ['INIT', 'OPEN', 'LAUNCH', 'LOADING']
       },
       {
         id: 'start',
@@ -40,7 +41,7 @@ class UserJourneyExperienceMatrix {
         color: '#26a69a',
         cssClass: 'stage-start',
         icon: 'play_circle',
-        eventTypes: ['CONSENT', 'PERMISSION', 'BEGIN', 'READY']
+        eventTypes: ['START', 'CONSENT', 'PERMISSION', 'BEGIN', 'READY']
       },
       {
         id: 'document',
@@ -48,31 +49,39 @@ class UserJourneyExperienceMatrix {
         color: '#1e88e5',
         cssClass: 'stage-document',
         icon: 'badge',
-        eventTypes: ['SCAN', 'READ', 'NFC', 'DOCUMENT', 'OCR', 'CAPTURE']
+        eventTypes: ['SCAN', 'DOCUMENT', 'OCR', 'CAPTURE']
+      },
+      {
+        id: 'nfc',
+        name: 'NFC',
+        color: '#42a5f5',
+        cssClass: 'stage-nfc',
+        icon: 'nfc',
+        eventTypes: ['READ', 'NFC']
       },
       {
         id: 'face',
-        name: 'Face Verification',
+        name: 'Facial Verification',
         color: '#5c6bc0',
         cssClass: 'stage-face',
         icon: 'face',
-        eventTypes: ['FACE', 'LIVENESS', 'SELFIE', 'BIOMETRIC']
+        eventTypes: ['FACE', 'FACIAL', 'LIVENESS', 'SELFIE', 'BIOMETRIC', 'ENROLLMENT']
       },
       {
-        id: 'submission',
-        name: 'Data Submission',
+        id: 'aml',
+        name: 'AML Check',
         color: '#7e57c2',
-        cssClass: 'stage-submission',
-        icon: 'upload',
-        eventTypes: ['SUBMIT', 'UPLOAD', 'SEND', 'PROCESS']
+        cssClass: 'stage-aml',
+        icon: 'security',
+        eventTypes: ['BACKGROUND_CHECK', 'AML', 'SCREENING', 'WATCHLIST', 'SANCTION']
       },
       {
-        id: 'result',
-        name: 'Result / Support',
+        id: 'finish',
+        name: 'Finish',
         color: '#00acc1',
-        cssClass: 'stage-result',
+        cssClass: 'stage-finish',
         icon: 'verified',
-        eventTypes: ['COMPLETE', 'SUCCESS', 'FAILURE', 'RESULT', 'DONE', 'FINISH']
+        eventTypes: ['COMPLETE', 'SUCCESS', 'FAILURE', 'RESULT', 'DONE', 'FINISH', 'SUBMIT', 'UPLOAD']
       }
     ];
 
@@ -113,18 +122,45 @@ class UserJourneyExperienceMatrix {
     // Direct name-to-stage mappings (highest priority)
     // These cover both Web SDK (category/page) and Mobile SDK (name) events
     const directMap = {
+      // Document Capture (SCAN events)
       'SCAN': 'document',
-      'READ': 'document',
-      'NFC': 'document',
       'DOCUMENT': 'document',
       'OCR': 'document',
       'CAPTURE': 'document',
+      // NFC (READ events)
+      'READ': 'nfc',
+      'NFC': 'nfc',
+      // Facial Verification (FACE events)
       'FACE': 'face',
       'FACIAL': 'face',
       'LIVENESS': 'face',
       'SELFIE': 'face',
       'BIOMETRIC': 'face',
-      'ENROLLMENT': 'face'
+      'ENROLLMENT': 'face',
+      // AML Check (BACKGROUND_CHECK events)
+      'BACKGROUND_CHECK': 'aml',
+      'BACKGROUNDCHECK': 'aml',
+      'AML': 'aml',
+      'SCREENING': 'aml',
+      'WATCHLIST': 'aml',
+      'SANCTION': 'aml',
+      // Entry Point
+      'INIT': 'entry',
+      'LOADING': 'entry',
+      'OPEN': 'entry',
+      'LAUNCH': 'entry',
+      // Start Verification
+      'START': 'start',
+      'CONSENT': 'start',
+      'BEGIN': 'start',
+      'READY': 'start',
+      // Finish
+      'COMPLETE': 'finish',
+      'FINISH': 'finish',
+      'DONE': 'finish',
+      'RESULT': 'finish',
+      'SUBMIT': 'finish',
+      'UPLOAD': 'finish'
     };
 
     // Check direct mappings first
@@ -906,26 +942,29 @@ class UserJourneyExperienceMatrix {
       const stageEvts = stageEvents[stage.id];
 
       if (stageEvts.length === 0) {
-        // Check flow metrics for this stage
-        if (stage.id === 'document' && flowMetrics.documentScanTime > 0) {
+        // Check flow metrics for this stage (fallback when no direct events found)
+        if (stage.id === 'document' && flowMetrics.scanTime > 0) {
           stageEvts.push({
-            type: 'SCAN',
+            category: 'SCAN',
+            type: 'COMPLETE',
             status: 'success',
-            duration: flowMetrics.documentScanTime
+            duration: flowMetrics.scanTime * 1000 // Convert seconds to ms
           });
         }
-        if (stage.id === 'face' && flowMetrics.faceScanTime > 0) {
+        if (stage.id === 'nfc' && flowMetrics.readTime > 0) {
           stageEvts.push({
-            type: 'FACE',
+            category: 'READ',
+            type: 'COMPLETE',
             status: 'success',
-            duration: flowMetrics.faceScanTime
+            duration: flowMetrics.readTime * 1000
           });
         }
-        if (stage.id === 'document' && flowMetrics.nfcReadTime > 0) {
+        if (stage.id === 'face' && flowMetrics.faceTime > 0) {
           stageEvts.push({
-            type: 'NFC',
+            category: 'FACE',
+            type: 'COMPLETE',
             status: 'success',
-            duration: flowMetrics.nfcReadTime
+            duration: flowMetrics.faceTime * 1000
           });
         }
       }
