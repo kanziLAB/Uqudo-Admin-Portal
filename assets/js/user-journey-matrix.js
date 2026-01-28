@@ -104,15 +104,43 @@ class UserJourneyExperienceMatrix {
   }
 
   /**
-   * Map event type to stage ID
+   * Map event name to stage ID
+   * Priority mapping: SCAN/READ/NFC -> document, FACE -> face, etc.
    */
-  mapEventToStage(eventType) {
-    const type = (eventType || '').toUpperCase();
+  mapEventToStage(eventName) {
+    const name = (eventName || '').toUpperCase();
+
+    // Direct name-to-stage mappings (highest priority)
+    const directMap = {
+      'SCAN': 'document',
+      'READ': 'document',
+      'NFC': 'document',
+      'DOCUMENT': 'document',
+      'OCR': 'document',
+      'CAPTURE': 'document',
+      'FACE': 'face',
+      'LIVENESS': 'face',
+      'SELFIE': 'face',
+      'BIOMETRIC': 'face'
+    };
+
+    // Check direct mappings first
+    for (const [key, stageId] of Object.entries(directMap)) {
+      if (name.includes(key)) {
+        return stageId;
+      }
+    }
+
+    // Fall back to stage eventTypes for other mappings
     for (const stage of this.stages) {
-      if (stage.eventTypes.some(et => type.includes(et))) {
+      // Skip document and face stages (already handled above)
+      if (stage.id === 'document' || stage.id === 'face') continue;
+
+      if (stage.eventTypes.some(et => name.includes(et))) {
         return stage.id;
       }
     }
+
     return null;
   }
 
@@ -804,9 +832,26 @@ class UserJourneyExperienceMatrix {
     });
 
     // Categorize each event into a stage
+    // SDK events have: event.name = "SCAN", "FACE", "READ", event.type = "VIEW", "START", "COMPLETE"
     events.forEach(event => {
-      const eventType = event.type || event.event || event.name || '';
-      const stageId = this.mapEventToStage(eventType);
+      // Primary: use event.name (SCAN, FACE, READ, NFC)
+      // Secondary: use event.event if name not present
+      // Tertiary: use event.type only as fallback
+      const eventName = event.name || event.event || '';
+      const eventType = event.type || event.category || '';
+
+      // Try to map by name first (SCAN -> document, FACE -> face)
+      let stageId = this.mapEventToStage(eventName);
+
+      // If no match, try combining name + type
+      if (!stageId && eventType) {
+        stageId = this.mapEventToStage(`${eventName} ${eventType}`);
+      }
+
+      // If still no match, try type alone
+      if (!stageId) {
+        stageId = this.mapEventToStage(eventType);
+      }
 
       if (stageId) {
         stageEvents[stageId].push(event);
