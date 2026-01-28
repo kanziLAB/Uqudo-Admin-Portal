@@ -187,6 +187,34 @@
   font-size: 0.75rem;
   color: var(--text-secondary, #67748e);
   line-height: 1.3;
+  font-weight: 500;
+}
+
+.activity-badges {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.activity-badges .badge {
+  padding: 0.15rem 0.4rem;
+  font-weight: 500;
+}
+
+.activity-duration {
+  margin-top: 0.25rem;
+}
+
+/* Tooltip event list */
+.tooltip-event {
+  font-size: 0.7rem;
+  padding: 0.15rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tooltip-event:last-child {
+  border-bottom: none;
 }
 
 /* Satisfaction Row - Emoji with Curve */

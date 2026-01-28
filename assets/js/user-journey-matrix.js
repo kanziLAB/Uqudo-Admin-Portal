@@ -124,61 +124,52 @@ class UserJourneyExperienceMatrix {
   }
 
   /**
-   * Derive activity text from event data
+   * Build activity data from real SDK events - shows actual event names and types
    */
   deriveActivityFromEvents(events, stageId) {
     if (!events || events.length === 0) return null;
 
     const stageConfig = this.getStageConfig(stageId);
-    const eventNames = events.map(e => e.name || e.event || e.type || '').filter(Boolean);
-    const uniqueNames = [...new Set(eventNames)];
 
-    // Build activity description from actual events
-    const activityMap = {
-      'entry': () => {
-        if (uniqueNames.some(n => n.toLowerCase().includes('init'))) return 'Session initialized';
-        if (uniqueNames.some(n => n.toLowerCase().includes('start'))) return 'Verification started';
-        return 'Entered verification flow';
-      },
-      'start': () => {
-        if (uniqueNames.some(n => n.toLowerCase().includes('consent'))) return 'Provided consent';
-        if (uniqueNames.some(n => n.toLowerCase().includes('permission'))) return 'Granted permissions';
-        return 'Started verification process';
-      },
-      'document': () => {
-        const hasNfc = uniqueNames.some(n => n.toLowerCase().includes('nfc'));
-        const hasScan = uniqueNames.some(n => n.toLowerCase().includes('scan'));
-        const hasRead = uniqueNames.some(n => n.toLowerCase().includes('read'));
-        if (hasNfc && hasScan) return 'Scanned document & read NFC chip';
-        if (hasNfc) return 'Read document NFC chip';
-        if (hasScan || hasRead) return 'Captured ID document';
-        return 'Document verification';
-      },
-      'face': () => {
-        const hasLiveness = uniqueNames.some(n => n.toLowerCase().includes('liveness'));
-        const hasSelfie = uniqueNames.some(n => n.toLowerCase().includes('selfie'));
-        if (hasLiveness) return 'Completed liveness check';
-        if (hasSelfie) return 'Captured selfie';
-        return 'Face verification completed';
-      },
-      'submission': () => {
-        if (uniqueNames.some(n => n.toLowerCase().includes('upload'))) return 'Uploaded verification data';
-        if (uniqueNames.some(n => n.toLowerCase().includes('submit'))) return 'Submitted for verification';
-        return 'Data submitted';
-      },
-      'result': () => {
-        const hasSuccess = events.some(e => (e.status || '').toLowerCase() === 'success');
-        const hasFailure = events.some(e => (e.status || '').toLowerCase().includes('fail'));
-        if (hasSuccess) return 'Verification approved';
-        if (hasFailure) return 'Verification requires review';
-        return 'Received verification result';
-      }
-    };
+    // Extract real event information
+    const eventDetails = events.map(e => {
+      const name = e.name || e.event || 'Event';
+      const type = e.type || e.category || '';
+      const status = (e.status || 'SUCCESS').toUpperCase();
+      const duration = e.duration || 0;
+      return { name, type, status, duration };
+    });
 
-    const getText = activityMap[stageId];
+    // Get unique event names from real data
+    const uniqueEvents = [...new Set(eventDetails.map(e => e.name))];
+
+    // Build activity text showing actual SDK events
+    let activityText = '';
+    if (uniqueEvents.length === 1) {
+      // Single event type - show name and type
+      const evt = eventDetails[0];
+      activityText = evt.type ? `${evt.name} - ${evt.type}` : evt.name;
+    } else if (uniqueEvents.length <= 3) {
+      // 2-3 events - list them
+      activityText = uniqueEvents.join(', ');
+    } else {
+      // Many events - show count and first few
+      activityText = `${uniqueEvents.slice(0, 2).join(', ')} +${uniqueEvents.length - 2} more`;
+    }
+
+    // Add event count and total duration
+    const totalDuration = eventDetails.reduce((sum, e) => sum + e.duration, 0);
+    const successCount = eventDetails.filter(e => e.status === 'SUCCESS').length;
+    const failureCount = eventDetails.filter(e => e.status === 'FAILURE' || e.status === 'FAILED').length;
+
     return {
       icon: stageConfig?.icon || 'check_circle',
-      text: getText ? getText() : `${events.length} event(s) processed`
+      text: activityText,
+      eventCount: events.length,
+      totalDuration: totalDuration,
+      successCount: successCount,
+      failureCount: failureCount,
+      events: eventDetails // Store raw event details for tooltip
     };
   }
 
@@ -409,13 +400,55 @@ class UserJourneyExperienceMatrix {
     }
 
     const activity = stageData.activity || { icon: stageConfig?.icon || 'help', text: 'Activity recorded' };
+
+    // Build event details for display
+    let eventBadges = '';
+    if (activity.eventCount) {
+      const successBadge = activity.successCount > 0
+        ? `<span class="badge bg-success me-1" style="font-size: 0.65rem;">${activity.successCount} OK</span>`
+        : '';
+      const failureBadge = activity.failureCount > 0
+        ? `<span class="badge bg-danger me-1" style="font-size: 0.65rem;">${activity.failureCount} FAIL</span>`
+        : '';
+      eventBadges = `<div class="activity-badges mt-1">${successBadge}${failureBadge}</div>`;
+    }
+
+    // Build duration display
+    const durationText = activity.totalDuration > 0
+      ? `<div class="activity-duration text-muted" style="font-size: 0.65rem;">${this.formatDuration(activity.totalDuration)}</div>`
+      : '';
+
     return `
       <div class="journey-cell activity-cell" data-stage="${stageId}" style="--cell-index: ${cellIndex}">
         <div class="activity-icon">
           <i class="material-symbols-rounded">${activity.icon}</i>
         </div>
         <div class="activity-text">${activity.text}</div>
-        ${this.buildTooltip(stageData)}
+        ${eventBadges}
+        ${durationText}
+        ${this.buildActivityTooltip(activity)}
+      </div>
+    `;
+  }
+
+  /**
+   * Build detailed tooltip for activity cell showing all events
+   */
+  buildActivityTooltip(activity) {
+    if (!this.options.showTooltips || !activity?.events || activity.events.length === 0) return '';
+
+    const eventsList = activity.events.map(evt => {
+      const statusIcon = evt.status === 'SUCCESS' ? '\u{2713}' : '\u{2717}';
+      const duration = evt.duration > 0 ? ` (${this.formatDuration(evt.duration)})` : '';
+      return `<div class="tooltip-event">${statusIcon} ${evt.name}${evt.type ? ' - ' + evt.type : ''}${duration}</div>`;
+    }).join('');
+
+    return `
+      <div class="journey-tooltip" style="min-width: 180px;">
+        <div class="tooltip-header" style="font-weight: 600; margin-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 0.25rem;">
+          SDK Events (${activity.eventCount})
+        </div>
+        ${eventsList}
       </div>
     `;
   }
