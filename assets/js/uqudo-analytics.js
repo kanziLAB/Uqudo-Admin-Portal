@@ -1494,8 +1494,51 @@ function displayUXAnalysis() {
   displaySDKEvents(currentEventsData);
 }
 
+// Global reference to User Journey Matrix instance
+let userJourneyMatrixInstance = null;
+
+/**
+ * Initialize the User Journey Experience Matrix
+ * @param {Array} events - SDK analytics events
+ */
+function initUserJourneyMatrix(events) {
+  const containerId = 'user-journey-matrix';
+  const container = document.getElementById(containerId);
+
+  if (!container) {
+    console.warn('User Journey Matrix container not found');
+    return;
+  }
+
+  // Calculate flow metrics for the matrix
+  const flowMetrics = calculateFlowMetrics(events || []);
+
+  // Create or update the matrix instance
+  if (!userJourneyMatrixInstance) {
+    userJourneyMatrixInstance = new UserJourneyExperienceMatrix(containerId, {
+      showTooltips: true,
+      animateOnLoad: true,
+      onStageSelect: (stageId) => {
+        console.log('Journey stage selected:', stageId);
+        // Could be used to filter events or highlight related data
+      }
+    });
+  }
+
+  // Update with SDK data if available
+  if (events && events.length > 0) {
+    userJourneyMatrixInstance.updateFromSDKData(events, flowMetrics);
+  } else {
+    // Render with default mock data
+    userJourneyMatrixInstance.render();
+  }
+}
+
 // Display SDK Events with visual timeline and performance journey
 function displaySDKEvents(events) {
+  // Initialize User Journey Experience Matrix
+  initUserJourneyMatrix(events);
+
   if (!events || events.length === 0) {
     document.getElementById('sdk-events-timeline').innerHTML = '<p class="text-muted">No SDK events available</p>';
     document.getElementById('performance-journey').innerHTML = '<p class="text-muted">No journey data available</p>';

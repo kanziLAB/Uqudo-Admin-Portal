@@ -1,0 +1,482 @@
+/* User Journey Experience Matrix Styles */
+
+.user-journey-matrix {
+  background: var(--card-bg, #ffffff);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.user-journey-matrix-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.user-journey-matrix-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary, #344767);
+}
+
+.user-journey-matrix-title i {
+  color: #1e88e5;
+  font-size: 1.25rem;
+}
+
+.user-journey-matrix-hint {
+  color: var(--text-secondary, #67748e);
+  font-size: 0.875rem;
+}
+
+/* Matrix Grid Container */
+.journey-matrix-container {
+  overflow-x: auto;
+  padding-bottom: 1rem;
+}
+
+.journey-matrix-grid {
+  display: grid;
+  grid-template-columns: 140px repeat(6, minmax(150px, 1fr));
+  gap: 0;
+  min-width: 1100px;
+}
+
+/* Stage Headers (Top Row) */
+.journey-stage-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+  min-height: 60px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.journey-stage-header:hover {
+  filter: brightness(1.1);
+}
+
+.journey-stage-header.stage-entry {
+  background: linear-gradient(135deg, #546e7a 0%, #455a64 100%);
+  border-radius: 8px 0 0 0;
+}
+
+.journey-stage-header.stage-start {
+  background: linear-gradient(135deg, #26a69a 0%, #00897b 100%);
+  clip-path: polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%);
+  margin-left: -10px;
+  padding-left: 20px;
+}
+
+.journey-stage-header.stage-document {
+  background: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%);
+  clip-path: polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%);
+  margin-left: -10px;
+  padding-left: 20px;
+}
+
+.journey-stage-header.stage-face {
+  background: linear-gradient(135deg, #5c6bc0 0%, #3f51b5 100%);
+  clip-path: polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%);
+  margin-left: -10px;
+  padding-left: 20px;
+}
+
+.journey-stage-header.stage-submission {
+  background: linear-gradient(135deg, #7e57c2 0%, #673ab7 100%);
+  clip-path: polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%);
+  margin-left: -10px;
+  padding-left: 20px;
+}
+
+.journey-stage-header.stage-result {
+  background: linear-gradient(135deg, #26c6da 0%, #00acc1 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 10% 50%);
+  margin-left: -10px;
+  padding-left: 20px;
+  border-radius: 0 8px 0 0;
+}
+
+.journey-stage-header .stage-text {
+  text-align: center;
+  line-height: 1.3;
+}
+
+/* Row Labels (Left Column) */
+.journey-row-label {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary, #344767);
+  background: var(--card-bg-alt, #f8f9fa);
+  border-right: 2px solid #e9ecef;
+}
+
+.journey-row-label:first-of-type {
+  border-radius: 8px 0 0 0;
+}
+
+.journey-row-label:last-of-type {
+  border-radius: 0 0 0 8px;
+}
+
+/* Empty corner cell */
+.journey-corner-cell {
+  background: var(--card-bg-alt, #f8f9fa);
+  border-radius: 8px 0 0 0;
+}
+
+/* Matrix Cells */
+.journey-cell {
+  position: relative;
+  padding: 1rem;
+  min-height: 100px;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, #e9ecef);
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.journey-cell:hover {
+  background: var(--hover-bg, #f8f9fa);
+  box-shadow: inset 0 0 0 2px rgba(30, 136, 229, 0.2);
+}
+
+/* Activities Row - Icon + Text */
+.journey-cell.activity-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.5rem;
+}
+
+.activity-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  color: #1565c0;
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.activity-icon i {
+  font-size: 1.5rem;
+}
+
+.activity-text {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #67748e);
+  line-height: 1.3;
+}
+
+/* Satisfaction Row - Emoji with Curve */
+.journey-cell.satisfaction-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+}
+
+.satisfaction-emoji {
+  font-size: 2rem;
+  z-index: 2;
+  position: relative;
+}
+
+/* Satisfaction curve SVG container */
+.satisfaction-curve-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Experience Row */
+.journey-cell.experience-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+
+.experience-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #67748e);
+  line-height: 1.4;
+}
+
+.experience-item::before {
+  content: "\2022";
+  color: #1e88e5;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.experience-item.negative::before {
+  color: #f44336;
+}
+
+.experience-item.positive::before {
+  color: #4caf50;
+}
+
+/* Expectation Row */
+.journey-cell.expectation-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #67748e);
+  font-style: italic;
+}
+
+/* Tooltip Styles */
+.journey-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  background: #344767;
+  color: #ffffff;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.journey-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: #344767 transparent transparent transparent;
+}
+
+.journey-cell:hover .journey-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-4px);
+}
+
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.tooltip-row:last-child {
+  margin-bottom: 0;
+}
+
+.tooltip-label {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.tooltip-value {
+  font-weight: 600;
+}
+
+/* Satisfaction Curve SVG */
+.satisfaction-curve {
+  width: 100%;
+  height: 60px;
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+}
+
+.satisfaction-curve path {
+  fill: none;
+  stroke: #9e9e9e;
+  stroke-width: 2;
+  stroke-dasharray: 5, 5;
+}
+
+/* Matrix Row Separators */
+.journey-matrix-grid > .journey-row-label:nth-of-type(4n+1),
+.journey-matrix-grid > .journey-cell:nth-of-type(4n+1) {
+  border-top: 2px solid #e9ecef;
+}
+
+/* Responsive Styles */
+@media (max-width: 1200px) {
+  .journey-matrix-grid {
+    grid-template-columns: 120px repeat(6, minmax(130px, 1fr));
+    min-width: 900px;
+  }
+
+  .journey-stage-header {
+    font-size: 0.7rem;
+    padding: 0.75rem 0.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .user-journey-matrix {
+    padding: 1rem;
+  }
+
+  .journey-matrix-container {
+    margin: 0 -1rem;
+    padding: 0 1rem;
+  }
+
+  /* Mobile: Stack by stage */
+  .journey-matrix-grid.mobile-stacked {
+    display: flex;
+    flex-direction: column;
+    min-width: auto;
+  }
+
+  .mobile-stage-card {
+    background: var(--card-bg, #ffffff);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+
+  .mobile-stage-header {
+    padding: 1rem;
+    color: #ffffff;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+  }
+
+  .mobile-stage-content {
+    padding: 1rem;
+  }
+
+  .mobile-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .mobile-row:last-child {
+    border-bottom: none;
+  }
+
+  .mobile-row-label {
+    width: 100px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: var(--text-primary, #344767);
+    flex-shrink: 0;
+  }
+
+  .mobile-row-value {
+    flex: 1;
+    font-size: 0.8rem;
+    color: var(--text-secondary, #67748e);
+  }
+}
+
+/* Animation */
+@keyframes fadeInMatrix {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.user-journey-matrix {
+  animation: fadeInMatrix 0.4s ease forwards;
+}
+
+.journey-cell {
+  animation: fadeInMatrix 0.3s ease forwards;
+  animation-delay: calc(var(--cell-index, 0) * 0.03s);
+}
+
+/* Stage highlight on hover */
+.journey-matrix-grid[data-highlighted-stage] .journey-cell:not([data-stage]) {
+  opacity: 0.5;
+}
+
+.journey-matrix-grid[data-highlighted-stage] .journey-cell[data-stage] {
+  box-shadow: inset 0 0 0 2px #1e88e5;
+}
+
+/* Dark Mode Overrides */
+[data-theme="dark"] .user-journey-matrix {
+  background: var(--card-bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .journey-row-label {
+  background: var(--card-bg-alt);
+  border-right-color: var(--border-color);
+}
+
+[data-theme="dark"] .journey-cell {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .journey-cell:hover {
+  background: var(--hover-bg);
+}
+
+[data-theme="dark"] .activity-icon {
+  background: linear-gradient(135deg, rgba(30, 136, 229, 0.2) 0%, rgba(30, 136, 229, 0.1) 100%);
+  color: #58a6ff;
+}
+
+[data-theme="dark"] .satisfaction-curve path {
+  stroke: #6e7681;
+}
+
+[data-theme="dark"] .journey-tooltip {
+  background: #21262d;
+  border: 1px solid #30363d;
+}
+
+[data-theme="dark"] .journey-tooltip::after {
+  border-color: #21262d transparent transparent transparent;
+}
