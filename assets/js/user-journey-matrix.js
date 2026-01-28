@@ -276,47 +276,50 @@ class UserJourneyExperienceMatrix {
   }
 
   /**
-   * Derive expectation text from stage and performance
+   * Build UX performance insight from real metrics data
+   * Shows actual numbers and performance indicators
    */
   deriveExpectationFromEvents(events, stageId, metrics) {
-    if (!events || events.length === 0) return null;
+    if (!events || events.length === 0 || !metrics) return null;
 
-    const avgTime = metrics?.avgDuration || 0;
-    const retryRate = metrics?.retryRate || 0;
-    const dropOff = metrics?.dropOffRate || 0;
+    const avgDuration = metrics.avgDuration || 0;
+    const retryRate = metrics.retryRate || 0;
+    const eventCount = metrics.eventCount || events.length;
 
-    const expectationMap = {
-      'entry': () => {
-        if (avgTime < 2000) return 'Fast entry achieved';
-        if (avgTime > 5000) return 'Entry could be faster';
-        return 'Entry time acceptable';
-      },
-      'start': () => {
-        if (retryRate > 10) return 'Simplify permissions flow';
-        return 'Smooth start';
-      },
-      'document': () => {
-        if (retryRate > 30) return 'Capture UX needs improvement';
-        if (retryRate > 15) return 'Some capture friction';
-        return 'Capture working well';
-      },
-      'face': () => {
-        if (retryRate > 25) return 'Liveness UX needs work';
-        if (avgTime > 20000) return 'Face check could be faster';
-        return 'Biometric flow smooth';
-      },
-      'submission': () => {
-        if (avgTime > 5000) return 'Processing time high';
-        return 'Quick submission';
-      },
-      'result': () => {
-        if (dropOff > 5) return 'Result clarity needed';
-        return 'Clear outcome delivered';
-      }
+    // Build performance insight object with real data
+    return {
+      avgDuration: avgDuration,
+      retryRate: retryRate,
+      eventCount: eventCount,
+      // Performance level based on actual metrics
+      performanceLevel: this.calculatePerformanceLevel(avgDuration, retryRate, stageId)
+    };
+  }
+
+  /**
+   * Calculate performance level based on real metrics
+   */
+  calculatePerformanceLevel(avgDuration, retryRate, stageId) {
+    // Thresholds based on stage type
+    const thresholds = {
+      'entry': { goodTime: 3000, okTime: 5000, goodRetry: 5, okRetry: 15 },
+      'start': { goodTime: 5000, okTime: 10000, goodRetry: 5, okRetry: 15 },
+      'document': { goodTime: 15000, okTime: 30000, goodRetry: 20, okRetry: 40 },
+      'face': { goodTime: 10000, okTime: 25000, goodRetry: 15, okRetry: 35 },
+      'submission': { goodTime: 3000, okTime: 8000, goodRetry: 5, okRetry: 15 },
+      'result': { goodTime: 2000, okTime: 5000, goodRetry: 0, okRetry: 5 }
     };
 
-    const getExpectation = expectationMap[stageId];
-    return getExpectation ? getExpectation() : 'Step completed';
+    const t = thresholds[stageId] || thresholds['document'];
+
+    // Calculate score based on time and retry rate
+    let timeScore = avgDuration <= t.goodTime ? 'good' : avgDuration <= t.okTime ? 'ok' : 'poor';
+    let retryScore = retryRate <= t.goodRetry ? 'good' : retryRate <= t.okRetry ? 'ok' : 'poor';
+
+    // Combined performance level
+    if (timeScore === 'good' && retryScore === 'good') return 'excellent';
+    if (timeScore === 'poor' || retryScore === 'poor') return 'needs_improvement';
+    return 'acceptable';
   }
 
   /**
@@ -497,7 +500,7 @@ class UserJourneyExperienceMatrix {
   }
 
   /**
-   * Build expectation cell HTML
+   * Build expectation cell HTML - shows real UX performance metrics
    */
   buildExpectationCell(stageData, stageId, cellIndex) {
     if (!stageData?.hasData) {
@@ -506,11 +509,45 @@ class UserJourneyExperienceMatrix {
       </div>`;
     }
 
-    const expectation = stageData.expectation || 'Completed';
+    const expectation = stageData.expectation;
 
+    // If expectation is an object with real metrics, display them
+    if (expectation && typeof expectation === 'object') {
+      const { avgDuration, retryRate, eventCount, performanceLevel } = expectation;
+
+      // Performance level indicator
+      const levelColors = {
+        'excellent': { bg: '#e8f5e9', color: '#2e7d32', icon: 'check_circle' },
+        'acceptable': { bg: '#fff3e0', color: '#ef6c00', icon: 'info' },
+        'needs_improvement': { bg: '#ffebee', color: '#c62828', icon: 'warning' }
+      };
+      const level = levelColors[performanceLevel] || levelColors['acceptable'];
+
+      return `
+        <div class="journey-cell expectation-cell" data-stage="${stageId}" style="--cell-index: ${cellIndex}">
+          <div class="expectation-metrics">
+            <div class="expectation-metric">
+              <span class="metric-label">Avg Time</span>
+              <span class="metric-value">${this.formatDuration(avgDuration)}</span>
+            </div>
+            <div class="expectation-metric">
+              <span class="metric-label">Retry</span>
+              <span class="metric-value">${Math.round(retryRate)}%</span>
+            </div>
+            <div class="expectation-level" style="background: ${level.bg}; color: ${level.color};">
+              <i class="material-symbols-rounded" style="font-size: 0.85rem;">${level.icon}</i>
+              <span>${performanceLevel.replace('_', ' ')}</span>
+            </div>
+          </div>
+          ${this.buildTooltip(stageData)}
+        </div>
+      `;
+    }
+
+    // Fallback for string expectation (shouldn't happen with new code)
     return `
       <div class="journey-cell expectation-cell" data-stage="${stageId}" style="--cell-index: ${cellIndex}">
-        ${expectation}
+        ${expectation || 'Completed'}
         ${this.buildTooltip(stageData)}
       </div>
     `;
@@ -617,14 +654,17 @@ class UserJourneyExperienceMatrix {
               </div>
             </div>
             <div class="mobile-row">
-              <div class="mobile-row-label">Expectation</div>
+              <div class="mobile-row-label">Performance</div>
               <div class="mobile-row-value">
-                ${stageData.expectation || '-'}
+                ${stageData.expectation && typeof stageData.expectation === 'object'
+                  ? `<div>Avg: ${this.formatDuration(stageData.expectation.avgDuration)} | Retry: ${Math.round(stageData.expectation.retryRate)}%</div>
+                     <small class="text-${stageData.expectation.performanceLevel === 'excellent' ? 'success' : stageData.expectation.performanceLevel === 'needs_improvement' ? 'danger' : 'warning'}">${stageData.expectation.performanceLevel.replace('_', ' ')}</small>`
+                  : '-'}
               </div>
             </div>
             ${stageData.metrics ? `
             <div class="mobile-row">
-              <div class="mobile-row-label">Metrics</div>
+              <div class="mobile-row-label">Events</div>
               <div class="mobile-row-value">
                 <small>Time: ${stageData.metrics.avgTime} | Retry: ${stageData.metrics.retryRate}</small>
               </div>
