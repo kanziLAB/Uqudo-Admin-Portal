@@ -181,6 +181,43 @@ class UserJourneyExperienceMatrix {
   }
 
   /**
+   * Format statusCode for display (e.g., SCAN_DOCUMENT_DARK_ENVIRONMENT_DETECTED -> Document Scan)
+   */
+  formatStatusCodeForDisplay(statusCode) {
+    if (!statusCode) return 'Event';
+
+    const code = statusCode.toUpperCase();
+
+    // Map common statusCode prefixes to friendly names
+    if (code.startsWith('SCAN_DOCUMENT') || code.startsWith('SCAN_')) {
+      return 'Document Scan';
+    }
+    if (code.startsWith('NFC_') || code.startsWith('READ_')) {
+      return 'NFC Read';
+    }
+    if (code.startsWith('FACE_') || code.includes('LIVENESS')) {
+      return 'Face Capture';
+    }
+    if (code.startsWith('BACKGROUND_CHECK') || code.includes('AML')) {
+      return 'AML Check';
+    }
+    if (code.includes('INIT') || code.includes('LOADING')) {
+      return 'Initialization';
+    }
+    if (code.includes('START') || code.includes('BEGIN')) {
+      return 'Start';
+    }
+    if (code.includes('COMPLETE') || code.includes('FINISH') || code.includes('DONE')) {
+      return 'Complete';
+    }
+
+    // Fallback: convert snake_case to Title Case and take first 2-3 words
+    const words = statusCode.replace(/_/g, ' ').toLowerCase().split(' ');
+    const formatted = words.slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    return formatted || statusCode;
+  }
+
+  /**
    * Build activity data from real SDK events - shows actual event names and types
    */
   deriveActivityFromEvents(events, stageId) {
@@ -189,14 +226,37 @@ class UserJourneyExperienceMatrix {
     const stageConfig = this.getStageConfig(stageId);
 
     // Extract real event information - check all possible identifier fields
+    // For Enrollment SDK: statusCode contains the actual step (SCAN_DOCUMENT_..., FACE_..., NFC_...)
+    // For Web SDK: category/page contains the step
+    // For Mobile SDK: name contains the step
     const eventDetails = events.map(e => {
-      // Get the primary identifier (category for Web SDK, name for Mobile SDK)
-      const identifier = e.category || e.page || e.name || e.event || 'Event';
+      const statusCode = e.statusCode || e.statusMessage || '';
+      const category = e.category || '';
+      const page = e.page || '';
+      const name = e.name || '';
+      const eventField = e.event || '';
+
+      // Determine the best identifier to display
+      // Priority: statusCode (most specific) > page > name > category (skip generic ENROLLMENT)
+      let identifier = 'Event';
+      if (statusCode && statusCode.toUpperCase() !== 'ENROLLMENT') {
+        // Extract meaningful part from statusCode (e.g., SCAN_DOCUMENT_DARK_ENVIRONMENT -> Document Scan)
+        identifier = this.formatStatusCodeForDisplay(statusCode);
+      } else if (page && page.toUpperCase() !== 'ENROLLMENT') {
+        identifier = page;
+      } else if (name && name.toUpperCase() !== 'ENROLLMENT' && name.toUpperCase() !== 'SDK') {
+        identifier = name;
+      } else if (category && category.toUpperCase() !== 'ENROLLMENT' && category.toUpperCase() !== 'SDK') {
+        identifier = category;
+      } else if (eventField) {
+        identifier = eventField;
+      }
+
       // Get the action type (VIEW, START, COMPLETE, etc.)
       const actionType = e.type || '';
       const status = (e.status || 'SUCCESS').toUpperCase();
       const duration = e.duration || 0;
-      return { name: identifier, type: actionType, status, duration };
+      return { name: identifier, type: actionType, status, duration, rawStatusCode: statusCode };
     });
 
     // Get unique event identifiers from real data
