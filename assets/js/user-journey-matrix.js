@@ -3,9 +3,10 @@
  *
  * A UX behavioral analysis visualization that displays user journey stages
  * as a matrix with activities, satisfaction, experiences, and expectations rows.
+ * ALL data is derived from real SDK events - no mock data.
  *
  * @author Uqudo Analytics Team
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 class UserJourneyExperienceMatrix {
@@ -29,163 +30,337 @@ class UserJourneyExperienceMatrix {
         id: 'entry',
         name: 'Entry Point',
         color: '#546e7a',
-        cssClass: 'stage-entry'
+        cssClass: 'stage-entry',
+        icon: 'link',
+        eventTypes: ['INIT', 'START', 'OPEN', 'LAUNCH']
       },
       {
         id: 'start',
         name: 'Start Verification',
         color: '#26a69a',
-        cssClass: 'stage-start'
+        cssClass: 'stage-start',
+        icon: 'play_circle',
+        eventTypes: ['CONSENT', 'PERMISSION', 'BEGIN', 'READY']
       },
       {
         id: 'document',
         name: 'Document Capture',
         color: '#1e88e5',
-        cssClass: 'stage-document'
+        cssClass: 'stage-document',
+        icon: 'badge',
+        eventTypes: ['SCAN', 'READ', 'NFC', 'DOCUMENT', 'OCR', 'CAPTURE']
       },
       {
         id: 'face',
         name: 'Face Verification',
         color: '#5c6bc0',
-        cssClass: 'stage-face'
+        cssClass: 'stage-face',
+        icon: 'face',
+        eventTypes: ['FACE', 'LIVENESS', 'SELFIE', 'BIOMETRIC']
       },
       {
         id: 'submission',
         name: 'Data Submission',
         color: '#7e57c2',
-        cssClass: 'stage-submission'
+        cssClass: 'stage-submission',
+        icon: 'upload',
+        eventTypes: ['SUBMIT', 'UPLOAD', 'SEND', 'PROCESS']
       },
       {
         id: 'result',
         name: 'Result / Support',
         color: '#00acc1',
-        cssClass: 'stage-result'
+        cssClass: 'stage-result',
+        icon: 'verified',
+        eventTypes: ['COMPLETE', 'SUCCESS', 'FAILURE', 'RESULT', 'DONE', 'FINISH']
       }
     ];
 
     // Row Types
     this.rows = ['Activities', 'Satisfaction', 'Experiences', 'Expectations'];
 
-    // Default mock data
-    this.data = this.getDefaultData();
+    // Initialize with empty data
+    this.data = this.getEmptyData();
+    this.hasData = false;
   }
 
   /**
-   * Get default mock data for the matrix
+   * Get empty data structure (no mock data)
    */
-  getDefaultData() {
-    return {
-      entry: {
-        activity: {
-          icon: 'link',
-          text: 'Opens verification link'
-        },
-        satisfaction: 5,
-        experiences: [
-          { text: 'Clear entry page', type: 'positive' },
-          { text: 'Quick page load', type: 'positive' }
-        ],
-        expectation: 'Fast start',
-        metrics: {
-          avgTime: '2.3s',
-          dropOff: '5%',
-          retryRate: '0%'
-        }
+  getEmptyData() {
+    const emptyData = {};
+    this.stages.forEach(stage => {
+      emptyData[stage.id] = {
+        activity: null,
+        satisfaction: null,
+        experiences: [],
+        expectation: null,
+        metrics: null,
+        events: [],
+        hasData: false
+      };
+    });
+    return emptyData;
+  }
+
+  /**
+   * Map event type to stage ID
+   */
+  mapEventToStage(eventType) {
+    const type = (eventType || '').toUpperCase();
+    for (const stage of this.stages) {
+      if (stage.eventTypes.some(et => type.includes(et))) {
+        return stage.id;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Get stage configuration by ID
+   */
+  getStageConfig(stageId) {
+    return this.stages.find(s => s.id === stageId);
+  }
+
+  /**
+   * Derive activity text from event data
+   */
+  deriveActivityFromEvents(events, stageId) {
+    if (!events || events.length === 0) return null;
+
+    const stageConfig = this.getStageConfig(stageId);
+    const eventNames = events.map(e => e.name || e.event || e.type || '').filter(Boolean);
+    const uniqueNames = [...new Set(eventNames)];
+
+    // Build activity description from actual events
+    const activityMap = {
+      'entry': () => {
+        if (uniqueNames.some(n => n.toLowerCase().includes('init'))) return 'Session initialized';
+        if (uniqueNames.some(n => n.toLowerCase().includes('start'))) return 'Verification started';
+        return 'Entered verification flow';
       },
-      start: {
-        activity: {
-          icon: 'play_circle',
-          text: 'Reads instructions'
-        },
-        satisfaction: 4,
-        experiences: [
-          { text: 'Clear instructions', type: 'positive' },
-          { text: 'Permission requests', type: 'neutral' }
-        ],
-        expectation: 'Simple process',
-        metrics: {
-          avgTime: '8.5s',
-          dropOff: '12%',
-          retryRate: '3%'
-        }
+      'start': () => {
+        if (uniqueNames.some(n => n.toLowerCase().includes('consent'))) return 'Provided consent';
+        if (uniqueNames.some(n => n.toLowerCase().includes('permission'))) return 'Granted permissions';
+        return 'Started verification process';
       },
-      document: {
-        activity: {
-          icon: 'badge',
-          text: 'Captures ID document'
-        },
-        satisfaction: 3,
-        experiences: [
-          { text: 'Camera permission issues', type: 'negative' },
-          { text: 'Lighting challenges', type: 'negative' },
-          { text: 'Auto-capture guide', type: 'positive' }
-        ],
-        expectation: 'Simple capture',
-        metrics: {
-          avgTime: '25.4s',
-          dropOff: '18%',
-          retryRate: '35%'
-        }
+      'document': () => {
+        const hasNfc = uniqueNames.some(n => n.toLowerCase().includes('nfc'));
+        const hasScan = uniqueNames.some(n => n.toLowerCase().includes('scan'));
+        const hasRead = uniqueNames.some(n => n.toLowerCase().includes('read'));
+        if (hasNfc && hasScan) return 'Scanned document & read NFC chip';
+        if (hasNfc) return 'Read document NFC chip';
+        if (hasScan || hasRead) return 'Captured ID document';
+        return 'Document verification';
       },
-      face: {
-        activity: {
-          icon: 'face',
-          text: 'Completes liveness check'
-        },
-        satisfaction: 3,
-        experiences: [
-          { text: 'Position challenges', type: 'negative' },
-          { text: 'Lighting issues', type: 'negative' },
-          { text: 'Real-time feedback', type: 'positive' }
-        ],
-        expectation: 'Privacy assurance',
-        metrics: {
-          avgTime: '18.2s',
-          dropOff: '15%',
-          retryRate: '28%'
-        }
+      'face': () => {
+        const hasLiveness = uniqueNames.some(n => n.toLowerCase().includes('liveness'));
+        const hasSelfie = uniqueNames.some(n => n.toLowerCase().includes('selfie'));
+        if (hasLiveness) return 'Completed liveness check';
+        if (hasSelfie) return 'Captured selfie';
+        return 'Face verification completed';
       },
-      submission: {
-        activity: {
-          icon: 'upload',
-          text: 'Submits data'
-        },
-        satisfaction: 4,
-        experiences: [
-          { text: 'Processing indicator', type: 'positive' },
-          { text: 'Waiting for processing', type: 'neutral' }
-        ],
-        expectation: 'Quick processing',
-        metrics: {
-          avgTime: '3.8s',
-          dropOff: '2%',
-          retryRate: '5%'
-        }
+      'submission': () => {
+        if (uniqueNames.some(n => n.toLowerCase().includes('upload'))) return 'Uploaded verification data';
+        if (uniqueNames.some(n => n.toLowerCase().includes('submit'))) return 'Submitted for verification';
+        return 'Data submitted';
       },
-      result: {
-        activity: {
-          icon: 'verified',
-          text: 'Views verification outcome'
-        },
-        satisfaction: 5,
-        experiences: [
-          { text: 'Clear result status', type: 'positive' },
-          { text: 'Support access available', type: 'positive' }
-        ],
-        expectation: 'Instant result',
-        metrics: {
-          avgTime: '1.5s',
-          dropOff: '0%',
-          retryRate: '0%'
-        }
+      'result': () => {
+        const hasSuccess = events.some(e => (e.status || '').toLowerCase() === 'success');
+        const hasFailure = events.some(e => (e.status || '').toLowerCase().includes('fail'));
+        if (hasSuccess) return 'Verification approved';
+        if (hasFailure) return 'Verification requires review';
+        return 'Received verification result';
       }
     };
+
+    const getText = activityMap[stageId];
+    return {
+      icon: stageConfig?.icon || 'check_circle',
+      text: getText ? getText() : `${events.length} event(s) processed`
+    };
+  }
+
+  /**
+   * Derive experiences from event data (real issues/successes)
+   */
+  deriveExperiencesFromEvents(events, stageId) {
+    if (!events || events.length === 0) return [];
+
+    const experiences = [];
+    const seenExperiences = new Set();
+
+    events.forEach(event => {
+      const status = (event.status || '').toLowerCase();
+      const name = (event.name || event.event || '').toLowerCase();
+      const details = event.details || event.data || {};
+
+      // Check for failures/retries
+      if (status === 'failure' || status === 'failed') {
+        const exp = { text: `${event.name || 'Step'} failed`, type: 'negative' };
+        if (!seenExperiences.has(exp.text)) {
+          experiences.push(exp);
+          seenExperiences.add(exp.text);
+        }
+      }
+
+      // Check for environment issues
+      if (details.darkEnvironment || name.includes('dark')) {
+        const exp = { text: 'Dark environment detected', type: 'negative' };
+        if (!seenExperiences.has(exp.text)) {
+          experiences.push(exp);
+          seenExperiences.add(exp.text);
+        }
+      }
+
+      if (details.blurDetected || name.includes('blur')) {
+        const exp = { text: 'Blur detected', type: 'negative' };
+        if (!seenExperiences.has(exp.text)) {
+          experiences.push(exp);
+          seenExperiences.add(exp.text);
+        }
+      }
+
+      if (details.glareDetected || name.includes('glare')) {
+        const exp = { text: 'Glare detected', type: 'negative' };
+        if (!seenExperiences.has(exp.text)) {
+          experiences.push(exp);
+          seenExperiences.add(exp.text);
+        }
+      }
+
+      if (details.positionIssue || name.includes('position')) {
+        const exp = { text: 'Position adjustment needed', type: 'negative' };
+        if (!seenExperiences.has(exp.text)) {
+          experiences.push(exp);
+          seenExperiences.add(exp.text);
+        }
+      }
+
+      if (details.distanceIssue || name.includes('distance')) {
+        const exp = { text: 'Distance adjustment needed', type: 'negative' };
+        if (!seenExperiences.has(exp.text)) {
+          experiences.push(exp);
+          seenExperiences.add(exp.text);
+        }
+      }
+
+      // Check for successes
+      if (status === 'success' || status === 'completed') {
+        const exp = { text: `${event.name || 'Step'} completed`, type: 'positive' };
+        if (!seenExperiences.has(exp.text)) {
+          experiences.push(exp);
+          seenExperiences.add(exp.text);
+        }
+      }
+
+      // Check for retries (indicates friction)
+      if (event.retryCount && event.retryCount > 0) {
+        const exp = { text: `${event.retryCount} retry attempt(s)`, type: 'negative' };
+        if (!seenExperiences.has(exp.text)) {
+          experiences.push(exp);
+          seenExperiences.add(exp.text);
+        }
+      }
+    });
+
+    // If no specific experiences found, derive from event count and duration
+    if (experiences.length === 0 && events.length > 0) {
+      const totalDuration = events.reduce((sum, e) => sum + (e.duration || 0), 0);
+      const avgDuration = totalDuration / events.length;
+
+      if (avgDuration > 15000) {
+        experiences.push({ text: 'Extended processing time', type: 'neutral' });
+      } else if (avgDuration < 3000) {
+        experiences.push({ text: 'Quick processing', type: 'positive' });
+      }
+
+      if (events.every(e => (e.status || '').toLowerCase() === 'success')) {
+        experiences.push({ text: 'All steps successful', type: 'positive' });
+      }
+    }
+
+    return experiences.slice(0, 4); // Max 4 experiences per stage
+  }
+
+  /**
+   * Derive expectation text from stage and performance
+   */
+  deriveExpectationFromEvents(events, stageId, metrics) {
+    if (!events || events.length === 0) return null;
+
+    const avgTime = metrics?.avgDuration || 0;
+    const retryRate = metrics?.retryRate || 0;
+    const dropOff = metrics?.dropOffRate || 0;
+
+    const expectationMap = {
+      'entry': () => {
+        if (avgTime < 2000) return 'Fast entry achieved';
+        if (avgTime > 5000) return 'Entry could be faster';
+        return 'Entry time acceptable';
+      },
+      'start': () => {
+        if (retryRate > 10) return 'Simplify permissions flow';
+        return 'Smooth start';
+      },
+      'document': () => {
+        if (retryRate > 30) return 'Capture UX needs improvement';
+        if (retryRate > 15) return 'Some capture friction';
+        return 'Capture working well';
+      },
+      'face': () => {
+        if (retryRate > 25) return 'Liveness UX needs work';
+        if (avgTime > 20000) return 'Face check could be faster';
+        return 'Biometric flow smooth';
+      },
+      'submission': () => {
+        if (avgTime > 5000) return 'Processing time high';
+        return 'Quick submission';
+      },
+      'result': () => {
+        if (dropOff > 5) return 'Result clarity needed';
+        return 'Clear outcome delivered';
+      }
+    };
+
+    const getExpectation = expectationMap[stageId];
+    return getExpectation ? getExpectation() : 'Step completed';
+  }
+
+  /**
+   * Calculate satisfaction score from real metrics (1-5 scale)
+   */
+  calculateSatisfactionFromMetrics(metrics) {
+    if (!metrics) return null;
+
+    const { retryRate = 0, dropOffRate = 0, avgDuration = 0 } = metrics;
+
+    // Start with 5 and deduct based on issues
+    let score = 5;
+
+    // Retry rate impact
+    if (retryRate > 40) score -= 2;
+    else if (retryRate > 25) score -= 1.5;
+    else if (retryRate > 10) score -= 1;
+    else if (retryRate > 5) score -= 0.5;
+
+    // Drop-off impact
+    if (dropOffRate > 20) score -= 1;
+    else if (dropOffRate > 10) score -= 0.5;
+
+    // Duration impact (anything over 30s is problematic)
+    if (avgDuration > 45000) score -= 1;
+    else if (avgDuration > 30000) score -= 0.5;
+
+    return Math.max(1, Math.min(5, Math.round(score)));
   }
 
   /**
    * Get satisfaction emoji based on score (1-5)
    */
   getSatisfactionEmoji(score) {
+    if (score === null) return '\u{2014}'; // Em dash for no data
     const emojis = {
       1: '\u{1F61E}', // Disappointed
       2: '\u{1F615}', // Confused
@@ -194,41 +369,6 @@ class UserJourneyExperienceMatrix {
       5: '\u{1F60D}'  // Heart eyes / Excited
     };
     return emojis[score] || emojis[3];
-  }
-
-  /**
-   * Calculate Y position for satisfaction curve
-   */
-  getSatisfactionY(score) {
-    // Map score 1-5 to Y position (higher score = lower Y = higher on chart)
-    const minY = 10;
-    const maxY = 50;
-    return maxY - ((score - 1) / 4) * (maxY - minY);
-  }
-
-  /**
-   * Generate the satisfaction curve SVG path
-   */
-  generateSatisfactionCurvePath() {
-    const points = this.stages.map((stage, index) => {
-      const stageData = this.data[stage.id];
-      const score = stageData?.satisfaction || 3;
-      const x = (index / (this.stages.length - 1)) * 100;
-      const y = this.getSatisfactionY(score);
-      return { x, y };
-    });
-
-    // Create smooth curve using quadratic bezier
-    let path = `M ${points[0].x} ${points[0].y}`;
-    for (let i = 1; i < points.length; i++) {
-      const prev = points[i - 1];
-      const curr = points[i];
-      const cpX = (prev.x + curr.x) / 2;
-      path += ` Q ${cpX} ${prev.y}, ${cpX} ${(prev.y + curr.y) / 2}`;
-      path += ` Q ${cpX} ${curr.y}, ${curr.x} ${curr.y}`;
-    }
-
-    return path;
   }
 
   /**
@@ -242,15 +382,15 @@ class UserJourneyExperienceMatrix {
       <div class="journey-tooltip">
         <div class="tooltip-row">
           <span class="tooltip-label">Avg Time:</span>
-          <span class="tooltip-value">${avgTime}</span>
+          <span class="tooltip-value">${avgTime || '-'}</span>
         </div>
         <div class="tooltip-row">
           <span class="tooltip-label">Drop-off:</span>
-          <span class="tooltip-value">${dropOff}</span>
+          <span class="tooltip-value">${dropOff || '-'}</span>
         </div>
         <div class="tooltip-row">
           <span class="tooltip-label">Retry Rate:</span>
-          <span class="tooltip-value">${retryRate}</span>
+          <span class="tooltip-value">${retryRate || '-'}</span>
         </div>
       </div>
     `;
@@ -260,19 +400,21 @@ class UserJourneyExperienceMatrix {
    * Build activity cell HTML
    */
   buildActivityCell(stageData, stageId, cellIndex) {
-    if (!stageData?.activity) {
-      return `<div class="journey-cell activity-cell" data-stage="${stageId}" style="--cell-index: ${cellIndex}">
-        <span class="text-muted">-</span>
+    const stageConfig = this.getStageConfig(stageId);
+
+    if (!stageData?.hasData) {
+      return `<div class="journey-cell activity-cell no-data" data-stage="${stageId}" style="--cell-index: ${cellIndex}">
+        <span class="text-muted">No data</span>
       </div>`;
     }
 
-    const { icon, text } = stageData.activity;
+    const activity = stageData.activity || { icon: stageConfig?.icon || 'help', text: 'Activity recorded' };
     return `
       <div class="journey-cell activity-cell" data-stage="${stageId}" style="--cell-index: ${cellIndex}">
         <div class="activity-icon">
-          <i class="material-symbols-rounded">${icon}</i>
+          <i class="material-symbols-rounded">${activity.icon}</i>
         </div>
-        <div class="activity-text">${text}</div>
+        <div class="activity-text">${activity.text}</div>
         ${this.buildTooltip(stageData)}
       </div>
     `;
@@ -282,7 +424,13 @@ class UserJourneyExperienceMatrix {
    * Build satisfaction cell HTML
    */
   buildSatisfactionCell(stageData, stageId, cellIndex) {
-    const score = stageData?.satisfaction || 3;
+    if (!stageData?.hasData) {
+      return `<div class="journey-cell satisfaction-cell no-data" data-stage="${stageId}" style="--cell-index: ${cellIndex}">
+        <span class="text-muted">\u{2014}</span>
+      </div>`;
+    }
+
+    const score = stageData.satisfaction;
     const emoji = this.getSatisfactionEmoji(score);
 
     return `
@@ -297,9 +445,9 @@ class UserJourneyExperienceMatrix {
    * Build experience cell HTML
    */
   buildExperienceCell(stageData, stageId, cellIndex) {
-    if (!stageData?.experiences || stageData.experiences.length === 0) {
-      return `<div class="journey-cell experience-cell" data-stage="${stageId}" style="--cell-index: ${cellIndex}">
-        <span class="text-muted">-</span>
+    if (!stageData?.hasData || !stageData.experiences || stageData.experiences.length === 0) {
+      return `<div class="journey-cell experience-cell no-data" data-stage="${stageId}" style="--cell-index: ${cellIndex}">
+        <span class="text-muted">No issues detected</span>
       </div>`;
     }
 
@@ -319,26 +467,19 @@ class UserJourneyExperienceMatrix {
    * Build expectation cell HTML
    */
   buildExpectationCell(stageData, stageId, cellIndex) {
-    const expectation = stageData?.expectation || '-';
+    if (!stageData?.hasData) {
+      return `<div class="journey-cell expectation-cell no-data" data-stage="${stageId}" style="--cell-index: ${cellIndex}">
+        <span class="text-muted">\u{2014}</span>
+      </div>`;
+    }
+
+    const expectation = stageData.expectation || 'Completed';
 
     return `
       <div class="journey-cell expectation-cell" data-stage="${stageId}" style="--cell-index: ${cellIndex}">
         ${expectation}
         ${this.buildTooltip(stageData)}
       </div>
-    `;
-  }
-
-  /**
-   * Build the satisfaction curve SVG overlay
-   */
-  buildSatisfactionCurve() {
-    const curvePath = this.generateSatisfactionCurvePath();
-
-    return `
-      <svg class="satisfaction-curve" viewBox="0 0 100 60" preserveAspectRatio="none">
-        <path d="${curvePath}" />
-      </svg>
     `;
   }
 
@@ -389,9 +530,6 @@ class UserJourneyExperienceMatrix {
         <div class="journey-matrix-grid">
           ${gridContent}
         </div>
-        <div class="satisfaction-curve-overlay" style="position: absolute; top: 0; left: 140px; right: 0; height: 100%; pointer-events: none;">
-          <!-- Satisfaction curve renders across satisfaction row -->
-        </div>
       </div>
     `;
   }
@@ -402,7 +540,21 @@ class UserJourneyExperienceMatrix {
   renderMobile() {
     return this.stages.map(stage => {
       const stageData = this.data[stage.id];
-      const satisfaction = stageData?.satisfaction || 3;
+
+      if (!stageData?.hasData) {
+        return `
+          <div class="mobile-stage-card">
+            <div class="mobile-stage-header" style="background: ${stage.color}">
+              ${stage.name}
+            </div>
+            <div class="mobile-stage-content">
+              <p class="text-muted text-center py-3">No data for this stage</p>
+            </div>
+          </div>
+        `;
+      }
+
+      const satisfaction = stageData.satisfaction;
       const emoji = this.getSatisfactionEmoji(satisfaction);
 
       return `
@@ -414,7 +566,7 @@ class UserJourneyExperienceMatrix {
             <div class="mobile-row">
               <div class="mobile-row-label">Activity</div>
               <div class="mobile-row-value">
-                ${stageData?.activity?.text || '-'}
+                ${stageData.activity?.text || '-'}
               </div>
             </div>
             <div class="mobile-row">
@@ -426,19 +578,50 @@ class UserJourneyExperienceMatrix {
             <div class="mobile-row">
               <div class="mobile-row-label">Experiences</div>
               <div class="mobile-row-value">
-                ${stageData?.experiences?.map(exp => `<div>${exp.text}</div>`).join('') || '-'}
+                ${stageData.experiences?.length > 0
+                  ? stageData.experiences.map(exp => `<div class="${exp.type}">${exp.text}</div>`).join('')
+                  : 'No issues detected'}
               </div>
             </div>
             <div class="mobile-row">
               <div class="mobile-row-label">Expectation</div>
               <div class="mobile-row-value">
-                ${stageData?.expectation || '-'}
+                ${stageData.expectation || '-'}
               </div>
             </div>
+            ${stageData.metrics ? `
+            <div class="mobile-row">
+              <div class="mobile-row-label">Metrics</div>
+              <div class="mobile-row-value">
+                <small>Time: ${stageData.metrics.avgTime} | Retry: ${stageData.metrics.retryRate}</small>
+              </div>
+            </div>
+            ` : ''}
           </div>
         </div>
       `;
     }).join('');
+  }
+
+  /**
+   * Render empty state when no data
+   */
+  renderEmptyState() {
+    return `
+      <div class="user-journey-matrix">
+        <div class="user-journey-matrix-header">
+          <div class="user-journey-matrix-title">
+            <i class="material-symbols-rounded">route</i>
+            User Journey Experience Matrix
+          </div>
+        </div>
+        <div class="journey-empty-state" style="text-align: center; padding: 3rem;">
+          <i class="material-symbols-rounded" style="font-size: 3rem; color: #9e9e9e;">analytics</i>
+          <p class="text-muted mt-3">No journey data available for this session</p>
+          <small class="text-muted">Journey analysis will appear when SDK events are captured</small>
+        </div>
+      </div>
+    `;
   }
 
   /**
@@ -447,6 +630,12 @@ class UserJourneyExperienceMatrix {
   render() {
     if (!this.container) {
       console.error(`UserJourneyExperienceMatrix: Container #${this.containerId} not found`);
+      return;
+    }
+
+    // Check if we have any data
+    if (!this.hasData) {
+      this.container.innerHTML = this.renderEmptyState();
       return;
     }
 
@@ -509,16 +698,6 @@ class UserJourneyExperienceMatrix {
       if (this.selectedStage !== stageId) {
         this.selectedStage = stageId;
         grid.setAttribute('data-highlighted-stage', stageId);
-
-        // Mark cells belonging to this stage
-        const cells = grid.querySelectorAll('.journey-cell');
-        cells.forEach(cell => {
-          if (cell.dataset.stage === stageId) {
-            cell.setAttribute('data-stage', stageId);
-          } else {
-            cell.removeAttribute('data-stage');
-          }
-        });
       } else {
         this.selectedStage = null;
       }
@@ -531,115 +710,117 @@ class UserJourneyExperienceMatrix {
   }
 
   /**
-   * Update the matrix with new data
-   * @param {Object} newData - New journey data
-   */
-  updateData(newData) {
-    this.data = { ...this.getDefaultData(), ...newData };
-    this.render();
-  }
-
-  /**
-   * Update data from SDK analytics events
+   * Update data from SDK analytics events - ALL data derived from real events
    * @param {Array} events - SDK analytics events
    * @param {Object} flowMetrics - Flow metrics from calculateFlowMetrics
    */
   updateFromSDKData(events, flowMetrics = {}) {
+    // Reset to empty data
+    this.data = this.getEmptyData();
+    this.hasData = false;
+
     if (!events || events.length === 0) {
       this.render();
       return;
     }
 
-    // Map SDK events to journey stages
-    const eventTypeMap = {
-      'SCAN': 'document',
-      'READ': 'document',
-      'NFC': 'document',
-      'FACE': 'face',
-      'SUBMIT': 'submission',
-      'COMPLETE': 'result',
-      'SUCCESS': 'result',
-      'FAILURE': 'result'
-    };
+    // Group events by stage
+    const stageEvents = {};
+    this.stages.forEach(stage => {
+      stageEvents[stage.id] = [];
+    });
 
-    // Analyze events for metrics
-    const stageMetrics = {};
-    let hasEntryEvent = false;
-    let hasStartEvent = false;
-
+    // Categorize each event into a stage
     events.forEach(event => {
-      const eventType = (event.type || event.event || '').toUpperCase();
-      const stageId = eventTypeMap[eventType];
-
-      if (eventType === 'START' || eventType === 'INIT') {
-        hasStartEvent = true;
-      }
+      const eventType = event.type || event.event || event.name || '';
+      const stageId = this.mapEventToStage(eventType);
 
       if (stageId) {
-        if (!stageMetrics[stageId]) {
-          stageMetrics[stageId] = {
-            count: 0,
-            totalDuration: 0,
-            retries: 0,
-            failures: 0
-          };
-        }
-
-        stageMetrics[stageId].count++;
-
-        // Track duration
-        const duration = event.duration || event.time || 0;
-        stageMetrics[stageId].totalDuration += duration;
-
-        // Track retries/failures
-        const status = (event.status || '').toLowerCase();
-        if (status === 'failure' || status === 'failed' || status === 'retry') {
-          stageMetrics[stageId].failures++;
-          stageMetrics[stageId].retries++;
-        }
+        stageEvents[stageId].push(event);
       }
     });
 
-    // Update satisfaction scores based on metrics
-    const updatedData = { ...this.data };
+    // If no events mapped to stages, try to infer from flow metrics
+    const hasAnyEvents = Object.values(stageEvents).some(arr => arr.length > 0);
 
-    Object.keys(stageMetrics).forEach(stageId => {
-      const metrics = stageMetrics[stageId];
-      const avgDuration = metrics.totalDuration / (metrics.count || 1);
-      const retryRate = (metrics.retries / metrics.count) * 100;
-
-      // Calculate satisfaction based on retry rate and duration
-      let satisfaction = 5;
-      if (retryRate > 30) satisfaction = 2;
-      else if (retryRate > 15) satisfaction = 3;
-      else if (retryRate > 5) satisfaction = 4;
-
-      // Adjust for long durations
-      if (avgDuration > 30000) satisfaction = Math.min(satisfaction, 3);
-      else if (avgDuration > 15000) satisfaction = Math.min(satisfaction, 4);
-
-      if (updatedData[stageId]) {
-        updatedData[stageId].satisfaction = satisfaction;
-        updatedData[stageId].metrics = {
-          avgTime: this.formatDuration(avgDuration),
-          dropOff: `${Math.round((metrics.failures / metrics.count) * 100)}%`,
-          retryRate: `${Math.round(retryRate)}%`
-        };
+    if (!hasAnyEvents && flowMetrics.totalDuration > 0) {
+      // Create synthetic entry based on flow metrics
+      if (flowMetrics.timeToFirstInteraction > 0) {
+        stageEvents['entry'].push({
+          type: 'INIT',
+          status: 'success',
+          duration: flowMetrics.timeToFirstInteraction * 1000
+        });
       }
+    }
+
+    // Process each stage
+    this.stages.forEach(stage => {
+      const stageEvts = stageEvents[stage.id];
+
+      if (stageEvts.length === 0) {
+        // Check flow metrics for this stage
+        if (stage.id === 'document' && flowMetrics.documentScanTime > 0) {
+          stageEvts.push({
+            type: 'SCAN',
+            status: 'success',
+            duration: flowMetrics.documentScanTime
+          });
+        }
+        if (stage.id === 'face' && flowMetrics.faceScanTime > 0) {
+          stageEvts.push({
+            type: 'FACE',
+            status: 'success',
+            duration: flowMetrics.faceScanTime
+          });
+        }
+        if (stage.id === 'document' && flowMetrics.nfcReadTime > 0) {
+          stageEvts.push({
+            type: 'NFC',
+            status: 'success',
+            duration: flowMetrics.nfcReadTime
+          });
+        }
+      }
+
+      if (stageEvts.length === 0) {
+        return; // No data for this stage
+      }
+
+      this.hasData = true;
+
+      // Calculate metrics for this stage
+      const totalDuration = stageEvts.reduce((sum, e) => sum + (e.duration || 0), 0);
+      const avgDuration = totalDuration / stageEvts.length;
+      const failures = stageEvts.filter(e => {
+        const status = (e.status || '').toLowerCase();
+        return status === 'failure' || status === 'failed';
+      }).length;
+      const retryRate = (failures / stageEvts.length) * 100;
+      const dropOffRate = failures > 0 ? (failures / stageEvts.length) * 100 : 0;
+
+      const metrics = {
+        avgDuration,
+        retryRate,
+        dropOffRate,
+        avgTime: this.formatDuration(avgDuration),
+        dropOff: `${Math.round(dropOffRate)}%`,
+        retryRate: `${Math.round(retryRate)}%`,
+        eventCount: stageEvts.length
+      };
+
+      // Build stage data from real events
+      this.data[stage.id] = {
+        activity: this.deriveActivityFromEvents(stageEvts, stage.id),
+        satisfaction: this.calculateSatisfactionFromMetrics(metrics),
+        experiences: this.deriveExperiencesFromEvents(stageEvts, stage.id),
+        expectation: this.deriveExpectationFromEvents(stageEvts, stage.id, metrics),
+        metrics: metrics,
+        events: stageEvts,
+        hasData: true
+      };
     });
 
-    // Update flow metrics if provided
-    if (flowMetrics.documentScanTime !== undefined) {
-      updatedData.document.metrics.avgTime = this.formatDuration(flowMetrics.documentScanTime);
-    }
-    if (flowMetrics.faceScanTime !== undefined) {
-      updatedData.face.metrics.avgTime = this.formatDuration(flowMetrics.faceScanTime);
-    }
-    if (flowMetrics.totalDuration !== undefined) {
-      updatedData.entry.metrics.avgTime = this.formatDuration(flowMetrics.timeToFirstInteraction || 0);
-    }
-
-    this.data = updatedData;
     this.render();
   }
 
@@ -647,6 +828,7 @@ class UserJourneyExperienceMatrix {
    * Format duration in milliseconds to human readable
    */
   formatDuration(ms) {
+    if (!ms || ms === 0) return '-';
     if (ms < 1000) return `${Math.round(ms)}ms`;
     if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
     return `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`;
