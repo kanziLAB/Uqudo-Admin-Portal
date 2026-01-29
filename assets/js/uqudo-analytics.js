@@ -3132,9 +3132,15 @@ async function loadSdkSession(sessionId) {
         }
       }
 
-      // Store raw data for debugging
+      // Store raw data for debugging (use snake_case keys to match displayRawData expectations)
       currentRawData = {
         session: session,
+        sdk_analytics: session.sdk_analytics,
+        sdk_trace: session.sdk_trace,
+        sdk_source: session.sdk_source,
+        sdk_verifications: session.sdk_verifications,
+        fraud_scores: session.fraud_scores,
+        // Also keep camelCase parsed versions for backward compatibility
         sdkAnalytics: sdkAnalytics,
         sdkSource: sdkSource,
         verifications: verifications,
