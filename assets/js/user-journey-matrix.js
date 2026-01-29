@@ -278,8 +278,19 @@ class UserJourneyExperienceMatrix {
 
     // Add event count and total duration
     const totalDuration = eventDetails.reduce((sum, e) => sum + e.duration, 0);
-    const successCount = eventDetails.filter(e => e.status === 'SUCCESS').length;
-    const failureCount = eventDetails.filter(e => e.status === 'FAILURE' || e.status === 'FAILED').length;
+
+    // Only count COMPLETE/FINISH events for OK/FAIL metrics (these are the actual outcomes)
+    // This avoids confusion from counting VIEW, START, IN_PROGRESS events
+    const outcomeEvents = eventDetails.filter(e => {
+      const name = (e.name || '').toUpperCase();
+      return name === 'COMPLETE' || name === 'FINISH' || name === 'DONE' ||
+             name === 'SUCCESS' || name === 'FAILURE' || name === 'RESULT';
+    });
+
+    // If no outcome events, fall back to counting all events (for entry/start stages)
+    const eventsToCount = outcomeEvents.length > 0 ? outcomeEvents : eventDetails;
+    const successCount = eventsToCount.filter(e => e.status === 'SUCCESS').length;
+    const failureCount = eventsToCount.filter(e => e.status === 'FAILURE' || e.status === 'FAILED').length;
 
     return {
       icon: stageConfig?.icon || 'check_circle',
