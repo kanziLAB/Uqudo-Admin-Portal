@@ -528,6 +528,15 @@ router.post('/enrollment-jws',
     // Common alternatives: trace, analytics, events, journey, audit, log
     const { source, documents, verifications, backgroundCheck } = data;
 
+    // Log tracing object location for debugging deviceIdentifier capture
+    console.log('🔍 Tracing object check:', {
+      'data.tracing': data.tracing ? Object.keys(data.tracing) : null,
+      'source?.tracing': source?.tracing ? Object.keys(source.tracing) : null,
+      'source?.deviceIdentifier': source?.deviceIdentifier,
+      'data.tracing?.deviceIdentifier': data.tracing?.deviceIdentifier,
+      'source?.tracing?.deviceIdentifier': source?.tracing?.deviceIdentifier
+    });
+
     // Try multiple possible trace field names from JWS token
     let trace = data.trace || data.analytics || data.events || data.journey || data.audit || data.log || null;
 
@@ -788,13 +797,28 @@ router.post('/enrollment-jws',
       }
 
       // Extract or generate deviceIdentifier for accounts table
-      // Priority: 1) explicit deviceIdentifier from source/trace, 2) generate fingerprint from device info
-      let deviceIdentifier = source?.deviceIdentifier || null;
+      // Priority: 1) explicit deviceIdentifier from source/tracing/trace, 2) generate fingerprint from device info
+      // Per Uqudo docs: Mobile SDK stores deviceIdentifier in the "tracing object"
+      let deviceIdentifier = source?.deviceIdentifier ||
+                             source?.tracing?.deviceIdentifier ||
+                             data?.tracing?.deviceIdentifier ||
+                             null;
+
+      // Check trace events for deviceIdentifier (Web SDK stores it in each trace event)
       if (!deviceIdentifier && trace && trace.length > 0) {
-        // Web SDK stores deviceIdentifier in each trace event
         const traceWithDevice = trace.find(t => t.deviceIdentifier);
         deviceIdentifier = traceWithDevice?.deviceIdentifier || null;
       }
+
+      // Log deviceIdentifier extraction for debugging
+      console.log('🔍 DeviceIdentifier extraction:', {
+        fromSource: source?.deviceIdentifier,
+        fromSourceTracing: source?.tracing?.deviceIdentifier,
+        fromDataTracing: data?.tracing?.deviceIdentifier,
+        fromTraceEvents: trace?.find(t => t.deviceIdentifier)?.deviceIdentifier,
+        final: deviceIdentifier
+      });
+
       // If no explicit deviceIdentifier, create a fingerprint from available device info
       if (!deviceIdentifier && source) {
         const fingerPrintParts = [
@@ -804,6 +828,7 @@ router.post('/enrollment-jws',
         ].filter(Boolean);
         if (fingerPrintParts.length >= 2) {
           deviceIdentifier = `fp_${fingerPrintParts.join('_').replace(/[^a-zA-Z0-9_.-]/g, '_').substring(0, 100)}`;
+          console.log('📱 Generated fingerprint deviceIdentifier:', deviceIdentifier);
         }
       }
 
@@ -963,11 +988,15 @@ router.post('/enrollment-jws',
         const fraudScores = extractFraudScores(verifications);
         const nameParts = (accountData?.full_name || '').split(' ');
 
-        // Extract or generate deviceIdentifier
-        // Priority: 1) explicit deviceIdentifier from source/trace, 2) generate fingerprint from device info
-        let deviceIdentifier = source?.deviceIdentifier || null;
+        // Extract or generate deviceIdentifier for sdk_sessions
+        // Priority: 1) explicit deviceIdentifier from source/tracing, 2) trace events, 3) fingerprint
+        // Per Uqudo docs: Mobile SDK stores deviceIdentifier in the "tracing object"
+        let deviceIdentifier = source?.deviceIdentifier ||
+                               source?.tracing?.deviceIdentifier ||
+                               data?.tracing?.deviceIdentifier ||
+                               null;
+
         if (!deviceIdentifier && trace && trace.length > 0) {
-          // Web SDK stores deviceIdentifier in each trace event
           const traceWithDevice = trace.find(t => t.deviceIdentifier);
           deviceIdentifier = traceWithDevice?.deviceIdentifier || null;
         }
@@ -982,7 +1011,6 @@ router.post('/enrollment-jws',
           ].filter(Boolean);
 
           if (fingerPrintParts.length >= 2) {
-            // Create a simple hash-like fingerprint
             deviceIdentifier = `fp_${fingerPrintParts.join('_').replace(/[^a-zA-Z0-9_.-]/g, '_').substring(0, 100)}`;
           }
         }
