@@ -471,15 +471,21 @@ class UserJourneyExperienceMatrix {
 
   /**
    * Get satisfaction emoji based on score (1-5)
+   * Matches UX Score emoji mapping from uqudo-analytics.js:
+   * - 5 (80-100%): 😊 EXCELLENT
+   * - 4 (60-79%): 🙂 GOOD
+   * - 3 (40-59%): 😐 FAIR
+   * - 2 (20-39%): 😕 POOR
+   * - 1 (0-19%): 😟 CRITICAL
    */
   getSatisfactionEmoji(score) {
     if (score === null) return '\u{2014}'; // Em dash for no data
     const emojis = {
-      1: '\u{1F61E}', // Disappointed
-      2: '\u{1F615}', // Confused
-      3: '\u{1F610}', // Neutral
-      4: '\u{1F60A}', // Happy
-      5: '\u{1F60D}'  // Heart eyes / Excited
+      1: '😟', // Critical
+      2: '😕', // Poor
+      3: '😐', // Fair
+      4: '🙂', // Good
+      5: '😊'  // Excellent
     };
     return emojis[score] || emojis[3];
   }
@@ -939,6 +945,16 @@ class UserJourneyExperienceMatrix {
       // Try to map using all possible fields in priority order
       let stageId = null;
 
+      // Special handling: If name is START, VIEW, or INIT, prioritize it over statusCode
+      // This ensures Enrollment SDK events like START/VIEW don't get misclassified
+      if (name === 'START' || name === 'BEGIN' || name === 'CONSENT') {
+        stageId = 'start';
+      } else if (name === 'VIEW' || name === 'INIT' || name === 'LOADING' || name === 'OPEN' || name === 'LAUNCH') {
+        stageId = 'entry';
+      } else if (name === 'COMPLETE' || name === 'FINISH' || name === 'DONE' || name === 'RESULT') {
+        stageId = 'finish';
+      }
+
       // Priority 1: statusCode - contains step info like SCAN_DOCUMENT_..., FACE_..., NFC_...
       // This is critical for Enrollment SDK events where category is always "ENROLLMENT"
       if (!stageId && statusCode) {
@@ -1001,6 +1017,14 @@ class UserJourneyExperienceMatrix {
 
       if (stageEvts.length === 0) {
         // Check flow metrics for this stage (fallback when no direct events found)
+        if (stage.id === 'start' && flowMetrics.timeToFirstInteraction > 0) {
+          stageEvts.push({
+            name: 'START',
+            type: 'COMPLETE',
+            status: 'success',
+            duration: flowMetrics.timeToFirstInteraction * 1000
+          });
+        }
         if (stage.id === 'document' && flowMetrics.scanTime > 0) {
           stageEvts.push({
             category: 'SCAN',
