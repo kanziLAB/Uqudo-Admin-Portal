@@ -950,48 +950,54 @@ class UserJourneyExperienceMatrix {
       // Try to map using all possible fields in priority order
       let stageId = null;
 
-      // Special handling: If name is START, VIEW, or INIT, prioritize it over statusCode
-      // This ensures Enrollment SDK events like START/VIEW don't get misclassified
-      if (name === 'START' || name === 'BEGIN' || name === 'CONSENT') {
-        stageId = 'start';
-      } else if (name === 'VIEW' || name === 'INIT' || name === 'LOADING' || name === 'OPEN' || name === 'LAUNCH') {
-        stageId = 'entry';
-      } else if (name === 'COMPLETE' || name === 'FINISH' || name === 'DONE' || name === 'RESULT') {
-        stageId = 'finish';
+      // Priority 1: page field - often contains step-specific info (SCAN, READ, FACE, BACKGROUND_CHECK)
+      // This is critical for Enrollment SDK where page field has the actual step while name is generic
+      // Check if page contains step-specific info (not generic like ENROLLMENT)
+      if (page && page !== 'ENROLLMENT' && page !== 'SDK' && page !== 'JOURNEY') {
+        stageId = this.mapEventToStage(page);
       }
 
-      // Priority 1: statusCode - contains step info like SCAN_DOCUMENT_..., FACE_..., NFC_...
+      // Priority 2: statusCode - contains step info like SCAN_DOCUMENT_..., FACE_..., NFC_...
       // This is critical for Enrollment SDK events where category is always "ENROLLMENT"
       if (!stageId && statusCode) {
         stageId = this.mapEventToStage(statusCode);
       }
 
-      // Priority 2: category (Web SDK primary identifier) - skip generic "ENROLLMENT"
+      // Priority 3: category (Web SDK primary identifier) - skip generic "ENROLLMENT"
       if (!stageId && category && category !== 'ENROLLMENT' && category !== 'SDK') {
         stageId = this.mapEventToStage(category);
       }
 
-      // Priority 3: page (Web SDK page identifier)
-      if (!stageId && page) {
-        stageId = this.mapEventToStage(page);
+      // Priority 4: Special handling for generic event names (only if no specific stage found)
+      // This handles events like START, VIEW, INIT, COMPLETE that don't have step-specific page
+      if (!stageId) {
+        if (name === 'START' || name === 'BEGIN' || name === 'CONSENT') {
+          stageId = 'start';
+        } else if (name === 'VIEW' || name === 'INIT' || name === 'LOADING' || name === 'OPEN' || name === 'LAUNCH') {
+          stageId = 'entry';
+        } else if (name === 'COMPLETE' || name === 'FINISH' || name === 'DONE' || name === 'RESULT') {
+          stageId = 'finish';
+        }
       }
 
-      // Priority 4: name (Mobile SDK primary identifier) - skip generic names
-      if (!stageId && name && name !== 'ENROLLMENT' && name !== 'SDK') {
+      // Priority 5: name (Mobile SDK primary identifier) - skip generic names
+      if (!stageId && name && name !== 'ENROLLMENT' && name !== 'SDK' &&
+          name !== 'IN_PROGRESS' && name !== 'START' && name !== 'VIEW' &&
+          name !== 'COMPLETE' && name !== 'FINISH' && name !== 'INIT') {
         stageId = this.mapEventToStage(name);
       }
 
-      // Priority 5: event field
+      // Priority 6: event field
       if (!stageId && eventField) {
         stageId = this.mapEventToStage(eventField);
       }
 
-      // Priority 6: type (often VIEW/START/COMPLETE, less specific)
+      // Priority 7: type (often VIEW/START/COMPLETE, less specific)
       if (!stageId && type) {
         stageId = this.mapEventToStage(type);
       }
 
-      // Priority 7: Try combinations
+      // Priority 8: Try combinations
       if (!stageId) {
         const combined = `${category} ${page} ${name} ${type} ${statusCode}`.trim();
         stageId = this.mapEventToStage(combined);
