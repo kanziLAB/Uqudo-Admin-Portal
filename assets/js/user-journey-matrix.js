@@ -419,21 +419,26 @@ class UserJourneyExperienceMatrix {
    * Calculate performance level based on real metrics
    */
   calculatePerformanceLevel(avgDuration, retryRate, stageId) {
+    // Handle NaN/undefined values
+    const duration = isNaN(avgDuration) || avgDuration === null ? 0 : avgDuration;
+    const retry = isNaN(retryRate) || retryRate === null ? 0 : retryRate;
+
     // Thresholds based on stage type
     const thresholds = {
       'entry': { goodTime: 3000, okTime: 5000, goodRetry: 5, okRetry: 15 },
       'start': { goodTime: 5000, okTime: 10000, goodRetry: 5, okRetry: 15 },
       'document': { goodTime: 15000, okTime: 30000, goodRetry: 20, okRetry: 40 },
+      'nfc': { goodTime: 10000, okTime: 20000, goodRetry: 10, okRetry: 25 },
       'face': { goodTime: 10000, okTime: 25000, goodRetry: 15, okRetry: 35 },
-      'submission': { goodTime: 3000, okTime: 8000, goodRetry: 5, okRetry: 15 },
-      'result': { goodTime: 2000, okTime: 5000, goodRetry: 0, okRetry: 5 }
+      'aml': { goodTime: 5000, okTime: 15000, goodRetry: 5, okRetry: 15 },
+      'finish': { goodTime: 3000, okTime: 8000, goodRetry: 5, okRetry: 15 }
     };
 
     const t = thresholds[stageId] || thresholds['document'];
 
     // Calculate score based on time and retry rate
-    let timeScore = avgDuration <= t.goodTime ? 'good' : avgDuration <= t.okTime ? 'ok' : 'poor';
-    let retryScore = retryRate <= t.goodRetry ? 'good' : retryRate <= t.okRetry ? 'ok' : 'poor';
+    let timeScore = duration <= t.goodTime ? 'good' : duration <= t.okTime ? 'ok' : 'poor';
+    let retryScore = retry <= t.goodRetry ? 'good' : retry <= t.okRetry ? 'ok' : 'poor';
 
     // Combined performance level
     if (timeScore === 'good' && retryScore === 'good') return 'excellent';
@@ -1059,21 +1064,22 @@ class UserJourneyExperienceMatrix {
 
       // Calculate metrics for this stage
       const totalDuration = stageEvts.reduce((sum, e) => sum + (e.duration || 0), 0);
-      const avgDuration = totalDuration / stageEvts.length;
+      const avgDuration = stageEvts.length > 0 ? totalDuration / stageEvts.length : 0;
       const failures = stageEvts.filter(e => {
         const status = (e.status || '').toLowerCase();
         return status === 'failure' || status === 'failed';
       }).length;
-      const retryRate = (failures / stageEvts.length) * 100;
-      const dropOffRate = failures > 0 ? (failures / stageEvts.length) * 100 : 0;
+      // Calculate retry rate - ensure we don't get NaN
+      const retryRateNum = stageEvts.length > 0 ? (failures / stageEvts.length) * 100 : 0;
+      const dropOffRateNum = failures > 0 && stageEvts.length > 0 ? (failures / stageEvts.length) * 100 : 0;
 
       const metrics = {
-        avgDuration,
-        retryRate,
-        dropOffRate,
+        avgDuration: isNaN(avgDuration) ? 0 : avgDuration,
+        retryRate: isNaN(retryRateNum) ? 0 : retryRateNum,
+        dropOffRate: isNaN(dropOffRateNum) ? 0 : dropOffRateNum,
         avgTime: this.formatDuration(avgDuration),
-        dropOff: `${Math.round(dropOffRate)}%`,
-        retryRate: `${Math.round(retryRate)}%`,
+        dropOff: `${Math.round(isNaN(dropOffRateNum) ? 0 : dropOffRateNum)}%`,
+        retryRateStr: `${Math.round(isNaN(retryRateNum) ? 0 : retryRateNum)}%`,
         eventCount: stageEvts.length
       };
 
