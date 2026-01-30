@@ -389,6 +389,46 @@ router.post('/complete', asyncHandler(async (req, res) => {
   });
 }));
 
+/**
+ * @route   GET /api/qr-verification/debug-credentials
+ * @desc    Debug endpoint to check credential configuration (remove in production)
+ * @access  Public (temporary)
+ */
+router.get('/debug-credentials', asyncHandler(async (req, res) => {
+  const result = {
+    env_client_id: !!process.env.UQUDO_CLIENT_ID,
+    env_client_secret: !!process.env.UQUDO_CLIENT_SECRET,
+    env_auth_url: process.env.UQUDO_AUTH_URL || 'not set',
+    kyc_setup_credentials: null,
+    error: null
+  };
+
+  try {
+    const { data: kycConfig, error } = await supabaseAdmin
+      .from('kyc_setup')
+      .select('id, uqudo_credentials, qr_config')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) {
+      result.error = error.message;
+    } else if (kycConfig) {
+      result.kyc_setup_credentials = {
+        has_uqudo_credentials: !!kycConfig.uqudo_credentials,
+        has_client_id: !!kycConfig.uqudo_credentials?.client_id,
+        has_client_secret: !!kycConfig.uqudo_credentials?.client_secret,
+        auth_url: kycConfig.uqudo_credentials?.auth_url || 'not set',
+        has_qr_config: !!kycConfig.qr_config
+      };
+    }
+  } catch (e) {
+    result.error = e.message;
+  }
+
+  res.json(result);
+}));
+
 // ============================================================
 // HELPER FUNCTIONS
 // ============================================================
