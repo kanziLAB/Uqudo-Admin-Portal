@@ -481,10 +481,10 @@ function buildDeepLink(token, options = {}) {
  * @param {string} customerId - Optional customer ID to look up specific credentials
  */
 async function getUqudoAccessToken(customerId = null) {
-  let clientId = process.env.UQUDO_CLIENT_ID?.trim();
-  let clientSecret = process.env.UQUDO_CLIENT_SECRET?.trim();
-  let authUrl = (process.env.UQUDO_AUTH_URL || 'https://auth.uqudo.io/api/oauth/token').trim();
-  let credentialsSource = 'environment';
+  let clientId = null;
+  let clientSecret = null;
+  let authUrl = 'https://auth.uqudo.io/api/oauth/token'; // Default Uqudo auth URL
+  let credentialsSource = 'none';
 
   // 1. Try to get customer-specific credentials first
   if (customerId && customerId !== 'default') {
@@ -501,9 +501,9 @@ async function getUqudoAccessToken(customerId = null) {
       if (customer?.uqudo_credentials) {
         const creds = customer.uqudo_credentials;
         if (creds.client_id && creds.client_secret) {
-          clientId = creds.client_id;
-          clientSecret = creds.client_secret;
-          if (creds.auth_url) authUrl = creds.auth_url;
+          clientId = creds.client_id?.trim();
+          clientSecret = creds.client_secret?.trim();
+          if (creds.auth_url) authUrl = creds.auth_url.trim();
           credentialsSource = `customer:${customerId}`;
           console.log(`📋 Using Uqudo credentials for customer: ${customerId}`);
         }
@@ -513,8 +513,8 @@ async function getUqudoAccessToken(customerId = null) {
     }
   }
 
-  // 2. Try global KYC Setup credentials if no customer-specific ones found
-  if (credentialsSource === 'environment') {
+  // 2. Try global KYC Setup credentials (database) - PRIORITY over env vars
+  if (credentialsSource === 'none') {
     try {
       const { data: kycConfig } = await supabaseAdmin
         .from('kyc_setup')
@@ -533,7 +533,20 @@ async function getUqudoAccessToken(customerId = null) {
         }
       }
     } catch (e) {
-      console.log('ℹ️ No KYC Setup credentials found, using environment variables');
+      console.log('ℹ️ No KYC Setup credentials found, trying environment variables');
+    }
+  }
+
+  // 3. Fallback to environment variables
+  if (credentialsSource === 'none') {
+    clientId = process.env.UQUDO_CLIENT_ID?.trim();
+    clientSecret = process.env.UQUDO_CLIENT_SECRET?.trim();
+    if (process.env.UQUDO_AUTH_URL) {
+      authUrl = process.env.UQUDO_AUTH_URL.trim();
+    }
+    if (clientId && clientSecret) {
+      credentialsSource = 'environment';
+      console.log('📋 Using Uqudo credentials from environment variables');
     }
   }
 
