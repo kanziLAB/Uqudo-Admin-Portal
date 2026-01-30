@@ -882,6 +882,112 @@
         </div>
       </div>
 
+      <!-- QR Verification Configuration -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header pb-0">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="mb-0">
+                    <i class="material-symbols-rounded text-info me-1" style="vertical-align: middle;">qr_code_2</i>
+                    QR Verification Configuration
+                  </h6>
+                  <p class="text-sm text-secondary mb-0 mt-1">Configure B2B customers for QR-based identity verification flows</p>
+                </div>
+                <button class="btn btn-sm bg-gradient-info" onclick="openAddCustomerModal()">
+                  <i class="material-symbols-rounded text-sm">add</i> Add Customer
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <!-- QR Generator Link -->
+              <div class="alert alert-info d-flex align-items-center mb-4" role="alert">
+                <i class="material-symbols-rounded me-2">info</i>
+                <div class="flex-grow-1">
+                  <strong>QR Generator:</strong>
+                  <a href="qr-generator" target="_blank" class="alert-link ms-1">Open QR Generator Page</a>
+                  <span class="text-sm d-block">Use URL parameters: <code>?customer_id=xxx&customer_name=xxx</code></span>
+                </div>
+                <button class="btn btn-sm btn-outline-info ms-2" onclick="copyQRGeneratorUrl()">
+                  <i class="material-symbols-rounded text-sm">content_copy</i> Copy URL
+                </button>
+              </div>
+
+              <!-- Default Settings -->
+              <h6 class="text-uppercase text-xs font-weight-bolder text-secondary mb-3">
+                <i class="material-symbols-rounded text-sm me-1">settings</i> Default Settings
+              </h6>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Default Token Expiry</div>
+                  <div class="setting-description">How long QR verification links remain valid</div>
+                </div>
+                <div class="setting-control d-flex align-items-center gap-3">
+                  <input type="range" class="form-range threshold-slider" min="1" max="30" value="5" id="qr-token-expiry" oninput="updateQRValue('token-expiry', this.value, ' min')">
+                  <span class="threshold-value" id="qr-token-expiry-value">5 min</span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Default Journey ID</div>
+                  <div class="setting-description">Uqudo journey configuration to use when not specified</div>
+                </div>
+                <div class="setting-control">
+                  <input type="text" class="form-control form-control-sm" id="qr-default-journey" placeholder="e.g., journey_abc123" style="width: 200px;">
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Allow One-Time Use Only</div>
+                  <div class="setting-description">Each QR code can only be scanned once</div>
+                </div>
+                <div class="setting-control">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="qr-one-time-use" checked>
+                  </div>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Enable Session Tracking</div>
+                  <div class="setting-description">Track QR sessions in analytics dashboard</div>
+                </div>
+                <div class="setting-control">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="qr-session-tracking" checked>
+                  </div>
+                </div>
+              </div>
+
+              <!-- B2B Customers List -->
+              <h6 class="text-uppercase text-xs font-weight-bolder text-secondary mt-4 mb-3">
+                <i class="material-symbols-rounded text-sm me-1">business</i> B2B Customers
+              </h6>
+
+              <div id="qr-customers-list">
+                <div class="text-center py-4">
+                  <div class="spinner-border spinner-border-sm text-info" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Save Button -->
+              <div class="text-end mt-4 pt-3 border-top">
+                <button class="btn bg-gradient-info" onclick="saveQRConfig()">
+                  <i class="material-symbols-rounded text-sm">save</i> Save QR Configuration
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Supported Countries -->
       <div class="row mb-4">
         <div class="col-12">
@@ -909,6 +1015,147 @@
 
     </div>
   </main>
+
+  <!-- Add B2B Customer Modal -->
+  <div class="modal fade" id="addCustomerModal" tabindex="-1" aria-labelledby="addCustomerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addCustomerModalLabel">
+            <i class="material-symbols-rounded me-2 text-info">business</i>Add B2B Customer
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Customer ID <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="customer-id" placeholder="e.g., vfs-global">
+                <small class="text-muted">Unique identifier used in QR links</small>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Customer Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="customer-name-input" placeholder="e.g., VFS Global">
+                <small class="text-muted">Display name shown to end users</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Contact Email</label>
+                <input type="email" class="form-control" id="customer-email" placeholder="e.g., admin@vfsglobal.com">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Journey ID</label>
+                <input type="text" class="form-control" id="customer-journey-id" placeholder="Override default journey">
+                <small class="text-muted">Leave empty to use default</small>
+              </div>
+            </div>
+          </div>
+
+          <hr class="horizontal dark my-3">
+          <h6 class="text-sm mb-3"><i class="material-symbols-rounded text-sm me-1">webhook</i> Webhook Configuration</h6>
+
+          <div class="mb-3">
+            <label class="form-label">Primary Webhook URL <span class="text-danger">*</span></label>
+            <input type="url" class="form-control" id="customer-webhook-url" placeholder="https://api.customer.com/webhooks/kyc">
+            <small class="text-muted">Receives SDK verification results in real-time</small>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Webhook Secret</label>
+                <div class="input-group">
+                  <input type="password" class="form-control" id="customer-webhook-secret" placeholder="For signature verification">
+                  <button class="btn btn-outline-secondary" type="button" onclick="generateWebhookSecret()">
+                    <i class="material-symbols-rounded text-sm">autorenew</i>
+                  </button>
+                </div>
+                <small class="text-muted">Used to sign webhook payloads</small>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Webhook Events</label>
+                <select class="form-select" id="customer-webhook-events" multiple>
+                  <option value="session.started" selected>Session Started</option>
+                  <option value="session.completed" selected>Session Completed</option>
+                  <option value="session.failed" selected>Session Failed</option>
+                  <option value="session.expired">Session Expired</option>
+                  <option value="verification.approved">Verification Approved</option>
+                  <option value="verification.rejected">Verification Rejected</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Secondary Webhook URL (Optional)</label>
+            <input type="url" class="form-control" id="customer-webhook-secondary" placeholder="https://backup.customer.com/webhooks/kyc">
+            <small class="text-muted">Backup webhook for redundancy</small>
+          </div>
+
+          <hr class="horizontal dark my-3">
+          <h6 class="text-sm mb-3"><i class="material-symbols-rounded text-sm me-1">tune</i> Customer Settings</h6>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Token Expiry (minutes)</label>
+                <input type="number" class="form-control" id="customer-token-expiry" value="5" min="1" max="60">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Daily Verification Limit</label>
+                <input type="number" class="form-control" id="customer-daily-limit" placeholder="Unlimited if empty">
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" id="customer-is-active" checked>
+                <label class="form-check-label" for="customer-is-active">Active</label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" id="customer-sandbox-mode">
+                <label class="form-check-label" for="customer-sandbox-mode">Sandbox Mode (Testing)</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Allowed IP Addresses (Optional)</label>
+            <input type="text" class="form-control" id="customer-allowed-ips" placeholder="e.g., 192.168.1.1, 10.0.0.0/24">
+            <small class="text-muted">Comma-separated list of IPs that can generate QR codes. Leave empty for no restriction.</small>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Notes</label>
+            <textarea class="form-control" id="customer-notes" rows="2" placeholder="Internal notes about this customer"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn bg-gradient-info" onclick="saveCustomer()">
+            <i class="material-symbols-rounded text-sm">save</i> Save Customer
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Add Country Modal -->
   <div class="modal fade" id="addCountryModal" tabindex="-1" aria-labelledby="addCountryModalLabel" aria-hidden="true">
@@ -987,6 +1234,8 @@
       loadGeneralSettings();
       loadRiskThresholds();
       loadCountries();
+      loadQRConfig();
+      loadQRCustomers();
       initSliderTooltips();
     });
 
@@ -1457,6 +1706,357 @@
         .split('')
         .map(char => 127397 + char.charCodeAt());
       return String.fromCodePoint(...codePoints);
+    }
+
+    // =====================================================
+    // QR VERIFICATION CONFIGURATION
+    // =====================================================
+
+    // In-memory storage for QR customers (will be replaced with API calls)
+    let qrCustomers = [];
+
+    // Load QR configuration
+    async function loadQRConfig() {
+      try {
+        const response = await api.getKYCSetup();
+        if (response.success && response.data && response.data.qr_config) {
+          const config = response.data.qr_config;
+          if (config.token_expiry_minutes) {
+            document.getElementById('qr-token-expiry').value = config.token_expiry_minutes;
+            updateQRValue('token-expiry', config.token_expiry_minutes, ' min');
+          }
+          if (config.default_journey_id) {
+            document.getElementById('qr-default-journey').value = config.default_journey_id;
+          }
+          document.getElementById('qr-one-time-use').checked = config.one_time_use !== false;
+          document.getElementById('qr-session-tracking').checked = config.session_tracking !== false;
+        }
+      } catch (error) {
+        console.error('Failed to load QR config:', error);
+      }
+    }
+
+    // Load QR customers list
+    async function loadQRCustomers() {
+      const container = document.getElementById('qr-customers-list');
+
+      try {
+        // Try to load from API - fall back to localStorage for demo
+        let customers = [];
+        try {
+          const response = await api.request('/config/qr-customers');
+          if (response.success) {
+            customers = response.data || [];
+          }
+        } catch (e) {
+          // Fall back to localStorage
+          customers = JSON.parse(localStorage.getItem('qr_customers') || '[]');
+        }
+
+        qrCustomers = customers;
+
+        if (customers.length === 0) {
+          container.innerHTML = `
+            <div class="text-center py-4">
+              <i class="material-symbols-rounded text-secondary" style="font-size: 48px;">business</i>
+              <p class="text-secondary mb-2">No B2B customers configured</p>
+              <button class="btn btn-sm bg-gradient-info" onclick="openAddCustomerModal()">
+                <i class="material-symbols-rounded text-sm">add</i> Add First Customer
+              </button>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="table-responsive">
+            <table class="table table-hover align-items-center mb-0">
+              <thead>
+                <tr>
+                  <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Customer</th>
+                  <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Webhook</th>
+                  <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 text-center">Status</th>
+                  <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 text-center">Sessions</th>
+                  <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${customers.map(customer => `
+                  <tr>
+                    <td>
+                      <div class="d-flex px-2 py-1">
+                        <div class="d-flex flex-column justify-content-center">
+                          <h6 class="mb-0 text-sm">${customer.name}</h6>
+                          <p class="text-xs text-secondary mb-0">
+                            <code>${customer.id}</code>
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <p class="text-xs mb-0 text-truncate" style="max-width: 200px;" title="${customer.webhook_url || 'Not configured'}">
+                        ${customer.webhook_url ? `<i class="material-symbols-rounded text-success text-xs">check_circle</i> ${new URL(customer.webhook_url).hostname}` : '<span class="text-warning"><i class="material-symbols-rounded text-xs">warning</i> Not configured</span>'}
+                      </p>
+                    </td>
+                    <td class="text-center">
+                      <span class="badge badge-sm ${customer.is_active ? 'bg-gradient-success' : 'bg-gradient-secondary'}">
+                        ${customer.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                      ${customer.sandbox_mode ? '<span class="badge badge-sm bg-gradient-warning ms-1">Sandbox</span>' : ''}
+                    </td>
+                    <td class="text-center">
+                      <span class="text-xs font-weight-bold">${customer.session_count || 0}</span>
+                    </td>
+                    <td class="text-end">
+                      <button class="btn btn-link text-info mb-0 px-2" onclick="copyCustomerQRUrl('${customer.id}', '${customer.name}')" title="Copy QR URL">
+                        <i class="material-symbols-rounded text-sm">link</i>
+                      </button>
+                      <button class="btn btn-link text-secondary mb-0 px-2" onclick="editCustomer('${customer.id}')" title="Edit">
+                        <i class="material-symbols-rounded text-sm">edit</i>
+                      </button>
+                      <button class="btn btn-link text-danger mb-0 px-2" onclick="deleteCustomer('${customer.id}')" title="Delete">
+                        <i class="material-symbols-rounded text-sm">delete</i>
+                      </button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } catch (error) {
+        console.error('Failed to load QR customers:', error);
+        container.innerHTML = `
+          <div class="text-center py-4 text-danger">
+            <i class="material-symbols-rounded">error</i>
+            <p>Failed to load customers</p>
+          </div>
+        `;
+      }
+    }
+
+    // Update QR value display
+    function updateQRValue(type, value, suffix) {
+      document.getElementById(`qr-${type}-value`).textContent = `${value}${suffix}`;
+    }
+
+    // Copy QR Generator URL
+    function copyQRGeneratorUrl() {
+      const url = `${window.location.origin}/pages/qr-generator`;
+      navigator.clipboard.writeText(url).then(() => {
+        showSuccess('QR Generator URL copied to clipboard');
+      }).catch(() => {
+        showError('Failed to copy URL');
+      });
+    }
+
+    // Copy customer-specific QR URL
+    function copyCustomerQRUrl(customerId, customerName) {
+      const url = `${window.location.origin}/pages/qr-generator?customer_id=${encodeURIComponent(customerId)}&customer_name=${encodeURIComponent(customerName)}`;
+      navigator.clipboard.writeText(url).then(() => {
+        showSuccess(`QR URL for ${customerName} copied to clipboard`);
+      }).catch(() => {
+        showError('Failed to copy URL');
+      });
+    }
+
+    // Open add customer modal
+    function openAddCustomerModal() {
+      // Reset form
+      document.getElementById('customer-id').value = '';
+      document.getElementById('customer-name-input').value = '';
+      document.getElementById('customer-email').value = '';
+      document.getElementById('customer-journey-id').value = '';
+      document.getElementById('customer-webhook-url').value = '';
+      document.getElementById('customer-webhook-secret').value = '';
+      document.getElementById('customer-webhook-secondary').value = '';
+      document.getElementById('customer-token-expiry').value = '5';
+      document.getElementById('customer-daily-limit').value = '';
+      document.getElementById('customer-is-active').checked = true;
+      document.getElementById('customer-sandbox-mode').checked = false;
+      document.getElementById('customer-allowed-ips').value = '';
+      document.getElementById('customer-notes').value = '';
+
+      // Reset webhook events selection
+      const eventsSelect = document.getElementById('customer-webhook-events');
+      Array.from(eventsSelect.options).forEach(option => {
+        option.selected = ['session.started', 'session.completed', 'session.failed'].includes(option.value);
+      });
+
+      const modal = new bootstrap.Modal(document.getElementById('addCustomerModal'));
+      modal.show();
+    }
+
+    // Generate webhook secret
+    function generateWebhookSecret() {
+      const array = new Uint8Array(32);
+      crypto.getRandomValues(array);
+      const secret = Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+      document.getElementById('customer-webhook-secret').value = secret;
+      document.getElementById('customer-webhook-secret').type = 'text';
+      setTimeout(() => {
+        document.getElementById('customer-webhook-secret').type = 'password';
+      }, 3000);
+    }
+
+    // Save customer
+    async function saveCustomer() {
+      const customerId = document.getElementById('customer-id').value.trim();
+      const customerName = document.getElementById('customer-name-input').value.trim();
+      const webhookUrl = document.getElementById('customer-webhook-url').value.trim();
+
+      if (!customerId || !customerName) {
+        showError('Customer ID and Name are required');
+        return;
+      }
+
+      if (!webhookUrl) {
+        showError('Primary Webhook URL is required');
+        return;
+      }
+
+      // Validate webhook URL
+      try {
+        new URL(webhookUrl);
+      } catch (e) {
+        showError('Invalid webhook URL format');
+        return;
+      }
+
+      const eventsSelect = document.getElementById('customer-webhook-events');
+      const selectedEvents = Array.from(eventsSelect.selectedOptions).map(opt => opt.value);
+
+      const customerData = {
+        id: customerId.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+        name: customerName,
+        email: document.getElementById('customer-email').value.trim() || null,
+        journey_id: document.getElementById('customer-journey-id').value.trim() || null,
+        webhook_url: webhookUrl,
+        webhook_secret: document.getElementById('customer-webhook-secret').value || null,
+        webhook_secondary: document.getElementById('customer-webhook-secondary').value.trim() || null,
+        webhook_events: selectedEvents,
+        token_expiry_minutes: parseInt(document.getElementById('customer-token-expiry').value) || 5,
+        daily_limit: document.getElementById('customer-daily-limit').value ? parseInt(document.getElementById('customer-daily-limit').value) : null,
+        is_active: document.getElementById('customer-is-active').checked,
+        sandbox_mode: document.getElementById('customer-sandbox-mode').checked,
+        allowed_ips: document.getElementById('customer-allowed-ips').value.trim() || null,
+        notes: document.getElementById('customer-notes').value.trim() || null,
+        created_at: new Date().toISOString(),
+        session_count: 0
+      };
+
+      try {
+        // Try to save via API
+        try {
+          const response = await api.request('/config/qr-customers', {
+            method: 'POST',
+            body: JSON.stringify(customerData)
+          });
+          if (!response.success) {
+            throw new Error(response.error);
+          }
+        } catch (e) {
+          // Fall back to localStorage
+          const customers = JSON.parse(localStorage.getItem('qr_customers') || '[]');
+          const existingIndex = customers.findIndex(c => c.id === customerData.id);
+          if (existingIndex >= 0) {
+            customers[existingIndex] = customerData;
+          } else {
+            customers.push(customerData);
+          }
+          localStorage.setItem('qr_customers', JSON.stringify(customers));
+        }
+
+        showSuccess('Customer saved successfully');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addCustomerModal'));
+        modal.hide();
+        loadQRCustomers();
+      } catch (error) {
+        console.error('Failed to save customer:', error);
+        showError('Failed to save customer');
+      }
+    }
+
+    // Edit customer
+    function editCustomer(customerId) {
+      const customer = qrCustomers.find(c => c.id === customerId);
+      if (!customer) {
+        showError('Customer not found');
+        return;
+      }
+
+      document.getElementById('customer-id').value = customer.id;
+      document.getElementById('customer-name-input').value = customer.name;
+      document.getElementById('customer-email').value = customer.email || '';
+      document.getElementById('customer-journey-id').value = customer.journey_id || '';
+      document.getElementById('customer-webhook-url').value = customer.webhook_url || '';
+      document.getElementById('customer-webhook-secret').value = customer.webhook_secret || '';
+      document.getElementById('customer-webhook-secondary').value = customer.webhook_secondary || '';
+      document.getElementById('customer-token-expiry').value = customer.token_expiry_minutes || 5;
+      document.getElementById('customer-daily-limit').value = customer.daily_limit || '';
+      document.getElementById('customer-is-active').checked = customer.is_active !== false;
+      document.getElementById('customer-sandbox-mode').checked = customer.sandbox_mode || false;
+      document.getElementById('customer-allowed-ips').value = customer.allowed_ips || '';
+      document.getElementById('customer-notes').value = customer.notes || '';
+
+      // Set webhook events
+      const eventsSelect = document.getElementById('customer-webhook-events');
+      Array.from(eventsSelect.options).forEach(option => {
+        option.selected = (customer.webhook_events || []).includes(option.value);
+      });
+
+      const modal = new bootstrap.Modal(document.getElementById('addCustomerModal'));
+      modal.show();
+    }
+
+    // Delete customer
+    async function deleteCustomer(customerId) {
+      const customer = qrCustomers.find(c => c.id === customerId);
+      const confirmed = await confirmAction(`Are you sure you want to delete ${customer?.name || customerId}?`, 'Delete Customer');
+
+      if (confirmed) {
+        try {
+          // Try to delete via API
+          try {
+            await api.request(`/config/qr-customers/${customerId}`, { method: 'DELETE' });
+          } catch (e) {
+            // Fall back to localStorage
+            const customers = JSON.parse(localStorage.getItem('qr_customers') || '[]');
+            const filtered = customers.filter(c => c.id !== customerId);
+            localStorage.setItem('qr_customers', JSON.stringify(filtered));
+          }
+
+          showSuccess('Customer deleted successfully');
+          loadQRCustomers();
+        } catch (error) {
+          console.error('Failed to delete customer:', error);
+          showError('Failed to delete customer');
+        }
+      }
+    }
+
+    // Save QR configuration
+    async function saveQRConfig() {
+      const config = {
+        qr_config: {
+          token_expiry_minutes: parseInt(document.getElementById('qr-token-expiry').value),
+          default_journey_id: document.getElementById('qr-default-journey').value.trim() || null,
+          one_time_use: document.getElementById('qr-one-time-use').checked,
+          session_tracking: document.getElementById('qr-session-tracking').checked
+        }
+      };
+
+      try {
+        const response = await api.updateKYCSetup(config);
+        if (response.success) {
+          showSuccess('QR configuration saved successfully');
+        } else {
+          showError(response.error || 'Failed to save QR configuration');
+        }
+      } catch (error) {
+        console.error('Failed to save QR config:', error);
+        showError('Failed to save QR configuration');
+      }
     }
 
     function logout() {
