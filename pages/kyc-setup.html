@@ -914,8 +914,43 @@
                 </button>
               </div>
 
-              <!-- Default Settings -->
+              <!-- URL Configuration -->
               <h6 class="text-uppercase text-xs font-weight-bolder text-secondary mb-3">
+                <i class="material-symbols-rounded text-sm me-1">link</i> URL Configuration
+              </h6>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Verification Portal Base URL</div>
+                  <div class="setting-description">Base URL for QR verification links (change if hosting changes)</div>
+                </div>
+                <div class="setting-control">
+                  <input type="text" class="form-control form-control-sm" id="qr-base-url" placeholder="https://your-domain.com" style="width: 300px;">
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Deep Link Scheme</div>
+                  <div class="setting-description">App deep link scheme for mobile app integration</div>
+                </div>
+                <div class="setting-control">
+                  <input type="text" class="form-control form-control-sm" id="qr-deep-link-scheme" placeholder="uqudo://verify" style="width: 250px;">
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Universal Link Base</div>
+                  <div class="setting-description">Universal link for iOS/Android app association</div>
+                </div>
+                <div class="setting-control">
+                  <input type="text" class="form-control form-control-sm" id="qr-universal-link" placeholder="https://uqudo.app/verify" style="width: 300px;">
+                </div>
+              </div>
+
+              <!-- Default Settings -->
+              <h6 class="text-uppercase text-xs font-weight-bolder text-secondary mt-4 mb-3">
                 <i class="material-symbols-rounded text-sm me-1">settings</i> Default Settings
               </h6>
 
@@ -1721,6 +1756,26 @@
         const response = await api.getKYCSetup();
         if (response.success && response.data && response.data.qr_config) {
           const config = response.data.qr_config;
+
+          // URL Configuration
+          if (config.base_url) {
+            document.getElementById('qr-base-url').value = config.base_url;
+          } else {
+            // Set default based on current location
+            document.getElementById('qr-base-url').value = window.location.origin;
+          }
+          if (config.deep_link_scheme) {
+            document.getElementById('qr-deep-link-scheme').value = config.deep_link_scheme;
+          } else {
+            document.getElementById('qr-deep-link-scheme').value = 'uqudo://verify';
+          }
+          if (config.universal_link_base) {
+            document.getElementById('qr-universal-link').value = config.universal_link_base;
+          } else {
+            document.getElementById('qr-universal-link').value = 'https://uqudo.app/verify';
+          }
+
+          // Default Settings
           if (config.token_expiry_minutes) {
             document.getElementById('qr-token-expiry').value = config.token_expiry_minutes;
             updateQRValue('token-expiry', config.token_expiry_minutes, ' min');
@@ -1730,9 +1785,18 @@
           }
           document.getElementById('qr-one-time-use').checked = config.one_time_use !== false;
           document.getElementById('qr-session-tracking').checked = config.session_tracking !== false;
+        } else {
+          // Set defaults when no config exists
+          document.getElementById('qr-base-url').value = window.location.origin;
+          document.getElementById('qr-deep-link-scheme').value = 'uqudo://verify';
+          document.getElementById('qr-universal-link').value = 'https://uqudo.app/verify';
         }
       } catch (error) {
         console.error('Failed to load QR config:', error);
+        // Set defaults on error
+        document.getElementById('qr-base-url').value = window.location.origin;
+        document.getElementById('qr-deep-link-scheme').value = 'uqudo://verify';
+        document.getElementById('qr-universal-link').value = 'https://uqudo.app/verify';
       }
     }
 
@@ -2037,8 +2101,23 @@
 
     // Save QR configuration
     async function saveQRConfig() {
+      const baseUrl = document.getElementById('qr-base-url').value.trim();
+      const deepLinkScheme = document.getElementById('qr-deep-link-scheme').value.trim();
+      const universalLink = document.getElementById('qr-universal-link').value.trim();
+
+      // Validate base URL
+      if (baseUrl && !baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+        showError('Base URL must start with http:// or https://');
+        return;
+      }
+
       const config = {
         qr_config: {
+          // URL Configuration
+          base_url: baseUrl || window.location.origin,
+          deep_link_scheme: deepLinkScheme || 'uqudo://verify',
+          universal_link_base: universalLink || 'https://uqudo.app/verify',
+          // Default Settings
           token_expiry_minutes: parseInt(document.getElementById('qr-token-expiry').value),
           default_journey_id: document.getElementById('qr-default-journey').value.trim() || null,
           one_time_use: document.getElementById('qr-one-time-use').checked,

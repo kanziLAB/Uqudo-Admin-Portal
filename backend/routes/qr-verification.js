@@ -113,9 +113,27 @@ router.post('/generate', asyncHandler(async (req, res) => {
 
   // Build the verification URL that works on web (redirects to app or shows instructions)
   // This URL points to the Admin Portal's verify page which handles app detection
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : process.env.APP_URL || 'https://uqudo-admin-portal.vercel.app';
+  // First, try to get configured base URL from KYC setup
+  let configuredBaseUrl = null;
+  try {
+    const { data: kycConfig } = await supabaseAdmin
+      .from('kyc_setup')
+      .select('qr_config')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (kycConfig?.qr_config?.base_url) {
+      configuredBaseUrl = kycConfig.qr_config.base_url;
+    }
+  } catch (e) {
+    // Ignore config lookup errors - use defaults
+  }
+
+  const baseUrl = configuredBaseUrl
+    || process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`
+    || process.env.APP_URL
+    || 'https://uqudo-admin-portal.vercel.app';
   const webVerifyLink = `${baseUrl}/pages/verify?token=${token}&session=${sessionId}`;
 
   // Return response
