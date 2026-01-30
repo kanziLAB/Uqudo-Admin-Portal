@@ -62,12 +62,23 @@ app.listen(PORT, () => {
 Frontend URL: http://localhost:${PORT}
 Login Page: http://localhost:${PORT}/pages/uqudo-sign-in
 Dashboard: http://localhost:${PORT}/pages/uqudo-dashboard
+QR Generator: http://localhost:${PORT}/pages/qr-generator (Public - No Auth)
 Clean URLs: Enabled (no .html extension needed)
 ============================================================
 Examples:
   - http://localhost:${PORT}/pages/uqudo-sign-in (works)
   - http://localhost:${PORT}/pages/accounts (works)
   - http://localhost:${PORT}/pages/alerts (works)
+  - http://localhost:${PORT}/pages/qr-generator (works - PUBLIC)
+============================================================
+QR Generator URL Parameters:
+  - customer_id: B2B customer identifier (e.g., vfs-global)
+  - customer_name: Display name (e.g., VFS Global)
+  - journey_id: Uqudo journey configuration ID
+  - reference_id: Customer reference (e.g., application number)
+  - expiry: Token expiry in minutes (default: 5)
+Example:
+  http://localhost:${PORT}/pages/qr-generator?customer_id=vfs-global&customer_name=VFS%20Global
 ============================================================
   `);
 });

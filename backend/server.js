@@ -21,6 +21,7 @@ import usersRoutes from './routes/users.js';
 import rolesRoutes from './routes/roles.js';
 import permissionsRoutes from './routes/permissions.js';
 import ssoRoutes from './routes/sso.js';
+import qrVerificationRoutes from './routes/qr-verification.js';
 
 // Import middleware
 import { authenticate } from './middleware/auth.js';
@@ -97,6 +98,10 @@ app.use('/api/auth', authRoutes);
 // Use authentication if you want to require it: authenticate, auditLogger,
 app.use('/api/sdk-verification', sdkVerificationRoutes);
 app.use('/api/sdk-verification', sdkVerificationJWSRoutes);
+
+// QR-based verification endpoints - public for B2B customer links
+// Allows VFS Global and other customers to generate verification links
+app.use('/api/qr-verification', qrVerificationRoutes);
 
 // Protected routes (authentication required)
 app.use('/api/dashboard', authenticate, auditLogger, dashboardRoutes);
