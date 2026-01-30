@@ -107,15 +107,6 @@
       100% { opacity: 1; transform: scale(1); }
     }
 
-    .customer-badge {
-      background: linear-gradient(135deg, #00c6fb 0%, #005bea 100%);
-      color: white;
-      padding: 0.3rem 0.8rem;
-      border-radius: 15px;
-      font-size: 0.85rem;
-      font-weight: 500;
-    }
-
     .loading-skeleton {
       background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
       background-size: 200% 100%;
@@ -176,33 +167,16 @@
     </div>
   </div>
 
-  <div class="container position-sticky z-index-sticky top-0">
-    <div class="row">
-      <div class="col-12">
-        <!-- Navbar -->
-        <nav class="navbar navbar-expand-lg blur border-radius-xl top-0 z-index-3 shadow position-absolute my-3 py-2 start-0 end-0 mx-4">
-          <div class="container-fluid ps-2 pe-0">
-            <a class="navbar-brand font-weight-bolder ms-lg-0 ms-3" href="#">
-              <img src="../assets/img/uqudo-logo.svg" alt="Uqudo Logo" style="height: 32px;">
-            </a>
-            <div class="ms-auto d-flex align-items-center">
-              <span id="customer-badge" class="customer-badge d-none">
-                <i class="fas fa-building me-1"></i>
-                <span id="customer-name">Customer</span>
-              </span>
-            </div>
-          </div>
-        </nav>
-      </div>
-    </div>
-  </div>
-
   <main class="main-content mt-0">
     <div class="page-header align-items-start min-vh-100" style="background-image: url('https://images.unsplash.com/photo-1557683316-973673baf926?ixlib=rb-4.0.3&auto=format&fit=crop&w=2029&q=80');">
       <span class="mask bg-gradient-info opacity-6"></span>
-      <div class="container my-auto pt-6">
+      <div class="container my-auto pt-4">
         <div class="row justify-content-center">
           <div class="col-lg-5 col-md-8 col-12">
+            <!-- Centered Logo -->
+            <div class="text-center mb-4">
+              <img src="../assets/img/uqudo-logo.svg" alt="Uqudo Logo" style="height: 40px; filter: brightness(0) invert(1);">
+            </div>
             <div class="card z-index-0 fadeIn3 fadeInBottom">
               <div class="card-body text-center pt-4">
                 <!-- Error State -->
@@ -377,12 +351,6 @@
     // Initialize page
     async function init() {
       const params = getUrlParams();
-
-      // Show customer name if provided
-      if (params.customerName) {
-        document.getElementById('customer-name').textContent = params.customerName;
-        document.getElementById('customer-badge').classList.remove('d-none');
-      }
 
       try {
         // Generate QR token and session
