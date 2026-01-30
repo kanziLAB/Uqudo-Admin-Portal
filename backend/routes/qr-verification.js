@@ -245,9 +245,15 @@ router.post('/init', asyncHandler(async (req, res) => {
     tokenData.status = 'pending';
     delete tokenData.initialized_at;
 
+    // Return more specific error message
+    const errorMessage = authError.code === 'NO_CREDENTIALS'
+      ? 'Uqudo API credentials not configured. Please configure them in KYC Setup.'
+      : `Failed to initialize verification session: ${authError.message}`;
+
     return res.status(500).json({
       success: false,
-      error: 'Failed to initialize verification session'
+      error: errorMessage,
+      details: authError.code || 'AUTH_FAILED'
     });
   }
 
@@ -495,7 +501,12 @@ async function getUqudoAccessToken(customerId = null) {
 
   if (!clientId || !clientSecret) {
     console.error('❌ Uqudo credentials not configured');
-    throw new Error('Uqudo API credentials are not configured. Please configure them in the KYC Setup page or add a B2B customer with credentials.');
+    console.error(`   Client ID present: ${!!clientId}`);
+    console.error(`   Client Secret present: ${!!clientSecret}`);
+    console.error(`   Source attempted: ${credentialsSource}`);
+    const error = new Error('Uqudo API credentials are not configured. Please configure them in the KYC Setup page or add a B2B customer with credentials.');
+    error.code = 'NO_CREDENTIALS';
+    throw error;
   }
 
   console.log(`🔐 Requesting Uqudo OAuth token (source: ${credentialsSource})...`);
