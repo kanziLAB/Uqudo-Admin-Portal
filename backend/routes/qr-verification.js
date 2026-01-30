@@ -111,15 +111,22 @@ router.post('/generate', asyncHandler(async (req, res) => {
     }
   }, expiry_minutes * 60 * 1000);
 
+  // Build the verification URL that works on web (redirects to app or shows instructions)
+  // This URL points to the Admin Portal's verify page which handles app detection
+  const baseUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : process.env.APP_URL || 'https://uqudo-admin-portal.vercel.app';
+  const webVerifyLink = `${baseUrl}/pages/verify?token=${token}&session=${sessionId}`;
+
   // Return response
   res.json({
     success: true,
     data: {
       token,
       session_id: sessionId,
-      deep_link: deepLink,
-      universal_link: `${UNIVERSAL_LINK_BASE}?token=${token}`,
-      qr_data: deepLink, // Data to encode in QR
+      deep_link: deepLink,                          // uqudo://verify?token=... (for apps)
+      universal_link: webVerifyLink,                 // https://...verify?token=... (web fallback)
+      qr_data: webVerifyLink,                        // Use web link for QR (more universal)
       expires_at: expiresAt.toISOString(),
       expires_in_seconds: expiry_minutes * 60,
       customer: {
