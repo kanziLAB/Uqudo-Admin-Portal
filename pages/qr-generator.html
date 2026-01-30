@@ -408,13 +408,15 @@
 
         currentSession = data.data;
 
-        // Generate QR code with deep link
-        const deepLink = currentSession.deep_link || `${DEEP_LINK_SCHEME}?token=${currentSession.token}`;
-        generateQRCode(deepLink);
+        // Generate QR code with web verification link (universal_link or qr_data)
+        // This is a web URL that works on any device (not just mobile with app installed)
+        const verificationLink = currentSession.qr_data || currentSession.universal_link ||
+          `${window.location.origin}/pages/verify?token=${currentSession.token}&session=${currentSession.session_id}`;
+        generateQRCode(verificationLink);
 
         // Update UI
         document.getElementById('session-id').textContent = currentSession.session_id;
-        document.getElementById('deep-link-url').textContent = deepLink;
+        document.getElementById('deep-link-url').textContent = verificationLink;
 
         // Start countdown
         expiryTime = new Date(currentSession.expires_at);
