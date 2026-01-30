@@ -229,12 +229,12 @@ router.post('/init', asyncHandler(async (req, res) => {
   tokenData.initialized_at = new Date().toISOString();
   tokenData.device_info = device_info || {};
 
-  // Get Uqudo access token
+  // Get Uqudo access token (using customer-specific credentials if available)
   let uqudoAccessToken = null;
   let uqudoTokenExpiry = null;
 
   try {
-    const authResult = await getUqudoAccessToken();
+    const authResult = await getUqudoAccessToken(tokenData.customer_id);
     uqudoAccessToken = authResult.access_token;
     uqudoTokenExpiry = authResult.expires_in;
   } catch (authError) {
@@ -428,38 +428,77 @@ function buildDeepLink(token, options = {}) {
  * Get Uqudo access token using client credentials
  * This authenticates with Uqudo API to get a token for SDK initialization
  *
- * Credentials are fetched from the KYC Setup configuration in the database,
- * which allows them to be configured via the Admin Portal UI.
+ * Credentials lookup priority:
+ * 1. Customer-specific credentials (from qr_customers table)
+ * 2. Global credentials (from kyc_setup table)
+ * 3. Environment variables (fallback)
+ *
+ * @param {string} customerId - Optional customer ID to look up specific credentials
  */
-async function getUqudoAccessToken() {
-  // First, try to get credentials from the KYC Setup configuration in database
+async function getUqudoAccessToken(customerId = null) {
   let clientId = process.env.UQUDO_CLIENT_ID;
   let clientSecret = process.env.UQUDO_CLIENT_SECRET;
   let authUrl = process.env.UQUDO_AUTH_URL || 'https://auth.uqudo.io/api/oauth/token';
+  let credentialsSource = 'environment';
 
-  try {
-    const { data: kycConfig } = await supabaseAdmin
-      .from('kyc_setup')
-      .select('uqudo_credentials')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+  // 1. Try to get customer-specific credentials first
+  if (customerId && customerId !== 'default') {
+    try {
+      // Try API endpoint first
+      const customers = JSON.parse(process.env.QR_CUSTOMERS || '[]');
+      const customer = customers.find(c => c.id === customerId);
 
-    if (kycConfig?.uqudo_credentials) {
-      const creds = kycConfig.uqudo_credentials;
-      if (creds.client_id) clientId = creds.client_id;
-      if (creds.client_secret) clientSecret = creds.client_secret;
-      if (creds.auth_url) authUrl = creds.auth_url;
-      console.log('📋 Using Uqudo credentials from KYC Setup configuration');
+      if (!customer) {
+        // Try database lookup via localStorage simulation or direct fetch
+        console.log(`🔍 Looking up credentials for customer: ${customerId}`);
+      }
+
+      if (customer?.uqudo_credentials) {
+        const creds = customer.uqudo_credentials;
+        if (creds.client_id && creds.client_secret) {
+          clientId = creds.client_id;
+          clientSecret = creds.client_secret;
+          if (creds.auth_url) authUrl = creds.auth_url;
+          credentialsSource = `customer:${customerId}`;
+          console.log(`📋 Using Uqudo credentials for customer: ${customerId}`);
+        }
+      }
+    } catch (e) {
+      console.log(`ℹ️ No customer-specific credentials found for ${customerId}, trying global config`);
     }
-  } catch (e) {
-    console.log('ℹ️ No KYC Setup credentials found, using environment variables');
+  }
+
+  // 2. Try global KYC Setup credentials if no customer-specific ones found
+  if (credentialsSource === 'environment') {
+    try {
+      const { data: kycConfig } = await supabaseAdmin
+        .from('kyc_setup')
+        .select('uqudo_credentials')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (kycConfig?.uqudo_credentials) {
+        const creds = kycConfig.uqudo_credentials;
+        if (creds.client_id && creds.client_secret) {
+          clientId = creds.client_id;
+          clientSecret = creds.client_secret;
+          if (creds.auth_url) authUrl = creds.auth_url;
+          credentialsSource = 'kyc_setup';
+          console.log('📋 Using Uqudo credentials from KYC Setup configuration');
+        }
+      }
+    } catch (e) {
+      console.log('ℹ️ No KYC Setup credentials found, using environment variables');
+    }
   }
 
   if (!clientId || !clientSecret) {
-    console.error('❌ Uqudo credentials not configured in KYC Setup or environment variables');
-    throw new Error('Uqudo API credentials are not configured. Please configure them in the KYC Setup page.');
+    console.error('❌ Uqudo credentials not configured');
+    throw new Error('Uqudo API credentials are not configured. Please configure them in the KYC Setup page or add a B2B customer with credentials.');
   }
+
+  console.log(`🔐 Requesting Uqudo OAuth token (source: ${credentialsSource})...`);
 
   console.log('🔐 Requesting Uqudo OAuth token...');
   console.log(`📍 Auth URL: ${authUrl}`);

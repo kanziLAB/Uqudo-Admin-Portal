@@ -1225,6 +1225,44 @@
             <label class="form-label">Notes</label>
             <textarea class="form-control" id="customer-notes" rows="2" placeholder="Internal notes about this customer"></textarea>
           </div>
+
+          <hr class="horizontal dark my-3">
+          <h6 class="text-sm mb-3">
+            <i class="material-symbols-rounded text-sm me-1">key</i> Uqudo API Credentials
+            <span class="badge bg-warning ms-2">Required</span>
+          </h6>
+          <p class="text-xs text-muted mb-3">
+            <i class="material-symbols-rounded text-warning" style="font-size: 14px; vertical-align: middle;">info</i>
+            Each customer needs their own Uqudo API credentials. These are provided by Uqudo when the customer account is created.
+          </p>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Uqudo Client ID <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="customer-uqudo-client-id" placeholder="e.g., 456edf22-e887-4a32-b2e5-...">
+                <small class="text-muted">Client ID from Uqudo dashboard</small>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Uqudo Client Secret <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <input type="password" class="form-control" id="customer-uqudo-client-secret" placeholder="••••••••••••••••">
+                  <button class="btn btn-outline-secondary" type="button" onclick="toggleCustomerSecretVisibility()">
+                    <i class="material-symbols-rounded text-sm" id="customer-secret-toggle-icon">visibility</i>
+                  </button>
+                </div>
+                <small class="text-muted">Client Secret from Uqudo dashboard</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Auth URL (Optional)</label>
+            <input type="text" class="form-control" id="customer-uqudo-auth-url" placeholder="https://auth.uqudo.io/api/oauth/token">
+            <small class="text-muted">Leave empty to use default Uqudo production URL</small>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -2012,6 +2050,20 @@
       });
     }
 
+    // Toggle customer secret visibility
+    function toggleCustomerSecretVisibility() {
+      const secretInput = document.getElementById('customer-uqudo-client-secret');
+      const toggleIcon = document.getElementById('customer-secret-toggle-icon');
+
+      if (secretInput.type === 'password') {
+        secretInput.type = 'text';
+        toggleIcon.textContent = 'visibility_off';
+      } else {
+        secretInput.type = 'password';
+        toggleIcon.textContent = 'visibility';
+      }
+    }
+
     // Open add customer modal
     function openAddCustomerModal() {
       // Reset form
@@ -2028,6 +2080,11 @@
       document.getElementById('customer-sandbox-mode').checked = false;
       document.getElementById('customer-allowed-ips').value = '';
       document.getElementById('customer-notes').value = '';
+
+      // Reset Uqudo credentials
+      document.getElementById('customer-uqudo-client-id').value = '';
+      document.getElementById('customer-uqudo-client-secret').value = '';
+      document.getElementById('customer-uqudo-auth-url').value = '';
 
       // Reset webhook events selection
       const eventsSelect = document.getElementById('customer-webhook-events');
@@ -2057,6 +2114,11 @@
       const customerName = document.getElementById('customer-name-input').value.trim();
       const webhookUrl = document.getElementById('customer-webhook-url').value.trim();
 
+      // Get Uqudo credentials
+      const uqudoClientId = document.getElementById('customer-uqudo-client-id').value.trim();
+      const uqudoClientSecret = document.getElementById('customer-uqudo-client-secret').value.trim();
+      const uqudoAuthUrl = document.getElementById('customer-uqudo-auth-url').value.trim();
+
       if (!customerId || !customerName) {
         showError('Customer ID and Name are required');
         return;
@@ -2064,6 +2126,12 @@
 
       if (!webhookUrl) {
         showError('Primary Webhook URL is required');
+        return;
+      }
+
+      // Validate Uqudo credentials
+      if (!uqudoClientId || !uqudoClientSecret) {
+        showError('Uqudo Client ID and Client Secret are required');
         return;
       }
 
@@ -2093,6 +2161,12 @@
         sandbox_mode: document.getElementById('customer-sandbox-mode').checked,
         allowed_ips: document.getElementById('customer-allowed-ips').value.trim() || null,
         notes: document.getElementById('customer-notes').value.trim() || null,
+        // Uqudo API Credentials
+        uqudo_credentials: {
+          client_id: uqudoClientId,
+          client_secret: uqudoClientSecret,
+          auth_url: uqudoAuthUrl || 'https://auth.uqudo.io/api/oauth/token'
+        },
         created_at: new Date().toISOString(),
         session_count: 0
       };
@@ -2150,6 +2224,17 @@
       document.getElementById('customer-sandbox-mode').checked = customer.sandbox_mode || false;
       document.getElementById('customer-allowed-ips').value = customer.allowed_ips || '';
       document.getElementById('customer-notes').value = customer.notes || '';
+
+      // Load Uqudo credentials
+      if (customer.uqudo_credentials) {
+        document.getElementById('customer-uqudo-client-id').value = customer.uqudo_credentials.client_id || '';
+        document.getElementById('customer-uqudo-client-secret').value = customer.uqudo_credentials.client_secret || '';
+        document.getElementById('customer-uqudo-auth-url').value = customer.uqudo_credentials.auth_url || '';
+      } else {
+        document.getElementById('customer-uqudo-client-id').value = '';
+        document.getElementById('customer-uqudo-client-secret').value = '';
+        document.getElementById('customer-uqudo-auth-url').value = '';
+      }
 
       // Set webhook events
       const eventsSelect = document.getElementById('customer-webhook-events');
