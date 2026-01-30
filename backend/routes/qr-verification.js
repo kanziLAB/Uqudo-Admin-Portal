@@ -398,7 +398,7 @@ router.get('/debug-credentials', asyncHandler(async (req, res) => {
   const result = {
     env_client_id: !!process.env.UQUDO_CLIENT_ID,
     env_client_secret: !!process.env.UQUDO_CLIENT_SECRET,
-    env_auth_url: process.env.UQUDO_AUTH_URL || 'not set',
+    env_auth_url: (process.env.UQUDO_AUTH_URL || 'not set').trim(),
     kyc_setup_credentials: null,
     error: null
   };
@@ -407,7 +407,6 @@ router.get('/debug-credentials', asyncHandler(async (req, res) => {
     const { data: kycConfig, error } = await supabaseAdmin
       .from('kyc_setup')
       .select('id, uqudo_credentials, qr_config')
-      .order('created_at', { ascending: false })
       .limit(1)
       .single();
 
@@ -482,9 +481,9 @@ function buildDeepLink(token, options = {}) {
  * @param {string} customerId - Optional customer ID to look up specific credentials
  */
 async function getUqudoAccessToken(customerId = null) {
-  let clientId = process.env.UQUDO_CLIENT_ID;
-  let clientSecret = process.env.UQUDO_CLIENT_SECRET;
-  let authUrl = process.env.UQUDO_AUTH_URL || 'https://auth.uqudo.io/api/oauth/token';
+  let clientId = process.env.UQUDO_CLIENT_ID?.trim();
+  let clientSecret = process.env.UQUDO_CLIENT_SECRET?.trim();
+  let authUrl = (process.env.UQUDO_AUTH_URL || 'https://auth.uqudo.io/api/oauth/token').trim();
   let credentialsSource = 'environment';
 
   // 1. Try to get customer-specific credentials first
@@ -520,16 +519,15 @@ async function getUqudoAccessToken(customerId = null) {
       const { data: kycConfig } = await supabaseAdmin
         .from('kyc_setup')
         .select('uqudo_credentials')
-        .order('created_at', { ascending: false })
         .limit(1)
         .single();
 
       if (kycConfig?.uqudo_credentials) {
         const creds = kycConfig.uqudo_credentials;
         if (creds.client_id && creds.client_secret) {
-          clientId = creds.client_id;
-          clientSecret = creds.client_secret;
-          if (creds.auth_url) authUrl = creds.auth_url;
+          clientId = creds.client_id?.trim();
+          clientSecret = creds.client_secret?.trim();
+          if (creds.auth_url) authUrl = creds.auth_url.trim();
           credentialsSource = 'kyc_setup';
           console.log('📋 Using Uqudo credentials from KYC Setup configuration');
         }
