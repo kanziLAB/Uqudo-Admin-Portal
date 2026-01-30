@@ -949,6 +949,50 @@
                 </div>
               </div>
 
+              <!-- Uqudo API Credentials -->
+              <h6 class="text-uppercase text-xs font-weight-bolder text-secondary mt-4 mb-3">
+                <i class="material-symbols-rounded text-sm me-1">key</i> Uqudo API Credentials
+              </h6>
+              <p class="text-xs text-muted mb-3">
+                <i class="material-symbols-rounded text-warning" style="font-size: 14px; vertical-align: middle;">warning</i>
+                These credentials are used to generate OAuth tokens for mobile apps. Keep them secure.
+              </p>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Client ID</div>
+                  <div class="setting-description">Your Uqudo API Client ID</div>
+                </div>
+                <div class="setting-control">
+                  <input type="text" class="form-control form-control-sm" id="uqudo-client-id" placeholder="e.g., 456edf22-e887-4a32-b2e5-..." style="width: 350px;">
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Client Secret</div>
+                  <div class="setting-description">Your Uqudo API Client Secret</div>
+                </div>
+                <div class="setting-control">
+                  <div class="input-group" style="width: 350px;">
+                    <input type="password" class="form-control form-control-sm" id="uqudo-client-secret" placeholder="••••••••••••••••">
+                    <button class="btn btn-sm btn-outline-secondary" type="button" onclick="toggleSecretVisibility()">
+                      <i class="material-symbols-rounded text-sm" id="secret-toggle-icon">visibility</i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Auth URL</div>
+                  <div class="setting-description">OAuth token endpoint (default: Uqudo production)</div>
+                </div>
+                <div class="setting-control">
+                  <input type="text" class="form-control form-control-sm" id="uqudo-auth-url" placeholder="https://auth.uqudo.io/api/oauth/token" style="width: 350px;">
+                </div>
+              </div>
+
               <!-- Default Settings -->
               <h6 class="text-uppercase text-xs font-weight-bolder text-secondary mt-4 mb-3">
                 <i class="material-symbols-rounded text-sm me-1">settings</i> Default Settings
@@ -1750,46 +1794,89 @@
     // In-memory storage for QR customers (will be replaced with API calls)
     let qrCustomers = [];
 
+    // Toggle password visibility for client secret
+    function toggleSecretVisibility() {
+      const secretInput = document.getElementById('uqudo-client-secret');
+      const toggleIcon = document.getElementById('secret-toggle-icon');
+
+      if (secretInput.type === 'password') {
+        secretInput.type = 'text';
+        toggleIcon.textContent = 'visibility_off';
+      } else {
+        secretInput.type = 'password';
+        toggleIcon.textContent = 'visibility';
+      }
+    }
+
     // Load QR configuration
     async function loadQRConfig() {
       try {
         const response = await api.getKYCSetup();
-        if (response.success && response.data && response.data.qr_config) {
-          const config = response.data.qr_config;
+        if (response.success && response.data) {
+          // Load QR config
+          if (response.data.qr_config) {
+            const config = response.data.qr_config;
 
-          // URL Configuration
-          if (config.base_url) {
-            document.getElementById('qr-base-url').value = config.base_url;
+            // URL Configuration
+            if (config.base_url) {
+              document.getElementById('qr-base-url').value = config.base_url;
+            } else {
+              // Set default based on current location
+              document.getElementById('qr-base-url').value = window.location.origin;
+            }
+            if (config.deep_link_scheme) {
+              document.getElementById('qr-deep-link-scheme').value = config.deep_link_scheme;
+            } else {
+              document.getElementById('qr-deep-link-scheme').value = 'uqudo://verify';
+            }
+            if (config.universal_link_base) {
+              document.getElementById('qr-universal-link').value = config.universal_link_base;
+            } else {
+              document.getElementById('qr-universal-link').value = 'https://uqudo.app/verify';
+            }
+
+            // Default Settings
+            if (config.token_expiry_minutes) {
+              document.getElementById('qr-token-expiry').value = config.token_expiry_minutes;
+              updateQRValue('token-expiry', config.token_expiry_minutes, ' min');
+            }
+            if (config.default_journey_id) {
+              document.getElementById('qr-default-journey').value = config.default_journey_id;
+            }
+            document.getElementById('qr-one-time-use').checked = config.one_time_use !== false;
+            document.getElementById('qr-session-tracking').checked = config.session_tracking !== false;
           } else {
-            // Set default based on current location
+            // Set defaults when no config exists
             document.getElementById('qr-base-url').value = window.location.origin;
-          }
-          if (config.deep_link_scheme) {
-            document.getElementById('qr-deep-link-scheme').value = config.deep_link_scheme;
-          } else {
             document.getElementById('qr-deep-link-scheme').value = 'uqudo://verify';
-          }
-          if (config.universal_link_base) {
-            document.getElementById('qr-universal-link').value = config.universal_link_base;
-          } else {
             document.getElementById('qr-universal-link').value = 'https://uqudo.app/verify';
           }
 
-          // Default Settings
-          if (config.token_expiry_minutes) {
-            document.getElementById('qr-token-expiry').value = config.token_expiry_minutes;
-            updateQRValue('token-expiry', config.token_expiry_minutes, ' min');
+          // Load Uqudo credentials
+          if (response.data.uqudo_credentials) {
+            const creds = response.data.uqudo_credentials;
+            if (creds.client_id) {
+              document.getElementById('uqudo-client-id').value = creds.client_id;
+            }
+            if (creds.client_secret) {
+              // Show masked version - don't expose actual secret
+              document.getElementById('uqudo-client-secret').value = creds.client_secret;
+            }
+            if (creds.auth_url) {
+              document.getElementById('uqudo-auth-url').value = creds.auth_url;
+            } else {
+              document.getElementById('uqudo-auth-url').value = 'https://auth.uqudo.io/api/oauth/token';
+            }
+          } else {
+            // Set default auth URL
+            document.getElementById('uqudo-auth-url').value = 'https://auth.uqudo.io/api/oauth/token';
           }
-          if (config.default_journey_id) {
-            document.getElementById('qr-default-journey').value = config.default_journey_id;
-          }
-          document.getElementById('qr-one-time-use').checked = config.one_time_use !== false;
-          document.getElementById('qr-session-tracking').checked = config.session_tracking !== false;
         } else {
           // Set defaults when no config exists
           document.getElementById('qr-base-url').value = window.location.origin;
           document.getElementById('qr-deep-link-scheme').value = 'uqudo://verify';
           document.getElementById('qr-universal-link').value = 'https://uqudo.app/verify';
+          document.getElementById('uqudo-auth-url').value = 'https://auth.uqudo.io/api/oauth/token';
         }
       } catch (error) {
         console.error('Failed to load QR config:', error);
@@ -1797,6 +1884,7 @@
         document.getElementById('qr-base-url').value = window.location.origin;
         document.getElementById('qr-deep-link-scheme').value = 'uqudo://verify';
         document.getElementById('qr-universal-link').value = 'https://uqudo.app/verify';
+        document.getElementById('uqudo-auth-url').value = 'https://auth.uqudo.io/api/oauth/token';
       }
     }
 
@@ -2105,9 +2193,20 @@
       const deepLinkScheme = document.getElementById('qr-deep-link-scheme').value.trim();
       const universalLink = document.getElementById('qr-universal-link').value.trim();
 
+      // Get Uqudo credentials
+      const clientId = document.getElementById('uqudo-client-id').value.trim();
+      const clientSecret = document.getElementById('uqudo-client-secret').value.trim();
+      const authUrl = document.getElementById('uqudo-auth-url').value.trim();
+
       // Validate base URL
       if (baseUrl && !baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
         showError('Base URL must start with http:// or https://');
+        return;
+      }
+
+      // Validate Uqudo credentials if any are provided
+      if ((clientId && !clientSecret) || (!clientId && clientSecret)) {
+        showError('Both Client ID and Client Secret are required');
         return;
       }
 
@@ -2124,6 +2223,15 @@
           session_tracking: document.getElementById('qr-session-tracking').checked
         }
       };
+
+      // Add Uqudo credentials if provided
+      if (clientId && clientSecret) {
+        config.uqudo_credentials = {
+          client_id: clientId,
+          client_secret: clientSecret,
+          auth_url: authUrl || 'https://auth.uqudo.io/api/oauth/token'
+        };
+      }
 
       try {
         const response = await api.updateKYCSetup(config);

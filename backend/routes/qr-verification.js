@@ -427,21 +427,43 @@ function buildDeepLink(token, options = {}) {
 /**
  * Get Uqudo access token using client credentials
  * This authenticates with Uqudo API to get a token for SDK initialization
+ *
+ * Credentials are fetched from the KYC Setup configuration in the database,
+ * which allows them to be configured via the Admin Portal UI.
  */
 async function getUqudoAccessToken() {
-  const clientId = process.env.UQUDO_CLIENT_ID;
-  const clientSecret = process.env.UQUDO_CLIENT_SECRET;
-  const authUrl = process.env.UQUDO_AUTH_URL || 'https://auth.uqudo.com/oauth2/token';
+  // First, try to get credentials from the KYC Setup configuration in database
+  let clientId = process.env.UQUDO_CLIENT_ID;
+  let clientSecret = process.env.UQUDO_CLIENT_SECRET;
+  let authUrl = process.env.UQUDO_AUTH_URL || 'https://auth.uqudo.io/api/oauth/token';
+
+  try {
+    const { data: kycConfig } = await supabaseAdmin
+      .from('kyc_setup')
+      .select('uqudo_credentials')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (kycConfig?.uqudo_credentials) {
+      const creds = kycConfig.uqudo_credentials;
+      if (creds.client_id) clientId = creds.client_id;
+      if (creds.client_secret) clientSecret = creds.client_secret;
+      if (creds.auth_url) authUrl = creds.auth_url;
+      console.log('📋 Using Uqudo credentials from KYC Setup configuration');
+    }
+  } catch (e) {
+    console.log('ℹ️ No KYC Setup credentials found, using environment variables');
+  }
 
   if (!clientId || !clientSecret) {
-    console.warn('Uqudo credentials not configured - using mock token for development');
-    // Return mock token for development/testing
-    return {
-      access_token: `dev_mock_token_${Date.now()}`,
-      expires_in: 3600,
-      token_type: 'Bearer'
-    };
+    console.error('❌ Uqudo credentials not configured in KYC Setup or environment variables');
+    throw new Error('Uqudo API credentials are not configured. Please configure them in the KYC Setup page.');
   }
+
+  console.log('🔐 Requesting Uqudo OAuth token...');
+  console.log(`📍 Auth URL: ${authUrl}`);
+  console.log(`🔑 Client ID: ${clientId.substring(0, 8)}...`);
 
   try {
     const response = await fetch(authUrl, {
@@ -451,24 +473,28 @@ async function getUqudoAccessToken() {
         'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
       },
       body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        scope: 'uqudo.identity.verification'
+        grant_type: 'client_credentials'
       })
     });
 
+    console.log(`📥 OAuth response status: ${response.status}`);
+
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`❌ Uqudo auth failed: ${response.status} - ${errorText}`);
       throw new Error(`Uqudo auth failed: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('✅ Uqudo OAuth token obtained successfully');
+
     return {
       access_token: data.access_token,
       expires_in: data.expires_in || 3600,
       token_type: data.token_type || 'Bearer'
     };
   } catch (error) {
-    console.error('Uqudo authentication error:', error);
+    console.error('❌ Uqudo authentication error:', error);
     throw error;
   }
 }
