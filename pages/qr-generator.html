@@ -21,8 +21,8 @@
   <link href="../assets/css/uqudo-blue-theme.css" rel="stylesheet" />
   <link href="../assets/css/dark-mode.css" rel="stylesheet" />
 
-  <!-- QR Code Library (using unpkg as fallback) -->
-  <script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <!-- QR Code Library - using qrcodejs which is simpler and more reliable -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
   <style>
     .qr-container {
@@ -438,7 +438,7 @@
       }
     }
 
-    // Generate QR Code
+    // Generate QR Code using qrcodejs library
     function generateQRCode(data) {
       const qrContainer = document.getElementById('qr-code');
       qrContainer.innerHTML = '';
@@ -456,21 +456,25 @@
         return;
       }
 
-      QRCode.toCanvas(data, {
-        width: 200,
-        margin: 2,
-        color: {
-          dark: '#1a237e',
-          light: '#ffffff'
-        }
-      }, (error, canvas) => {
-        if (error) {
-          console.error('QR generation error:', error);
-          qrContainer.innerHTML = '<p class="text-danger">Failed to generate QR code</p>';
-          return;
-        }
-        qrContainer.appendChild(canvas);
-      });
+      try {
+        // qrcodejs library API
+        new QRCode(qrContainer, {
+          text: data,
+          width: 200,
+          height: 200,
+          colorDark: '#1a237e',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.H
+        });
+      } catch (error) {
+        console.error('QR generation error:', error);
+        qrContainer.innerHTML = `
+          <div class="text-center p-3">
+            <p class="text-danger mb-2">Failed to generate QR code</p>
+            <a href="${data}" class="btn btn-sm bg-gradient-info">Open Link</a>
+          </div>
+        `;
+      }
     }
 
     // Start countdown timer
