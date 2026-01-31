@@ -413,15 +413,23 @@
 
       const deepLink = `${DEEP_LINK_SCHEME}?${params.toString()}`;
 
+      // Record the time before attempting to open the app
+      const startTime = Date.now();
+
       // Try to open the app
       window.location.href = deepLink;
 
       // After a delay, if still on this page, the app didn't open
-      // (user doesn't have app installed or deep link failed)
+      // Redirect to download page
       setTimeout(() => {
-        // Could show a prompt to download the app
-        console.log('Deep link may have failed - app might not be installed');
-      }, 2000);
+        // If we're still here after 1.5 seconds, app probably isn't installed
+        // Check if the page is still visible (not hidden by app switch)
+        if (!document.hidden) {
+          // Redirect to download page with return URL
+          const returnUrl = encodeURIComponent(window.location.href);
+          window.location.href = `download-app?return_url=${returnUrl}`;
+        }
+      }, 1500);
     }
 
     // Initialize on page load

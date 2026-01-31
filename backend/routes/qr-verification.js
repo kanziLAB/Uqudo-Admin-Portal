@@ -137,8 +137,8 @@ router.post('/generate', asyncHandler(async (req, res) => {
   const webVerifyLink = `${baseUrl}/pages/verify?token=${token}&session=${sessionId}`;
 
   // Return response
-  // For QR data, use the deep link directly for mobile devices
-  // This bypasses any web authentication and opens the app directly
+  // For QR data, use the web verify URL so it works on all devices
+  // The verify page will try to open the app, and fallback to download page if not installed
   res.json({
     success: true,
     data: {
@@ -146,7 +146,7 @@ router.post('/generate', asyncHandler(async (req, res) => {
       session_id: sessionId,
       deep_link: deepLink,                          // uqudo://verify?token=... (for apps)
       universal_link: webVerifyLink,                 // https://...verify?token=... (web fallback)
-      qr_data: deepLink,                             // Use deep link for QR (opens app directly)
+      qr_data: webVerifyLink,                        // Use web URL for QR (handles app detection + fallback to download)
       web_fallback: webVerifyLink,                   // Web URL if app not installed
       expires_at: expiresAt.toISOString(),
       expires_in_seconds: expiry_minutes * 60,
