@@ -70,6 +70,7 @@ Examples:
   - http://localhost:${PORT}/pages/accounts (works)
   - http://localhost:${PORT}/pages/alerts (works)
   - http://localhost:${PORT}/pages/qr-generator (works - PUBLIC)
+  - http://localhost:${PORT}/pages/download-app (works - PUBLIC)
 ============================================================
 QR Generator URL Parameters:
   - customer_id: B2B customer identifier (e.g., vfs-global)
