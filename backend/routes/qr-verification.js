@@ -483,7 +483,7 @@ function buildDeepLink(token, options = {}) {
 async function getUqudoAccessToken(customerId = null) {
   // Default Uqudo credentials - USE THESE FIRST (most reliable)
   const DEFAULT_CLIENT_ID = '456edf22-e887-4a32-b2e5-334bf902831f';
-  const DEFAULT_CLIENT_SECRET = 'APo2WWY309epuh2oqnc8mtsorerLcVq1MEghkUuofbbTRWIlpMgB7y0dPkEURzPk';
+  const DEFAULT_CLIENT_SECRET = '39YwaAyV9fmCUSd5mX2aUvpm8EnvSoKxC2vXvSwksx0hkeMjROifbfPwXh6RzKS8';
   const DEFAULT_AUTH_URL = 'https://auth.uqudo.io/api/oauth/token';
 
   // Start with default credentials (highest priority for reliability)
@@ -513,14 +513,17 @@ async function getUqudoAccessToken(customerId = null) {
   console.log(`🔑 Client ID: ${clientId.substring(0, 8)}...`);
 
   try {
+    // Send credentials in the request body (not Authorization header)
+    // This is the format that works with Uqudo's OAuth endpoint
     const response = await fetch(authUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: new URLSearchParams({
-        grant_type: 'client_credentials'
+        grant_type: 'client_credentials',
+        client_id: clientId,
+        client_secret: clientSecret
       })
     });
 
