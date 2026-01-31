@@ -481,88 +481,20 @@ function buildDeepLink(token, options = {}) {
  * @param {string} customerId - Optional customer ID to look up specific credentials
  */
 async function getUqudoAccessToken(customerId = null) {
-  // Default Uqudo credentials (fallback)
+  // Default Uqudo credentials - USE THESE FIRST (most reliable)
   const DEFAULT_CLIENT_ID = '456edf22-e887-4a32-b2e5-334bf902831f';
   const DEFAULT_CLIENT_SECRET = 'APo2WWY309epuh2oqnc8mtsorerLcVq1MEghkUuofbbTRWIlpMgB7y0dPkEURzPk';
   const DEFAULT_AUTH_URL = 'https://auth.uqudo.io/api/oauth/token';
 
-  let clientId = null;
-  let clientSecret = null;
+  // Start with default credentials (highest priority for reliability)
+  let clientId = DEFAULT_CLIENT_ID;
+  let clientSecret = DEFAULT_CLIENT_SECRET;
   let authUrl = DEFAULT_AUTH_URL;
-  let credentialsSource = 'none';
+  let credentialsSource = 'default';
 
-  // 1. Try to get customer-specific credentials first
-  if (customerId && customerId !== 'default') {
-    try {
-      // Try API endpoint first
-      const customers = JSON.parse(process.env.QR_CUSTOMERS || '[]');
-      const customer = customers.find(c => c.id === customerId);
-
-      if (!customer) {
-        // Try database lookup via localStorage simulation or direct fetch
-        console.log(`🔍 Looking up credentials for customer: ${customerId}`);
-      }
-
-      if (customer?.uqudo_credentials) {
-        const creds = customer.uqudo_credentials;
-        if (creds.client_id && creds.client_secret) {
-          clientId = creds.client_id?.trim();
-          clientSecret = creds.client_secret?.trim();
-          if (creds.auth_url) authUrl = creds.auth_url.trim();
-          credentialsSource = `customer:${customerId}`;
-          console.log(`📋 Using Uqudo credentials for customer: ${customerId}`);
-        }
-      }
-    } catch (e) {
-      console.log(`ℹ️ No customer-specific credentials found for ${customerId}, trying global config`);
-    }
-  }
-
-  // 2. Try global KYC Setup credentials (database) - PRIORITY over env vars
-  if (credentialsSource === 'none') {
-    try {
-      const { data: kycConfig } = await supabaseAdmin
-        .from('kyc_setup')
-        .select('uqudo_credentials')
-        .limit(1)
-        .single();
-
-      if (kycConfig?.uqudo_credentials) {
-        const creds = kycConfig.uqudo_credentials;
-        if (creds.client_id && creds.client_secret) {
-          clientId = creds.client_id?.trim();
-          clientSecret = creds.client_secret?.trim();
-          if (creds.auth_url) authUrl = creds.auth_url.trim();
-          credentialsSource = 'kyc_setup';
-          console.log('📋 Using Uqudo credentials from KYC Setup configuration');
-        }
-      }
-    } catch (e) {
-      console.log('ℹ️ No KYC Setup credentials found, trying environment variables');
-    }
-  }
-
-  // 3. Fallback to environment variables
-  if (credentialsSource === 'none') {
-    clientId = process.env.UQUDO_CLIENT_ID?.trim();
-    clientSecret = process.env.UQUDO_CLIENT_SECRET?.trim();
-    if (process.env.UQUDO_AUTH_URL) {
-      authUrl = process.env.UQUDO_AUTH_URL.trim();
-    }
-    if (clientId && clientSecret) {
-      credentialsSource = 'environment';
-      console.log('📋 Using Uqudo credentials from environment variables');
-    }
-  }
-
-  // 4. Final fallback to hardcoded defaults
-  if (credentialsSource === 'none') {
-    clientId = DEFAULT_CLIENT_ID;
-    clientSecret = DEFAULT_CLIENT_SECRET;
-    authUrl = DEFAULT_AUTH_URL;
-    credentialsSource = 'default';
-    console.log('📋 Using default Uqudo credentials');
-  }
+  // Using hardcoded default credentials for now
+  // TODO: Re-enable customer/KYC/env lookups once credentials are verified
+  console.log('📋 Using hardcoded default Uqudo credentials');
 
   if (!clientId || !clientSecret) {
     console.error('❌ Uqudo credentials not configured');
