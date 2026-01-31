@@ -369,3 +369,98 @@ a.text-primary:hover {
 
 /* Keep badge colors for status indication (don't override these) */
 /* This allows badges to keep their semantic colors for status */
+
+/* ============================================ */
+/* WHITE TEXT ON BLUE BACKGROUND BUTTONS */
+/* ============================================ */
+
+/* All buttons with blue backgrounds should have white text */
+.btn-primary,
+.btn-info,
+.btn-success,
+.btn-warning,
+.btn-danger,
+.btn.bg-gradient-primary,
+.btn.bg-gradient-info,
+.btn.bg-gradient-success,
+.btn.bg-gradient-warning,
+.btn.bg-gradient-danger,
+.bg-gradient-primary .btn,
+.bg-gradient-info .btn,
+[class*="bg-gradient-"] .btn,
+[class*="bg-blue"] .btn,
+.bg-primary .btn,
+.bg-info .btn {
+  color: #ffffff !important;
+}
+
+/* Ensure icons inside buttons are also white */
+.btn-primary i,
+.btn-info i,
+.btn-success i,
+.btn-warning i,
+.btn-danger i,
+.btn.bg-gradient-primary i,
+.btn.bg-gradient-info i,
+.btn.bg-gradient-success i,
+.btn.bg-gradient-warning i,
+.btn.bg-gradient-danger i,
+.btn-primary .material-icons,
+.btn-info .material-icons,
+.btn.bg-gradient-primary .material-icons,
+.btn.bg-gradient-info .material-icons,
+.btn-primary .material-symbols-rounded,
+.btn-info .material-symbols-rounded,
+.btn.bg-gradient-primary .material-symbols-rounded,
+.btn.bg-gradient-info .material-symbols-rounded {
+  color: #ffffff !important;
+}
+
+/* Sign in/Sign out buttons specifically */
+.btn[onclick*="logout"],
+.btn[onclick*="signOut"],
+.btn[onclick*="sign-out"],
+button[type="submit"].btn-primary,
+button[type="submit"].bg-gradient-info,
+input[type="submit"].btn-primary,
+input[type="submit"].bg-gradient-info {
+  color: #ffffff !important;
+}
+
+/* Hover states should also maintain white text */
+.btn-primary:hover,
+.btn-info:hover,
+.btn-success:hover,
+.btn-warning:hover,
+.btn-danger:hover,
+.btn.bg-gradient-primary:hover,
+.btn.bg-gradient-info:hover,
+.btn.bg-gradient-success:hover,
+.btn.bg-gradient-warning:hover,
+.btn.bg-gradient-danger:hover {
+  color: #ffffff !important;
+}
+
+/* Focus states */
+.btn-primary:focus,
+.btn-info:focus,
+.btn.bg-gradient-primary:focus,
+.btn.bg-gradient-info:focus {
+  color: #ffffff !important;
+}
+
+/* Active states */
+.btn-primary:active,
+.btn-info:active,
+.btn.bg-gradient-primary:active,
+.btn.bg-gradient-info:active {
+  color: #ffffff !important;
+}
+
+/* Disabled states */
+.btn-primary:disabled,
+.btn-info:disabled,
+.btn.bg-gradient-primary:disabled,
+.btn.bg-gradient-info:disabled {
+  color: #ffffff !important;
+}
