@@ -481,9 +481,14 @@ function buildDeepLink(token, options = {}) {
  * @param {string} customerId - Optional customer ID to look up specific credentials
  */
 async function getUqudoAccessToken(customerId = null) {
+  // Default Uqudo credentials (fallback)
+  const DEFAULT_CLIENT_ID = '456edf22-e887-4a32-b2e5-334bf902831f';
+  const DEFAULT_CLIENT_SECRET = 'APo2WWY309epuh2oqnc8mtsorerLcVq1MEghkUuofbbTRWIlpMgB7y0dPkEURzPk';
+  const DEFAULT_AUTH_URL = 'https://auth.uqudo.io/api/oauth/token';
+
   let clientId = null;
   let clientSecret = null;
-  let authUrl = 'https://auth.uqudo.io/api/oauth/token'; // Default Uqudo auth URL
+  let authUrl = DEFAULT_AUTH_URL;
   let credentialsSource = 'none';
 
   // 1. Try to get customer-specific credentials first
@@ -548,6 +553,15 @@ async function getUqudoAccessToken(customerId = null) {
       credentialsSource = 'environment';
       console.log('📋 Using Uqudo credentials from environment variables');
     }
+  }
+
+  // 4. Final fallback to hardcoded defaults
+  if (credentialsSource === 'none') {
+    clientId = DEFAULT_CLIENT_ID;
+    clientSecret = DEFAULT_CLIENT_SECRET;
+    authUrl = DEFAULT_AUTH_URL;
+    credentialsSource = 'default';
+    console.log('📋 Using default Uqudo credentials');
   }
 
   if (!clientId || !clientSecret) {
